@@ -27,8 +27,10 @@ import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.utils.*;
 import io.metersphere.i18n.Translator;
 import io.metersphere.service.FileService;
+import io.metersphere.track.request.testcase.ApiCaseRelevanceRequest;
 import io.metersphere.track.request.testcase.QueryTestPlanRequest;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -290,9 +292,13 @@ public class ApiDefinitionService {
         createBodyFiles(bodyUploadIds, bodyFiles);
 
         HashTree hashTree = request.getTestElement().generateHashTree();
+        String runMode = ApiRunMode.DELIMIT.name();
+        if (StringUtils.isNotBlank(request.getType()) && StringUtils.equals(request.getType(), ApiRunMode.API_PLAN.name())) {
+            runMode = ApiRunMode.API_PLAN.name();
+        }
         request.getTestElement().getJmx(hashTree);
         // 调用执行方法
-        jMeterService.runDefinition(request.getId(), hashTree, request.getReportId(), ApiRunMode.DELIMIT.name());
+        jMeterService.runDefinition(request.getId(), hashTree, request.getReportId(), runMode);
         return request.getId();
     }
 
@@ -330,12 +336,21 @@ public class ApiDefinitionService {
      */
     public APIReportResult getDbResult(String testId) {
         ApiDefinitionExecResult result = extApiDefinitionExecResultMapper.selectMaxResultByResourceId(testId);
+        return buildAPIReportResult(result);
+    }
+
+    private APIReportResult buildAPIReportResult(ApiDefinitionExecResult result) {
         if (result == null) {
             return null;
         }
         APIReportResult reportResult = new APIReportResult();
         reportResult.setContent(result.getContent());
         return reportResult;
+    }
+
+    public APIReportResult getDbResult(String testId, String type) {
+        ApiDefinitionExecResult result = extApiDefinitionExecResultMapper.selectMaxResultByResourceIdAndType(testId, type);
+        return buildAPIReportResult(result);
     }
 
 
@@ -391,6 +406,10 @@ public class ApiDefinitionService {
         apiDefinitionMapper.updateByExampleSelective(definitionWithBLOBs, definitionExample);
     }
 
+    public void testPlanRelevance(ApiCaseRelevanceRequest request) {
+        apiTestCaseService.relevanceByApi(request);
+    }
+
     /**
      * 数据统计-接口类型
      *
@@ -418,5 +437,13 @@ public class ApiDefinitionService {
         } else {
             return extApiDefinitionMapper.countByProjectIDAndCreateInThisWeek(projectId, firstTime.getTime(), lastTime.getTime());
         }
+    }
+
+    public List<ApiDataCountResult> countStateByProjectID(String projectId) {
+        return extApiDefinitionMapper.countStateByProjectID(projectId);
+    }
+
+    public List<ApiDataCountResult> countApiCoverageByProjectID(String projectId) {
+        return extApiDefinitionMapper.countApiCoverageByProjectID(projectId);
     }
 }
