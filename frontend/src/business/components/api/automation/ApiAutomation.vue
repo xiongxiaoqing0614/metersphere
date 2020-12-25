@@ -1,14 +1,14 @@
 <template>
   <ms-container>
     <ms-aside-container>
-    <ms-api-scenario-module
-      @nodeSelectEvent="nodeChange"
-      @refreshTable="refresh"
-      @saveAsEdit="editScenario"
-      @setModuleOptions="setModuleOptions"
-      @enableTrash="enableTrash"
-      :type="'edit'"
-      ref="nodeTree"/>
+      <ms-api-scenario-module
+        @nodeSelectEvent="nodeChange"
+        @refreshTable="refresh"
+        @saveAsEdit="editScenario"
+        @setModuleOptions="setModuleOptions"
+        @enableTrash="enableTrash"
+        :type="'edit'"
+        ref="nodeTree"/>
     </ms-aside-container>
 
     <ms-main-container>
@@ -34,7 +34,7 @@
 
         <el-tab-pane name="add">
           <template v-slot:label>
-            <el-button type="primary" plain icon="el-icon-plus" size="mini"/>
+            <el-button type="primary" plain icon="el-icon-plus" size="mini" v-tester/>
           </template>
         </el-tab-pane>
       </el-tabs>

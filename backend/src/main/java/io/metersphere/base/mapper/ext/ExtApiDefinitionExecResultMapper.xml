@@ -37,7 +37,8 @@
             SELECT testCase.testCaseName AS caseName,testCase.testPlanName AS testPlan ,caseErrorCountData.dataCountNumber AS failureTimes,'apiCase' AS caseType
             FROM (
             SELECT apiCase.id AS testCaseID,apiCase.`name` AS testCaseName,group_concat(testPlan.`name`)  AS testPlanName FROM api_test_case apiCase
-            LEFT JOIN test_plan testPlan ON testPlan.api_ids like concat('%"',apiCase.id,'"%')
+           INNER JOIN test_plan_api_case testPlanCase ON testPlanCase.api_case_id = apiCase.id
+           INNER JOIN test_plan testPlan ON testPlan.id = testPlanCase.test_plan_id
             GROUP BY apiCase.id
             ORDER BY apiCase.create_time DESC
             )testCase
@@ -49,17 +50,24 @@
             ) caseErrorCountData ON caseErrorCountData.testCaseID =testCase.testCaseID
             WHERE caseErrorCountData.executeTime >= #{startTimestamp}
             UNION
-            SELECT scene.`name` AS caseName,testPlan.`name` AS testPlan,count(report.id) AS failureTimes,'scenario' AS caseType
+            SELECT scene.`name` AS caseName,apiScene.testPlanName AS testPlan,count(report.id) AS failureTimes,'scenario' AS caseType
             FROM api_scenario_report report
-               INNER JOIN api_scenario_report_detail reportDetail ON report.id = reportDetail.report_id
-               INNER JOIN api_scenario scene ON reportDetail.content like concat('%"',scene.`name`,'"%')
-               LEFT JOIN test_plan_api_scenario apiScene ON apiScene.api_scenario_id = scene.id
-               LEFT JOIN test_plan testPlan ON testPlan.id = apiScene.test_plan_id
+                     INNER JOIN api_scenario_report_detail reportDetail ON report.id = reportDetail.report_id
+                     INNER JOIN api_scenario scene ON report.scenario_id = scene.id
+                     INNER JOIN
+                 (
+                     SELECT
+                         apiScene.api_scenario_id,
+                         group_concat(testPlan.`name`) AS testPlanName
+                     FROM
+                         test_plan_api_scenario apiScene
+                             INNER JOIN test_plan testPlan ON testPlan.id = apiScene.test_plan_id
+                     GROUP BY apiScene.api_scenario_id
+                 )apiScene ON apiScene.api_scenario_id = scene.id
             WHERE report.project_id = #{projectId}
-            AND report.status = 'Error' AND report.create_time >= #{startTimestamp}
-          GROUP BY scene.id
+              AND ( report.STATUS = 'Error' OR report.STATUS = 'Fail' )  AND report.create_time >= #{startTimestamp}
+            GROUP BY scene.id
           ) showTable
         ORDER BY showTable.failureTimes DESC
-            limit #{limitNumber}
     </select>
 </mapper>

@@ -1,5 +1,5 @@
 <template>
-  <div style="min-width: 1000px;margin-bottom: 20px">
+  <div style="min-width: 1200px;margin-bottom: 20px">
     <el-radio-group v-model="body.type" size="mini">
       <el-radio :disabled="isReadOnly" :label="type.FORM_DATA" @change="modeChange">
         {{ $t('api_test.definition.request.body_form_data') }}
@@ -48,7 +48,6 @@
       <ms-code-edit :read-only="isReadOnly" :data.sync="body.raw" :modes="modes" :mode="'xml'" ref="codeEdit"/>
     </div>
 
-
     <div class="ms-body" v-if="body.type == 'Raw'">
       <ms-code-edit :read-only="isReadOnly" :data.sync="body.raw" :modes="modes" ref="codeEdit"/>
     </div>
@@ -69,7 +68,6 @@
   import {BODY_TYPE, KeyValue} from "../../model/ApiTestModel";
   import MsCodeEdit from "../../../../common/components/MsCodeEdit";
   import MsJsonCodeEdit from "../../../../common/components/MsJsonCodeEdit";
-
   import MsDropdown from "../../../../common/components/MsDropdown";
   import MsApiVariable from "../ApiVariable";
   import MsApiBinaryVariable from "./ApiBinaryVariable";

@@ -21,5 +21,11 @@ public class RunScenarioRequest {
 
     private String executeType;
 
+    private String runMode;
+
+    private List<String> planCaseIds;
+
+    private String reportUserID;
+
     private List<String> scenarioIds;
 }

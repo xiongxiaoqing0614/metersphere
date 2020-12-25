@@ -110,22 +110,35 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         if (useEnvironment != null) {
             ApiTestEnvironmentService environmentService = CommonBeanFactory.getBean(ApiTestEnvironmentService.class);
             ApiTestEnvironmentWithBLOBs environment = environmentService.get(useEnvironment);
-            config.setConfig(JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class));
+            if (environment != null && environment.getConfig() != null) {
+                config.setConfig(JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class));
+            }
         }
         try {
             if (config != null && config.getConfig() != null) {
-                String url = "";
-                sampler.setDomain(config.getConfig().getHttpConfig().getDomain());
-                sampler.setPort(config.getConfig().getHttpConfig().getPort());
-                sampler.setProtocol(config.getConfig().getHttpConfig().getProtocol());
-                url = config.getConfig().getHttpConfig().getProtocol() + "://" + config.getConfig().getHttpConfig().getSocket();
+                String url = config.getConfig().getHttpConfig().getProtocol() + "://" + config.getConfig().getHttpConfig().getSocket();
+                // 补充如果是完整URL 则用自身URL
+                boolean isUrl = false;
+                if (StringUtils.isNotEmpty(this.getUrl()) && isURL(this.getUrl())) {
+                    url = this.getUrl();
+                    isUrl = true;
+                }
                 URL urlObject = new URL(url);
+                if (isUrl) {
+                    sampler.setDomain(URLDecoder.decode(urlObject.getHost(), "UTF-8"));
+                    sampler.setPort(urlObject.getPort());
+                    sampler.setProtocol(urlObject.getProtocol());
+                } else {
+                    sampler.setDomain(config.getConfig().getHttpConfig().getDomain());
+                    sampler.setPort(config.getConfig().getHttpConfig().getPort());
+                    sampler.setProtocol(config.getConfig().getHttpConfig().getProtocol());
+                }
                 String envPath = StringUtils.equals(urlObject.getPath(), "/") ? "" : urlObject.getPath();
-                if (StringUtils.isNotBlank(this.getPath())) {
+                if (StringUtils.isNotBlank(this.getPath()) && !isUrl) {
                     envPath += this.getPath();
                 }
                 if (CollectionUtils.isNotEmpty(this.getRest()) && this.isRest()) {
-                    envPath = getRestParameters(URLDecoder.decode(envPath, "UTF-8"));
+                    envPath = getRestParameters(URLDecoder.decode(envPath, "UTF-8"), config);
                     sampler.setPath(envPath);
                 }
                 if (CollectionUtils.isNotEmpty(this.getArguments())) {
@@ -142,7 +155,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
                 sampler.setProtocol(urlObject.getProtocol());
 
                 if (CollectionUtils.isNotEmpty(this.getRest()) && this.isRest()) {
-                    sampler.setPath(getRestParameters(URLDecoder.decode(urlObject.getPath(), "UTF-8")));
+                    sampler.setPath(getRestParameters(URLDecoder.decode(urlObject.getPath(), "UTF-8"), config));
                 }
                 if (CollectionUtils.isNotEmpty(this.getArguments())) {
                     sampler.setPath(getPostQueryParameters(URLDecoder.decode(urlObject.getPath(), "UTF-8")));
@@ -185,7 +198,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         }
     }
 
-    private String getRestParameters(String path) {
+    private String getRestParameters(String path, ParameterConfig config) {
         StringBuffer stringBuffer = new StringBuffer();
         stringBuffer.append(path);
         stringBuffer.append("/");
@@ -193,18 +206,17 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         this.getRest().stream().filter(KeyValue::isEnable).filter(KeyValue::isValid).forEach(keyValue ->
                 keyValueMap.put(keyValue.getName(), keyValue.getValue())
         );
-
-        Pattern p = Pattern.compile("(\\{)([\\w]+)(\\})");
-        Matcher m = p.matcher(path);
-        StringBuffer sb = new StringBuffer();
-        while (m.find()) {
-            String group = m.group(2);
-            //替换并且把替换好的值放到sb中
-            m.appendReplacement(sb, keyValueMap.get(group));
+        try {
+            Pattern p = Pattern.compile("(\\{)([\\w]+)(\\})");
+            Matcher m = p.matcher(path);
+            while (m.find()) {
+                String group = m.group(2);
+                path = path.replace("{" + group + "}", keyValueMap.get(group));
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
-        //把符合的数据追加到sb尾
-        m.appendTail(sb);
-        return sb.toString();
+        return path;
     }
 
     private String getPostQueryParameters(String path) {
@@ -243,6 +255,15 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         tree.add(headerManager);
     }
 
+    public boolean isURL(String str) {
+        //转换为小写
+        try {
+            new URL(str);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     private boolean isRest() {
         return this.getRest().stream().filter(KeyValue::isEnable).filter(KeyValue::isValid).toArray().length > 0;

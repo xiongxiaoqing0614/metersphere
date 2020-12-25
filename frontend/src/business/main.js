@@ -11,13 +11,15 @@ import YanProgress from 'yan-progress';
 import './permission' // permission control
 import i18n from "../i18n/i18n";
 import store from "./store";
-import {permission, roles, xpack} from './permission'
+import {permission, roles, tester, xpack} from './permission'
 import chart from "../common/js/chart";
 import CalendarHeatmap from "../common/js/calendar-heatmap";
 import '../common/css/menu-header.css';
 import '../common/css/main.css';
 import CKEditor from '@ckeditor/ckeditor5-vue';
+import VueFab from 'vue-float-action-button';
 import VueGtag from "vue-gtag";
+
 
 Vue.use(VueGtag, {
   config: { id: "UA-147297392-9" }
@@ -34,7 +36,8 @@ Vue.use(chart);
 Vue.use(CalendarHeatmap);
 Vue.use(message);
 Vue.use(CKEditor);
-Vue.use(YanProgress)
+Vue.use(YanProgress);
+Vue.use(VueFab);
 
 // v-permission
 Vue.directive('permission', permission);
@@ -43,6 +46,8 @@ Vue.directive('permission', permission);
 Vue.directive('roles', roles);
 
 Vue.directive('xpack', xpack);
+
+Vue.directive('tester', tester);
 
 new Vue({
   el: '#app',

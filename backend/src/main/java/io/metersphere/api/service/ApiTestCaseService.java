@@ -13,6 +13,7 @@ import io.metersphere.base.mapper.ApiTestFileMapper;
 import io.metersphere.base.mapper.ext.ExtApiDefinitionExecResultMapper;
 import io.metersphere.base.mapper.ext.ExtApiTestCaseMapper;
 import io.metersphere.base.mapper.ext.ExtTestPlanApiCaseMapper;
+import io.metersphere.base.mapper.ext.ExtTestPlanTestCaseMapper;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.utils.*;
 import io.metersphere.i18n.Translator;
@@ -47,6 +48,8 @@ public class ApiTestCaseService {
     private ExtApiTestCaseMapper extApiTestCaseMapper;
     @Resource
     private ApiTestFileMapper apiTestFileMapper;
+    @Resource
+    private ExtTestPlanTestCaseMapper extTestPlanTestCaseMapper;
     @Resource
     private FileService fileService;
     @Resource
@@ -102,7 +105,6 @@ public class ApiTestCaseService {
     public void update(SaveApiTestCaseRequest request, List<MultipartFile> bodyFiles) {
 
         deleteFileByTestId(request.getId());
-
         List<String> bodyUploadIds = new ArrayList<>(request.getBodyUploadIds());
         request.setBodyUploadIds(null);
         ApiTestCase test = updateTest(request);
@@ -131,6 +133,7 @@ public class ApiTestCaseService {
     }
 
     public void delete(String testId) {
+        extTestPlanTestCaseMapper.deleteByTestCaseID(testId);
         deleteFileByTestId(testId);
         extApiDefinitionExecResultMapper.deleteByResourceId(testId);
         apiTestCaseMapper.deleteByPrimaryKey(testId);
@@ -253,6 +256,9 @@ public class ApiTestCaseService {
     }
 
     public void deleteBatch(List<String> ids) {
+        for (String testId:ids) {
+            extTestPlanTestCaseMapper.deleteByTestCaseID(testId);
+        }
         ApiTestCaseExample example = new ApiTestCaseExample();
         example.createCriteria().andIdIn(ids);
         apiTestCaseMapper.deleteByExample(example);
@@ -317,4 +323,14 @@ public class ApiTestCaseService {
         }
     }
 
+    public List<ApiTestCase> selectCasesBydIds(List<String> caseIds) {
+        ApiTestCaseExample example = new ApiTestCaseExample();
+        example.createCriteria().andIdIn(caseIds);
+        return apiTestCaseMapper.selectByExample(example);
+    }
+
+    public Map<String, String> getRequest(ApiTestCaseRequest request) {
+        List<ApiTestCaseWithBLOBs> list = extApiTestCaseMapper.getRequest(request);
+        return list.stream().collect(Collectors.toMap(ApiTestCaseWithBLOBs::getId, ApiTestCaseWithBLOBs::getRequest));
+    }
 }

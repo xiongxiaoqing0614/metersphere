@@ -6,7 +6,7 @@
                          :show-create="false"/>
       </template>
 
-      <el-table ref="scenarioTable" border :data="tableData" class="adjust-table" @select-all="select" @select="select">
+      <el-table ref="scenarioTable" border :data="tableData" class="adjust-table" @select-all="select" @select="select" v-loading="loading">
         <el-table-column type="selection"/>
         <el-table-column width="40" :resizable="false" align="center">
           <template v-slot:default="{row}">
@@ -25,9 +25,9 @@
           </template>
 
         </el-table-column>
-        <el-table-column prop="tagNames" :label="$t('api_test.automation.tag')" width="200px">
+        <el-table-column prop="tags" :label="$t('api_test.automation.tag')" width="200px">
           <template v-slot:default="scope">
-            <div v-for="itemName in scope.row.tagNames" :key="itemName">
+            <div v-for="(itemName,index)  in scope.row.tags" :key="index">
               <ms-tag type="success" effect="plain" :content="itemName"/>
             </div>
           </template>
@@ -50,14 +50,14 @@
         <el-table-column :label="$t('commons.operating')" width="200px" v-if="!referenced">
           <template v-slot:default="{row}">
             <div v-if="trashEnable">
-              <el-button type="text" @click="reductionApi(row)">恢复</el-button>
-              <el-button type="text" @click="remove(row)">{{ $t('api_test.automation.remove') }}</el-button>
+              <el-button type="text" @click="reductionApi(row)" v-tester>{{$t('commons.reduction')}}</el-button>
+              <el-button type="text" @click="remove(row)" v-tester>{{ $t('api_test.automation.remove') }}</el-button>
             </div>
             <div v-else>
-              <el-button type="text" @click="edit(row)">{{ $t('api_test.automation.edit') }}</el-button>
-              <el-button type="text" @click="execute(row)">{{ $t('api_test.automation.execute') }}</el-button>
-              <el-button type="text" @click="copy(row)">{{ $t('api_test.automation.copy') }}</el-button>
-              <el-button type="text" @click="remove(row)">{{ $t('api_test.automation.remove') }}</el-button>
+              <el-button type="text" @click="edit(row)" v-tester>{{ $t('api_test.automation.edit') }}</el-button>
+              <el-button type="text" @click="execute(row)" v-tester>{{ $t('api_test.automation.execute') }}</el-button>
+              <el-button type="text" @click="copy(row)" v-tester>{{ $t('api_test.automation.copy') }}</el-button>
+              <el-button type="text" @click="remove(row)" v-tester>{{ $t('api_test.automation.remove') }}</el-button>
               <ms-scenario-extend-buttons :row="row"/>
             </div>
           </template>
@@ -118,11 +118,14 @@
         pageSize: 10,
         total: 0,
         reportId: "",
+        batchReportId: "",
+        content: {},
         infoDb: false,
         runVisible: false,
         planVisible: false,
         projectId: "",
         runData: [],
+        report: {},
         buttons: [
           {
             name: this.$t('api_test.automation.batch_add_plan'), handleClick: this.handleBatchAddCase
@@ -145,12 +148,20 @@
           this.search();
         }
       },
+      batchReportId() {
+        this.loading = true;
+        this.getReport();
+      }
+    },
+    computed: {
+      isNotRunning() {
+        return "Running" !== this.report.status;
+      }
     },
     methods: {
       search() {
         this.loading = true;
         this.condition.filters = ["Prepare", "Underway", "Completed"];
-
         this.condition.moduleIds = this.selectNodeIds;
 
         if (this.trashEnable) {
@@ -161,12 +172,17 @@
         if (this.projectId != null) {
           this.condition.projectId = this.projectId;
         }
-
+        this.selection = [];
         let url = "/api/automation/list/" + this.currentPage + "/" + this.pageSize;
         this.$post(url, this.condition, response => {
           let data = response.data;
           this.total = data.itemCount;
           this.tableData = data.listObject;
+          this.tableData.forEach(item => {
+            if (item.tags && item.tags.length > 0) {
+              item.tags = JSON.parse(item.tags);
+            }
+          })
           this.loading = false;
         });
       },
@@ -192,9 +208,33 @@
           this.$success(this.$t("commons.save_success"));
         });
       },
+      getReport() {
+        if (this.batchReportId) {
+          let url = "/api/scenario/report/get/" + this.batchReportId;
+          this.$get(url, response => {
+            this.report = response.data || {};
+            if (response.data) {
+              if (this.isNotRunning) {
+                try {
+                  this.content = JSON.parse(this.report.content);
+                } catch (e) {
+                  throw e;
+                }
+                this.loading = false;
+                this.$success("批量执行成功，请到报告页面查看详情！");
+              } else {
+                setTimeout(this.getReport, 2000)
+              }
+            } else {
+              this.loading = false;
+              this.$error(this.$t('api_report.not_exist'));
+            }
+          });
+        }
+      },
       handleBatchExecute() {
         this.infoDb = false;
-        let url = "/api/automation/run";
+        let url = "/api/automation/run/batch";
         let run = {};
         let scenarioIds = this.selection;
         run.id = getUUID();
@@ -202,8 +242,8 @@
         run.projectId = getCurrentProjectID();
         this.$post(url, run, response => {
           let data = response.data;
-          this.runVisible = true;
-          this.reportId = run.id;
+          this.runVisible = false;
+          this.batchReportId = run.id;
         });
       },
       selectAllChange() {
@@ -221,6 +261,7 @@
       },
       reductionApi(row) {
         row.scenarioDefinition = null;
+        row.tags = null;
         let rows = [row];
         this.$post("/api/automation/reduction", rows, response => {
           this.$success(this.$t('commons.save_success'));

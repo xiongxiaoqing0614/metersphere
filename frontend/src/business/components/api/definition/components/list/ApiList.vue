@@ -16,7 +16,7 @@
         <el-table-column type="selection"/>
         <el-table-column width="40" :resizable="false" align="center">
           <template v-slot:default="scope">
-            <show-more-btn :is-show="scope.row.showMore && !isReadOnly" :buttons="buttons" :size="selectRows.size"/>
+            <show-more-btn :is-show="scope.row.showMore && !isReadOnly && !isRelevance" :buttons="buttons" :size="selectRows.size"/>
           </template>
         </el-table-column>
 
@@ -78,10 +78,10 @@
 
         <el-table-column v-if="!isReadOnly && !isRelevance" :label="$t('commons.operating')" min-width="130" align="center">
           <template v-slot:default="scope">
-            <el-button type="text" @click="reductionApi(scope.row)" v-if="trashEnable">恢复</el-button>
-            <el-button type="text" @click="editApi(scope.row)" v-else>{{$t('commons.edit')}}</el-button>
+            <el-button type="text" @click="reductionApi(scope.row)" v-if="trashEnable" v-tester>{{$t('commons.reduction')}}</el-button>
+            <el-button type="text" @click="editApi(scope.row)" v-else v-tester>{{$t('commons.edit')}}</el-button>
             <el-button type="text" @click="handleTestCase(scope.row)">{{$t('api_test.definition.request.case')}}</el-button>
-            <el-button type="text" @click="handleDelete(scope.row)" style="color: #F56C6C">{{$t('commons.delete')}}</el-button>
+            <el-button type="text" @click="handleDelete(scope.row)" style="color: #F56C6C" v-tester>{{$t('commons.delete')}}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -221,7 +221,6 @@
         }
 
         this.condition.projectId = this.getProjectId();
-
         if (this.currentProtocol != null) {
           this.condition.protocol = this.currentProtocol;
         }
@@ -248,7 +247,7 @@
         let arr = Array.from(this.selectRows);
         // 选中1个以上的用例时显示更多操作
         if (this.selectRows.size === 1) {
-          this.$set(arr[0], "showMore", false);
+          this.$set(arr[0], "showMore", true);
         } else if (this.selectRows.size === 2) {
           arr.forEach(row => {
             this.$set(row, "showMore", true);
@@ -318,6 +317,7 @@
                   this.selectRows.clear();
                   this.initTable();
                   this.$success(this.$t('commons.delete_success'));
+                  this.$refs.caseList.apiCaseClose();
                 });
               }
             }
@@ -368,6 +368,7 @@
               this.$post('/api/definition/removeToGc/', ids, () => {
                 this.$success(this.$t('commons.delete_success'));
                 this.initTable();
+                this.$refs.caseList.apiCaseClose();
               });
             }
           }

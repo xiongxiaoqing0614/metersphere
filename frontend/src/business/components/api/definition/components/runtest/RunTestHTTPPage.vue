@@ -70,7 +70,7 @@
     </el-card>
 
     <!-- 加载用例 -->
-    <ms-api-case-list @selectTestCase="selectTestCase"
+    <ms-api-case-list @selectTestCase="selectTestCase" @refresh="refresh"
                       :loaded="loaded"
                       :refreshSign="refreshSign"
                       :createCase="createCase"
@@ -217,6 +217,7 @@
         let url = "/api/definition/update";
         let bodyFiles = this.getBodyUploadFiles();
         this.api.method = this.api.request.method;
+        this.api.path = this.api.request.path;
         this.$fileUpload(url, null, bodyFiles, this.api, () => {
           this.$success(this.$t('commons.save_success'));
           this.$emit('saveApi', this.api);
@@ -272,6 +273,9 @@
       },
       environmentConfigClose() {
         this.getEnvironments();
+      },
+      refresh() {
+        this.$emit('refresh');
       },
       getResult() {
         let url = "/api/definition/report/getReport/" + this.api.id;

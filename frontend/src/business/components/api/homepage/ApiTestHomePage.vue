@@ -2,9 +2,18 @@
   <ms-container>
     <el-header height="0">
       <div style="float: right">
-        <span>
+        <div v-if="dateType==='1'">
+          🤔️天凉了，保温杯买了吗？
+        </div>
+        <div v-else-if="dateType==='2'">
+          😔觉得MeterSphere不好用就来 <el-link href="https://github.com/metersphere/metersphere/issues" target="_blank" style="color: black" type="primary">https://github.com/metersphere/metersphere/issues</el-link> 吐个槽吧！
+        </div>
+        <div v-else-if="dateType==='3'">
+          😄觉得MeterSphere好用就来 <el-link href="https://github.com/metersphere/metersphere"  target="_blank" style="color: black" type="primary">https://github.com/metersphere/metersphere</el-link> 点个star吧！
+        </div>
+        <div v-else>
           😊 MeterSphere温馨提醒 —— 多喝热水哟！
-        </span>
+        </div>
       </div>
     </el-header>
     <ms-main-container v-loading="result.loading">
@@ -45,21 +54,15 @@ import MsSceneInfoCard from "./components/SceneInfoCard";
 import MsScheduleTaskInfoCard from "./components/ScheduleTaskInfoCard";
 import MsTestCaseInfoCard from "./components/TestCaseInfoCard";
 
-// import MsApiDetailCard from "./components/ApiDetailCard";
-// import MsSceneDetailCard from "./components/SceneDetailCard";
-// import MsScheduleTaskDetailCard from "./components/ScheduleTaskDetailCard";
-// import MsTestCaseDetailCard from "./components/TestCaseDetailCard";
-
 import MsFailureTestCaseList from "./components/FailureTestCaseList";
 import MsRunningTaskList from "./components/RunningTaskList"
-import {getCurrentProjectID,getCurrentWorkspaceId} from "@/common/js/utils";
+import {getCurrentProjectID} from "@/common/js/utils";
 
 export default {
   name: "ApiTestHomePage",
 
   components: {
     MsApiInfoCard, MsSceneInfoCard, MsScheduleTaskInfoCard, MsTestCaseInfoCard,
-    // MsApiDetailCard, MsSceneDetailCard, MsScheduleTaskDetailCard, MsTestCaseDetailCard,
     MsFailureTestCaseList,MsRunningTaskList,
     MsMainContainer, MsContainer
   },
@@ -71,20 +74,28 @@ export default {
       sceneCountData:{},
       testCaseCountData:{},
       scheduleTaskCountData:{},
+      dateType:"1",
       result: {},
     }
   },
-  // activated() {
-  //   this.getValues();
-  // },
+  activated() {
+    this.search();
+    this.checkDateType();
+  },
   // mounted() {
   //   this.getValues();
   // },
   created() {
-    this.search();
+    // this.search();
   },
   methods: {
-
+    checkDateType(){
+      var random = Math.floor(Math.random() * (4 - 1 + 1))+1;
+      this.dateType = random +"";
+    },
+    openNewPage(herf){
+      window.open(herf, '_blank');
+    },
     search() {
       let selectProjectId = getCurrentProjectID();
       this.$get("/api/apiCount/"+selectProjectId, response => {
@@ -100,8 +111,8 @@ export default {
       });
 
 
-      let workSpaceID = getCurrentWorkspaceId();
-      this.$get("/api/scheduleTaskInfoCount/"+workSpaceID, response => {
+      // let workSpaceID = getCurrentWorkspaceId();
+      this.$get("/api/scheduleTaskInfoCount/"+selectProjectId, response => {
         this.scheduleTaskCountData = response.data;
       });
     },

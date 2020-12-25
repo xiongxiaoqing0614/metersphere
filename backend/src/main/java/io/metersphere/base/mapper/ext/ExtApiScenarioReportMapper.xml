@@ -100,7 +100,7 @@
 
     <select id="list" resultMap="BaseResultMap">
         SELECT r.name AS test_name,
-        r.name, r.description, r.id, r.project_id, r.create_time, r.update_time, r.status, r.trigger_mode,
+        r.name, r.description, r.id, r.project_id, r.create_time, r.update_time, r.status, r.trigger_mode,r.scenario_name,
         project.name AS project_name, user.name AS user_name
         FROM api_scenario_report r
         LEFT JOIN project ON project.id = r.project_id
@@ -169,9 +169,29 @@
     <select id="countByProjectID" resultType="java.lang.Long">
         SELECT count(id) AS countNumber FROM api_scenario_report WHERE project_id = #{0}
     </select>
-    <select id="countByProjectIDAndCreateInThisWeek" resultType="java.lang.Long">
+    <select id="countByProjectIdAndCreateInThisWeek" resultType="java.lang.Long">
         SELECT count(id) AS countNumber FROM api_scenario_report
         WHERE project_id = #{projectId}
         AND create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp}
+    </select>
+
+    <select id="countByProjectIdAndCreateAndByScheduleInThisWeek" resultType="java.lang.Long">
+        SELECT count(acr.report_id) AS countNumber FROM api_scenario_report_detail acr
+        INNER JOIN api_scenario_report ar ON ar.id = acr.report_id
+        INNER JOIN (
+            SELECT acitem.`name`,acitem.id FROM api_scenario acitem INNER JOIN `schedule` sc ON acitem.id = sc.resource_id
+        ) ac on ar.scenario_id = ac.id
+        WHERE acr.project_id = #{projectId} AND ar.create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp}
+    </select>
+
+    <select id="countByProjectIdGroupByExecuteResult" resultType="io.metersphere.api.dto.datacount.ApiDataCountResult">
+        SELECT count(acr.report_id) AS countNumber,ar.status AS groupField
+        FROM api_scenario_report_detail acr
+        INNER JOIN api_scenario_report ar ON ar.id = acr.report_id
+        INNER JOIN (
+        SELECT acitem.`name`,acitem.id FROM api_scenario acitem INNER JOIN `schedule` sc ON acitem.id = sc.resource_id
+        ) ac on ar.scenario_id = ac.id
+        WHERE acr.project_id = #{projectId}
+        GROUP BY groupField;
     </select>
 </mapper>

@@ -17,7 +17,7 @@
     <ms-main-container>
       <el-dropdown size="small" split-button type="primary" class="ms-api-buttion"
                    @click="handleCommand('ADD')"
-                   @command="handleCommand">
+                   @command="handleCommand" v-tester>
         {{$t('commons.add')}}
         <el-dropdown-menu slot="dropdown">
           <el-dropdown-item command="debug">{{$t('api_test.definition.request.fast_debug')}}</el-dropdown-item>
@@ -78,10 +78,10 @@
 
           <!-- 测试-->
           <div v-else-if="item.type=== 'TEST'" class="ms-api-div">
-            <ms-run-test-http-page :currentProtocol="currentProtocol" :api-data="item.api" @saveAsApi="editApi" v-if="currentProtocol==='HTTP'"/>
-            <ms-run-test-tcp-page :currentProtocol="currentProtocol" :api-data="item.api" @saveAsApi="editApi" v-if="currentProtocol==='TCP'"/>
-            <ms-run-test-sql-page :currentProtocol="currentProtocol" :api-data="item.api" @saveAsApi="editApi" v-if="currentProtocol==='SQL'"/>
-            <ms-run-test-dubbo-page :currentProtocol="currentProtocol" :api-data="item.api" @saveAsApi="editApi" v-if="currentProtocol==='DUBBO'"/>
+            <ms-run-test-http-page :currentProtocol="currentProtocol" :api-data="item.api" @saveAsApi="editApi" @refresh="refresh" v-if="currentProtocol==='HTTP'"/>
+            <ms-run-test-tcp-page :currentProtocol="currentProtocol" :api-data="item.api" @saveAsApi="editApi" @refresh="refresh" v-if="currentProtocol==='TCP'"/>
+            <ms-run-test-sql-page :currentProtocol="currentProtocol" :api-data="item.api" @saveAsApi="editApi" @refresh="refresh" v-if="currentProtocol==='SQL'"/>
+            <ms-run-test-dubbo-page :currentProtocol="currentProtocol" :api-data="item.api" @saveAsApi="editApi" @refresh="refresh" v-if="currentProtocol==='DUBBO'"/>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -242,11 +242,25 @@
         this.showCasePage = true;
       },
       exportAPI() {
-        if (!this.$refs.apiList[0].tableData) {
+        if (!this.isApiListEnable) {
+          this.$warning('用例列表暂不支持导出，请切换成接口列表');
           return;
         }
-        let obj = {projectName: getCurrentProjectID(), protocol: this.currentProtocol, data: this.$refs.apiList[0].tableData}
-        downloadFile("导出API.json", JSON.stringify(obj));
+        let obj = {projectName: getCurrentProjectID(), protocol: this.currentProtocol}
+        if (this.$refs.apiList[0].selectRows && this.$refs.apiList[0].selectRows.size > 0) {
+          let arr = Array.from(this.$refs.apiList[0].selectRows);
+          obj.data = arr;
+          downloadFile("导出API.json", JSON.stringify(obj));
+        } else {
+          let condition = {};
+          let url = "/api/definition/list/1/100000";
+          condition.filters = ["Prepare", "Underway", "Completed"];
+          condition.projectId = getCurrentProjectID();
+          this.$post(url, condition, response => {
+            obj.data = response.data.listObject;
+            downloadFile("导出API.json", JSON.stringify(obj));
+          });
+        }
       },
       refresh(data) {
         this.$refs.apiList[0].initTable(data);
@@ -266,7 +280,7 @@
       },
       saveApi(data) {
         this.setTabTitle(data);
-        this.$refs.apiList[0].initTable(data);
+        this.refresh(data);
       },
 
       showExecResult(row) {

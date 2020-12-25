@@ -7,7 +7,7 @@
 
       <ms-environment-select v-if="isRelevanceModel" :project-id="relevanceProjectId" :is-read-only="isReadOnly" @setEnvironment="setEnvironment"/>
 
-      <el-input v-if="!isPlanModel" placeholder="搜索" @blur="search" class="search-input" size="small" v-model="condition.name"/>
+      <el-input v-if="!isPlanModel" placeholder="搜索" @blur="search" @keyup.enter.native="search" class="search-input" size="small" v-model="condition.name"/>
 
       <template v-slot:header>
        <test-plan-case-list-header
@@ -30,7 +30,7 @@
         <el-table-column type="selection"/>
         <el-table-column width="40" :resizable="false" align="center">
           <template v-slot:default="scope">
-            <show-more-btn :is-show="scope.row.showMore && !isReadOnly" :buttons="buttons" :size="selectRows.size"/>
+            <show-more-btn :is-show="scope.row.showMore && !isReadOnly && !isRelevanceModel" :buttons="buttons" :size="selectRows.size"/>
           </template>
         </el-table-column>
 
@@ -48,6 +48,7 @@
         </el-table-column>
 
         <el-table-column
+          sortable="custom"
           prop="path"
           :label="$t('api_test.definition.api_path')"
           show-overflow-tooltip/>
@@ -69,7 +70,7 @@
 
         <el-table-column v-if="!isReadOnly && !isRelevanceModel" :label="$t('commons.operating')" min-width="130" align="center">
           <template v-slot:default="scope">
-            <!--<el-button type="text" @click="reductionApi(scope.row)" v-if="trashEnable">恢复</el-button>-->
+            <!--<el-button type="text" @click="reductionApi(scope.row)" v-if="trashEnable">{{$t('commons.reduction')}}</el-button>-->
             <el-button type="text" @click="handleTestCase(scope.row)" v-if="!trashEnable">{{$t('commons.edit')}}</el-button>
             <el-button type="text" @click="handleDelete(scope.row)" style="color: #F56C6C">{{$t('commons.delete')}}</el-button>
           </template>
@@ -273,7 +274,7 @@
         } else if (this.isRelevanceModel) {
           return '/api/testcase/delete/' + apiCase.id;
         } else {
-          return '/api/testcase/delete/' + +apiCase.id;
+          return '/api/testcase/delete/' + apiCase.id;
         }
       },
       // getMaintainerOptions() {

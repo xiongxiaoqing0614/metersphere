@@ -20,7 +20,7 @@
           <div>
             <el-select size="small" :placeholder="$t('api_test.definition.request.grade_info')" v-model="condition.priority"
                        :disabled="isCaseEdit"
-                       class="ms-api-header-select" @change="getApiTest" clearable>
+                       class="ms-api-header-select" @change="getApiTest" clearable style="margin-right: 20px">
               <el-option v-for="grd in priorities" :key="grd.id" :label="grd.name" :value="grd.id"/>
             </el-select>
           </div>
@@ -29,7 +29,7 @@
           <div>
             <ms-environment-select
               :project-id="projectId"
-              :is-read-only="isReadOnly || isCaseEdit"
+              :is-read-only="isReadOnly"
               @setEnvironment="setEnvironment"/>
           </div>
         </el-col>
@@ -42,7 +42,7 @@
         </el-col>
         <el-col :span="2" v-if="!(isReadOnly || isCaseEdit)">
           <el-dropdown size="small" split-button type="primary" class="ms-api-header-select" @click="addCase"
-                       @command="handleCommand">
+                       @command="handleCommand" v-tester>
             +{{$t('api_test.definition.request.case')}}
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item command="run">{{$t('commons.test')}}</el-dropdown-item>

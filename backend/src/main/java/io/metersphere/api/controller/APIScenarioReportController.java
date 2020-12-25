@@ -26,12 +26,9 @@ public class APIScenarioReportController {
     @Resource
     private ApiScenarioReportService apiReportService;
 
-    @GetMapping("/get/{reportId}/{infoDb}")
-    public APIScenarioReportResult get(@PathVariable String reportId, @PathVariable Boolean infoDb) {
-        if (infoDb) {
-            return apiReportService.get(reportId);
-        }
-        return apiReportService.getCacheResult(reportId);
+    @GetMapping("/get/{reportId}")
+    public APIScenarioReportResult get(@PathVariable String reportId) {
+        return apiReportService.get(reportId);
     }
 
     @PostMapping("/list/{goPage}/{pageSize}")
@@ -39,13 +36,6 @@ public class APIScenarioReportController {
         Page<Object> page = PageHelper.startPage(goPage, pageSize, true);
         request.setWorkspaceId(SessionUtils.getCurrentWorkspaceId());
         return PageUtils.setPageInfo(page, apiReportService.list(request));
-    }
-
-    @PostMapping("/add")
-    @RequiresRoles(value = {RoleConstants.TEST_USER, RoleConstants.TEST_MANAGER}, logical = Logical.OR)
-    public String add(@RequestBody APIScenarioReportResult node) {
-        node.setExecuteType(ExecuteType.Saved.name());
-        return apiReportService.save(node);
     }
 
     @PostMapping("/update")
