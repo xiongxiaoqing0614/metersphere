@@ -1,36 +1,35 @@
 pipeline {
     agent {
         node {
-            label 'metersphere'
+            label 'metersphere || master'
         }
     }
     options { quietPeriod(600) }
     environment { 
         IMAGE_NAME = 'metersphere'
-        IMAGE_PREFIX = 'registry.cn-qingdao.aliyuncs.com/metersphere'
+        IMAGE_PREFIX = 'swr.cn-east-3.myhuaweicloud.com/docker-work-test/metersphere'
     }
     stages {
         stage('Build/Test') {
             steps {
-                configFileProvider([configFile(fileId: 'metersphere-maven', targetLocation: 'settings.xml')]) {
-                    sh "mvn clean package --settings ./settings.xml"
-                }
+                sh "/opt/apache-maven/bin/mvn clean package"
             }
         }
         stage('Docker build & push') {
             steps {
                 sh "docker build --build-arg MS_VERSION=\${TAG_NAME:-\$BRANCH_NAME}-\${GIT_COMMIT:0:8} -t ${IMAGE_NAME}:\${TAG_NAME:-\$BRANCH_NAME} ."
                 sh "docker tag ${IMAGE_NAME}:\${TAG_NAME:-\$BRANCH_NAME} ${IMAGE_PREFIX}/${IMAGE_NAME}:\${TAG_NAME:-\$BRANCH_NAME}"
-                sh "docker push ${IMAGE_PREFIX}/${IMAGE_NAME}:\${TAG_NAME:-\$BRANCH_NAME}"
+                sh "docker login -u cn-east-3@9AZQH7VWBHALIFXLCC7K -p 555ab5c008a6a191bcb1ca69a466412e81f1285defe5e279aa28f37a7b8ff72b swr.cn-east-3.myhuaweicloud.com && \
+                        docker push ${IMAGE_PREFIX}/${IMAGE_NAME}:\${TAG_NAME:-\$BRANCH_NAME}"
             }
         }
     }
     post('Notification') {
         always {
             sh "echo \$WEBHOOK\n"
-            withCredentials([string(credentialsId: 'wechat-bot-webhook', variable: 'WEBHOOK')]) {
-                qyWechatNotification failSend: true, mentionedId: '', mentionedMobile: '', webhookUrl: "$WEBHOOK"
-            }
+            // withCredentials([string(credentialsId: 'wechat-bot-webhook', variable: 'WEBHOOK')]) {
+            //     qyWechatNotification failSend: true, mentionedId: '', mentionedMobile: '', webhookUrl: "$WEBHOOK"
+            // }
         }
     }
 }
