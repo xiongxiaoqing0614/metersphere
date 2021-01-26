@@ -51,6 +51,15 @@ public class WorkspaceService {
     @Resource
     private UserService userService;
 
+    public Workspace getWorkspaceByName(String wsName) {
+        List<Workspace> listWS = getWorkspaceList(new WorkspaceRequest());
+        for(Workspace ws : listWS){
+            if(ws.getName().equalsIgnoreCase(wsName))
+                return ws;
+        }
+        return null;
+    }
+
     public Workspace saveWorkspace(Workspace workspace) {
         if (StringUtils.isBlank(workspace.getName())) {
             MSException.throwException(Translator.get("workspace_name_is_null"));
