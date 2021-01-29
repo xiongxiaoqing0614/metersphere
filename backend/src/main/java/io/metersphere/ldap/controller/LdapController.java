@@ -122,7 +122,14 @@ public class LdapController {
             }catch(Exception e){
                 LogUtil.error(e.getMessage(), e);
             }
-
+            if (responseJson.equals("")) {
+                try {
+                    ResponseEntity<String> responseEntity = restTemplate.exchange(urlSFPro, HttpMethod.POST, requestEntity, String.class);
+                    responseJson = responseEntity.getBody();
+                } catch (Exception e) {
+                    LogUtil.error(e.getMessage(), e);
+                }
+            }
             String organizationName = ldapService.getFromJson("departmentLevel2Name", responseJson);
             String departmentLevel3Name = ldapService.getFromJson("departmentLevel3Name", responseJson);
             String workspaceName = ldapService.getFromJson("departmentLevel4Name", responseJson);
