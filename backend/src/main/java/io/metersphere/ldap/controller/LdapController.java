@@ -20,6 +20,7 @@ import io.metersphere.service.WorkspaceService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.SecurityUtils;
 import org.springframework.http.*;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -96,7 +97,11 @@ public class LdapController {
             String responseJson = "";
             String requestBodyString = "{\"email\":\"" + email + "\"}";
             HttpEntity<String> requestEntity = new HttpEntity<>(requestBodyString, headers);
-            RestTemplate restTemplate = new RestTemplate();
+            HttpComponentsClientHttpRequestFactory httpRequestFactory = new HttpComponentsClientHttpRequestFactory();
+            httpRequestFactory.setConnectionRequestTimeout(3 * 1000);
+            httpRequestFactory.setConnectTimeout(2 * 60 * 1000);
+            httpRequestFactory.setReadTimeout(10 * 60 * 1000);
+            RestTemplate restTemplate = new RestTemplate(httpRequestFactory);
             try {
                 ResponseEntity<String> responseEntity = restTemplate.exchange(urlSF, HttpMethod.POST, requestEntity, String.class);
                 responseJson = responseEntity.getBody();
