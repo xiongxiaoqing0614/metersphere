@@ -100,6 +100,10 @@ public class LdapController {
             String urlSFPro = "http://yewu-gateway.ad.tuhu.cn:9010/ext-spring-yw-user-center/open/sf/employee/getEmployeeInfo";
             if(address.getHostName().contains("prod"))
                 urlSF = urlSFPro;
+            LogUtil.info(address.getHostName());
+            LogUtil.info(address.getCanonicalHostName());
+            LogUtil.info(address.getAddress());
+            LogUtil.info(address.getHostAddress());
 
             MultiValueMap<String, Object> paramMap = new LinkedMultiValueMap<>();
             paramMap.add("email", email);
