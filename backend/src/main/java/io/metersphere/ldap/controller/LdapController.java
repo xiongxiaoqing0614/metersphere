@@ -98,12 +98,10 @@ public class LdapController {
             }
             String urlSF = "https://yewu-gateway-inner.tuhu.work/ext-spring-yw-user-center/open/sf/employee/getEmployeeInfo";
             String urlSFPro = "http://yewu-gateway.ad.tuhu.cn:9010/ext-spring-yw-user-center/open/sf/employee/getEmployeeInfo";
-            if(address.getHostName().contains("prod"))
+            String ldapAddress = systemParameterService.getValue(ParamConstants.LDAP.URL.getValue());
+            if(ldapAddress.endsWith("3889"))
                 urlSF = urlSFPro;
-            LogUtil.info(address.getHostName());
-            LogUtil.info(address.getCanonicalHostName());
-            LogUtil.info(address.getAddress());
-            LogUtil.info(address.getHostAddress());
+            LogUtil.info(ldapAddress);
 
             MultiValueMap<String, Object> paramMap = new LinkedMultiValueMap<>();
             paramMap.add("email", email);
