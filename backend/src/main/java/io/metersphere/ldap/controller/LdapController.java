@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -87,8 +89,18 @@ public class LdapController {
             user.setSource(UserSource.LDAP.name());
             userService.addLdapUser(user);
             //TODO: make it configurable
+            InetAddress address = null;
+            try {
+                address = InetAddress.getLocalHost();
+                System.out.println(address.getHostName());
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
             String urlSF = "https://yewu-gateway-inner.tuhu.work/ext-spring-yw-user-center/open/sf/employee/getEmployeeInfo";
             String urlSFPro = "http://yewu-gateway.ad.tuhu.cn:9010/ext-spring-yw-user-center/open/sf/employee/getEmployeeInfo";
+            if(address.getHostName().contains("prod"))
+                urlSF = urlSFPro;
+
             MultiValueMap<String, Object> paramMap = new LinkedMultiValueMap<>();
             paramMap.add("email", email);
 
@@ -108,14 +120,7 @@ public class LdapController {
             }catch(Exception e){
                 LogUtil.error(e.getMessage(), e);
             }
-            if (responseJson.equals("")) {
-                try {
-                    ResponseEntity<String> responseEntity = restTemplate.exchange(urlSFPro, HttpMethod.POST, requestEntity, String.class);
-                    responseJson = responseEntity.getBody();
-                } catch (Exception e) {
-                    LogUtil.error(e.getMessage(), e);
-                }
-            }
+
             String organizationName = ldapService.getFromJson("departmentLevel2Name", responseJson);
             String departmentLevel3Name = ldapService.getFromJson("departmentLevel3Name", responseJson);
             String workspaceName = ldapService.getFromJson("departmentLevel4Name", responseJson);
