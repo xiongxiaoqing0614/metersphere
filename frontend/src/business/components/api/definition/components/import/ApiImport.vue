@@ -37,7 +37,6 @@
               :active-text="$t('api_test.api_import.swagger_url_import')">
             </el-switch>
           </el-form-item>
-
         </el-col>
         <el-col :span="1">
           <el-divider direction="vertical"/>
@@ -55,8 +54,21 @@
             <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
           </el-form-item>
         </el-col>
+        <el-col :span="12" v-show="isForseti" style="margin-top: 40px">
+          <el-form-item :label="'Tuhu AppID'" prop="tuhuAppId" class="tuhu-appid">
+            <el-input size="small" v-model="forsetiFormData.tuhuAppId" clearable show-word-limit/>
+          </el-form-item>
+          <el-form-item>
+            <el-switch
+              v-model="swaggerSynchronization"
+              @click.native="scheduleEdit"
+              >
+            </el-switch>
+            <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
+          </el-form-item>
+        </el-col>
         <el-col :span="12"
-                v-if="selectedPlatformValue != 'Swagger2' || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEable)">
+                v-if="(selectedPlatformValue != 'Forseti' && selectedPlatformValue != 'Swagger2') || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEable)">
           <el-upload
             class="api-upload"
             drag
@@ -141,6 +153,13 @@ export default {
           tip: this.$t('api_test.api_import.swagger_tip'),
           exportTip: this.$t('api_test.api_import.swagger_export_tip'),
           suffixes: new Set(['json'])
+        },
+        {
+          name: 'Forseti',
+          value: 'Forseti',
+          tip: this.$t('api_test.api_import.forseti_tip'),
+          exportTip: this.$t('api_test.api_import.forseti_export_tip'),
+          suffixes: new Set(['json'])
         }
       ],
       selectedPlatform: {},
@@ -152,6 +171,13 @@ export default {
       formData: {
         file: undefined,
         swaggerUrl: '',
+        modeId: this.$t('commons.not_cover'),
+        moduleId: '',
+      },
+      forsetiFormData: {
+        file: undefined,
+        forsetiUrl: '',
+        tuhuAppId: '',
         modeId: this.$t('commons.not_cover'),
         moduleId: '',
       },
@@ -176,6 +202,9 @@ export default {
   computed: {
     isSwagger2() {
       return this.selectedPlatformValue === 'Swagger2';
+    },
+    isForseti() {
+      return this.selectedPlatformValue === 'Forseti';
     }
   },
   methods: {
