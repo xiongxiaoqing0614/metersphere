@@ -181,6 +181,13 @@ export default {
         modeId: this.$t('commons.not_cover'),
         moduleId: '',
       },
+      forsetiFormData: {
+        file: undefined,
+        forsetiUrl: '',
+        tuhuAppId: '',
+        modeId: this.$t('commons.not_cover'),
+        moduleId: '',
+      },
       rules: {},
       currentModule: {},
       fileList: []
