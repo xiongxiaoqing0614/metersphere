@@ -37,7 +37,6 @@
               :active-text="$t('api_test.api_import.swagger_url_import')">
             </el-switch>
           </el-form-item>
-
         </el-col>
         <el-col :span="1">
           <el-divider direction="vertical"/>
@@ -55,8 +54,21 @@
             <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
           </el-form-item>
         </el-col>
+        <el-col :span="12" v-show="isForseti" style="margin-top: 40px">
+          <el-form-item :label="'Tuhu AppID'" prop="tuhuAppId" class="tuhu-appid">
+            <el-input size="small" v-model="formData.appId" clearable show-word-limit/>
+          </el-form-item>
+          <!-- <el-form-item>
+            <el-switch
+              v-model="swaggerSynchronization"
+              @click.native="scheduleEdit"
+              >
+            </el-switch>
+            <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
+          </el-form-item> -->
+        </el-col>
         <el-col :span="12"
-                v-if="selectedPlatformValue != 'Swagger2' || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEable)">
+                v-if="(selectedPlatformValue != 'Forseti' && selectedPlatformValue != 'Swagger2') || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEable)">
           <el-upload
             class="api-upload"
             drag
@@ -80,7 +92,7 @@
       <div>
         <span>{{ $t('api_test.api_import.tip') }}：{{ selectedPlatform.tip }}</span>
       </div>
-      <div>
+      <div v-if="selectedPlatformValue != 'Forseti'">
         <span>{{ $t('api_test.api_import.export_tip') }}：{{ selectedPlatform.exportTip }}</span>
       </div>
     </div>
@@ -141,6 +153,12 @@ export default {
           tip: this.$t('api_test.api_import.swagger_tip'),
           exportTip: this.$t('api_test.api_import.swagger_export_tip'),
           suffixes: new Set(['json'])
+        },
+        {
+          name: 'Forseti',
+          value: 'Forseti',
+          tip: this.$t('api_test.api_import.forseti_tip'),
+          suffixes: new Set(['json'])
         }
       ],
       selectedPlatform: {},
@@ -154,6 +172,7 @@ export default {
         swaggerUrl: '',
         modeId: this.$t('commons.not_cover'),
         moduleId: '',
+        appId: '',
       },
       rules: {},
       currentModule: {},
@@ -176,6 +195,9 @@ export default {
   computed: {
     isSwagger2() {
       return this.selectedPlatformValue === 'Swagger2';
+    },
+    isForseti() {
+      return this.selectedPlatformValue === 'Forseti';
     }
   },
   methods: {
@@ -222,7 +244,7 @@ export default {
     save() {
       this.$refs.form.validate(valid => {
         if (valid) {
-          if ((this.selectedPlatformValue != 'Swagger2' || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEable)) && !this.formData.file) {
+          if (((this.selectedPlatformValue != 'Forseti' && this.selectedPlatformValue != 'Swagger2') || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEable)) && !this.formData.file) {
             this.$warning(this.$t('commons.please_upload'));
             return;
           }
