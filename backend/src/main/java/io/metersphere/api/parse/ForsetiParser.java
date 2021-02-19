@@ -48,7 +48,7 @@ public class ForsetiParser extends ApiImportAbstractParser {
 
     private String getDataFromForseti(String appId){
         //todo: make it configurable for prod
-        String forsetiUrl = "http://10.100.140.67:9119/apis/app/apis";
+        String forsetiUrl = "http://10.100.140.67:9119/apis/app/test/apis/";
         JSONObject jsonObj = new JSONObject();
         jsonObj.put("appNames", appId.split(","));
         HttpHeaders headers = new HttpHeaders();
@@ -87,18 +87,25 @@ public class ForsetiParser extends ApiImportAbstractParser {
             for(int j = 0; j < apiArray.size(); j++){
                 JSONObject apiObj = apiArray.getJSONObject(j);
                 ApiDefinitionResult apiDefinition = parseForsetiApiObj(apiObj, importRequest);
-                apiDefinition.setModuleId(module.getId());
+                String apiTag = apiObj.getString("tags");
+                if (apiTag != null) {
+                    ApiModule apiModule = buildModule(module, apiTag, importRequest.isSaved());
+                    apiDefinition.setModuleId(apiModule.getId());
+                } else {
+                    apiDefinition.setModuleId(module.getId());
+                }
                 results.add(apiDefinition);
             }
         }
 
         return apiDefinitionImport;
     }
+
     private ApiDefinitionResult parseForsetiApiObj(JSONObject apiObj, ApiTestImportRequest importRequest){
 
         String requestName = importRequest.getName();
         if(requestName == null){
-            requestName = apiObj.getString("api");
+            requestName = apiObj.getString("apiName");
         }
 
         String path = apiObj.getString("api");
@@ -131,23 +138,24 @@ public class ForsetiParser extends ApiImportAbstractParser {
 
     private String buildForsetiApiReq(JSONObject testNode) {
         JSONObject requestObj = new JSONObject();
-        requestObj.put("name", testNode.getString("api"));
+        requestObj.put("name", testNode.getString("apiName"));
         requestObj.put("path", testNode.getString("api"));
         requestObj.put("method", testNode.getString("method"));
         requestObj.put("rest", testNode.getJSONArray("rest"));
         requestObj.put("arguments", testNode.getJSONArray("querys"));
         requestObj.put("headers", testNode.getJSONArray("reqHeaders"));
-        requestObj.put("body", buildForsetiApiReqBody(testNode.getJSONArray("body")));
+        requestObj.put("body", buildForsetiApiReqBody(testNode));
         return requestObj.toJSONString();
     }
 
-    private JSONObject buildForsetiApiReqBody(JSONArray bodyArray) {
-        JSONObject bodyObj = new JSONObject();
-        if(bodyArray.size() > 0) {
-            bodyObj.put(Body.RAW, bodyArray.get(0).toString());
+    private JSONObject buildForsetiApiReqBody(JSONObject bodyObj) {
+        String bodyStr = bodyObj.getString("body");
+        JSONObject resBodyObj = new JSONObject();
+        if(bodyStr != null) {
+            resBodyObj.put(Body.RAW, bodyStr);
         }
 
-        return bodyObj;
+        return resBodyObj;
     }
 
     private String buildForsetiApiRes(JSONObject testNode) {
@@ -161,18 +169,16 @@ public class ForsetiParser extends ApiImportAbstractParser {
     }
 
     private JSONObject buildForsetiApiResBody(JSONObject testNode) {
-        JSONArray bodyArray = testNode.getJSONArray("res");
+        String resStr = testNode.getString("res");
         JSONObject bodyObj = new JSONObject();
-        for(int i = 0; i < bodyArray.size(); i++){
-            if(bodyArray.getJSONObject(i).getString("name").equals("data"))
-                bodyObj.put(Body.RAW,bodyArray.getJSONObject(i).toString());
-        }
+        if(resStr != null)
+            bodyObj.put(Body.RAW, resStr);
 
         return bodyObj;
     }
 
     private JSONArray buildForsetiApiResCode(JSONObject testNode) {
-        JSONArray bodyArray = testNode.getJSONArray("res");
+        JSONArray bodyArray = testNode.getJSONArray("bizCodes");
         JSONArray codeArray = new JSONArray();
         for(int i = 0; i < bodyArray.size(); i++){
             if(bodyArray.getJSONObject(i).getString("name").equals("code")) {
