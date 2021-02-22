@@ -72,9 +72,8 @@ public class ForsetiParser extends ApiImportAbstractParser {
 
     private ApiDefinitionImport  parseForsetiString(String jsonStr, ApiTestImportRequest importRequest){
         ApiDefinitionImport apiDefinitionImport = JSON.parseObject(jsonStr, ApiDefinitionImport.class);
-        List<ApiDefinitionResult> results = apiDefinitionImport.getData();
-        if(results.size() == 1)
-            results.clear();
+        List<ApiDefinitionResult> results = new ArrayList<ApiDefinitionResult>();
+        apiDefinitionImport.setData(results);
         JSONObject testObject = JSONObject.parseObject(jsonStr);
         JSONArray dataArray = testObject.getJSONArray("data");
 
