@@ -181,9 +181,9 @@ public class ForsetiParser extends ApiImportAbstractParser {
         JSONArray bodyArray = testNode.getJSONArray("bizCodes");
         JSONArray codeArray = new JSONArray();
         for(int i = 0; i < bodyArray.size(); i++){
-            if(bodyArray.getJSONObject(i).getString("name").equals("code")) {
-                codeArray = bodyArray.getJSONObject(i).getJSONArray("children");
-            }
+            String code = bodyArray.getJSONObject(i).getString("code");
+            String desc = bodyArray.getJSONObject(i).getString("desc");
+            codeArray.add(new KeyValue(code, desc));
         }
 
         return codeArray;
