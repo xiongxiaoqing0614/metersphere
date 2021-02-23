@@ -89,6 +89,17 @@ public class ForsetiParser extends ApiImportAbstractParser {
                 ApiDefinitionResult apiDefinition = parseForsetiApiObj(apiObj, importRequest);
                 String apiTag = apiObj.getString("tags");
                 if (apiTag != null) {
+                    if (apiTag.contains(",")) {
+                        String[] apiTags = apiTag.split(",");
+                        for(String innerTag: apiTags){
+                            if (innerTag.contains("【")) {
+                                apiTag = innerTag;
+                                break;
+                            }
+                        }
+                        if(apiTag.contains(","))
+                            apiTag = apiTags[0];
+                    }
                     ApiModule apiModule = buildModule(module, apiTag, importRequest.isSaved());
                     apiDefinition.setModuleId(apiModule.getId());
                 } else {
