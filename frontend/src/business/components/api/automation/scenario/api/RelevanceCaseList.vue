@@ -125,6 +125,7 @@ export default {
     },
     props: {
       currentProtocol: String,
+      currentProjectId: String,
       selectNodeIds: Array,
       visible: {
         type: Boolean,
@@ -156,6 +157,9 @@ export default {
       currentProtocol() {
         this.initTable();
       },
+      currentProjectId() {
+        this.initTable();
+      },
       projectId() {
         this.initTable();
       }
@@ -167,8 +171,8 @@ export default {
       initTable() {
         this.condition.status = "";
         this.condition.moduleIds = this.selectNodeIds;
-        if (this.projectId != null) {
-          this.condition.projectId = this.projectId;
+        if (this.currentProjectId != null) {
+          this.condition.projectId = this.currentProjectId;
         } else {
           this.condition.projectId = getCurrentProjectID();
 
