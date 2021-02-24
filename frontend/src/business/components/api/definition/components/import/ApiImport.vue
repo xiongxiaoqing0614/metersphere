@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :close-on-click-modal="false" :title="$t('api_test.api_import.title')" width="30%"
+  <el-dialog :close-on-click-modal="false" :title="$t('api_test.api_import.title')" width="50%"
              :visible.sync="visible" class="api-import" v-loading="result.loading" @close="close">
 
     <div class="header-bar">
@@ -56,7 +56,15 @@
         </el-col>
         <el-col :span="12" v-show="isForseti" style="margin-top: 40px">
           <el-form-item :label="'Tuhu AppID'" prop="tuhuAppId" class="tuhu-appid">
-            <el-input size="small" v-model="formData.appId" clearable show-word-limit/>
+              <el-select filterable v-model="formData.appId" :placeholder="$t('api_test.api_import.forseti_select')" @visible-change="getAppIdList()" multiple style="width:100%">
+                <el-option
+                  v-for="item in formData.appIdList"
+                  :key="item"
+                  :label="item"
+                  :value="item">
+                </el-option>
+              </el-select>
+            <!--el-input size="small" v-model="formData.appId" clearable show-word-limit/-->
           </el-form-item>
           <!-- <el-form-item>
             <el-switch
@@ -174,13 +182,6 @@ export default {
         moduleId: '',
         appId: '',
       },
-      forsetiFormData: {
-        file: undefined,
-        forsetiUrl: '',
-        tuhuAppId: '',
-        modeId: this.$t('commons.not_cover'),
-        moduleId: '',
-      },
       rules: {},
       currentModule: {},
       fileList: []
@@ -286,7 +287,20 @@ export default {
       if (!this.swaggerUrlEable) {
         param.swaggerUrl = undefined;
       }
+      //多选框数据处理
+      if(this.selectedPlatformValue === 'Forseti') {
+					let s = []
+					for(var i = 0; i < this.formData.appId.length; i++) {
+						s.push(this.formData.appId[i].split(":")[0])
+					}
+					param.appId = s.join(",")
+      }
       return param;
+    },
+    getAppIdList() {
+      this.$get("http://10.100.140.67:9119/service/apps", response => {
+        this.$set(this.formData, "appIdList", response.data);
+      })
     },
     close() {
       this.formData = {
