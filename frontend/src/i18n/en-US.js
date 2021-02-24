@@ -844,6 +844,7 @@ export default {
       ms_export_tip: "Export jSON-formatted files via MeterSphere website or browser plug-ins",
       swagger_tip: "Swagger 2.0 and 3.0 json files are supported",
       forseti_tip: "Import from forseti.tuhu",
+      forseti_select: "Please Select AppName",
       forseti_export_tip: "Export JSON from forseti.tuhu",
       postman_tip: "Only Postman Collection V2.1 json files are supported",
       postman_export_tip: "Export the test collection by Postman",
