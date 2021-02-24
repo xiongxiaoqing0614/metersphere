@@ -848,6 +848,7 @@ export default {
       postman_tip: "只支持 Postman Collection v2.1 格式的 json 文件",
       swagger_tip: "支持 Swagger 2.0 与 3.0 版本的 json 文件",
       forseti_tip: "从Forseti导入",
+      forseti_select: "请选择AppName",
       forseti_export_tip: "通过Forseti页面导出",
       forseti_import: "通过Forseti导入",
       post_export_tip: "通过 Postman 导出测试集合",
