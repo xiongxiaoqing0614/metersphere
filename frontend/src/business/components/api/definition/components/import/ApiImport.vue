@@ -257,7 +257,7 @@ export default {
             return;
           }
           let param = this.buildParam();
-          this.result = this.$fileUpload('/api/definition/import', param.file, null, this.buildParam(), response => {
+          this.result = this.$fileUpload('/api/definition/import', param.file, null, param, response => {
             let res = response.data;
             this.$success(this.$t('test_track.case.import.success'));
             this.visible = false;
@@ -289,11 +289,13 @@ export default {
       }
       //多选框数据处理
       if(this.selectedPlatformValue === 'Forseti') {
-					let s = []
+					let s = [];
 					for(var i = 0; i < this.formData.appId.length; i++) {
-						s.push(this.formData.appId[i].split(":")[0])
+						s.push(this.formData.appId[i].split(":")[0]);
 					}
-					param.appId = s.join(",")
+					param.appId = s.join(",");
+      }else{
+        param.appId = "";
       }
       return param;
     },
