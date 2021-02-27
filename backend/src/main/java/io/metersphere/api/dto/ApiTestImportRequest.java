@@ -20,4 +20,6 @@ public class ApiTestImportRequest {
     private String userId;
     //调用类型
     private String type;
+
+    private String appId;
 }

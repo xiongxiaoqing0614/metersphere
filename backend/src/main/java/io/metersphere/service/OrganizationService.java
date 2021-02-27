@@ -47,6 +47,14 @@ public class OrganizationService {
     @Resource
     private UserService userService;
 
+    public Organization getOrganizationByName(String orgName) {
+        List<Organization> listOrg = getOrganizationList(new OrganizationRequest());
+        for(Organization org : listOrg){
+            if(org.getName().equalsIgnoreCase(orgName))
+                return org;
+        }
+        return null;
+    }
     public Organization addOrganization(Organization organization) {
         checkOrganization(organization);
         long currentTimeMillis = System.currentTimeMillis();
