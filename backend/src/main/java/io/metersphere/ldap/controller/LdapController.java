@@ -20,6 +20,7 @@ import io.metersphere.service.WorkspaceService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.SecurityUtils;
 import org.springframework.http.*;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -27,6 +28,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -86,7 +89,19 @@ public class LdapController {
             user.setSource(UserSource.LDAP.name());
             userService.addLdapUser(user);
             //TODO: make it configurable
+            InetAddress address = null;
+            try {
+                address = InetAddress.getLocalHost();
+                System.out.println(address.getHostName());
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
             String urlSF = "https://yewu-gateway-inner.tuhu.work/ext-spring-yw-user-center/open/sf/employee/getEmployeeInfo";
+            String urlSFPro = "http://yewu-gateway.ad.tuhu.cn:9010/ext-spring-yw-user-center/open/sf/employee/getEmployeeInfo";
+            String ldapAddress = systemParameterService.getValue(ParamConstants.LDAP.URL.getValue());
+            if(ldapAddress.endsWith("3889"))
+                urlSF = urlSFPro;
+            LogUtil.info(ldapAddress);
 
             MultiValueMap<String, Object> paramMap = new LinkedMultiValueMap<>();
             paramMap.add("email", email);
@@ -96,7 +111,11 @@ public class LdapController {
             String responseJson = "";
             String requestBodyString = "{\"email\":\"" + email + "\"}";
             HttpEntity<String> requestEntity = new HttpEntity<>(requestBodyString, headers);
-            RestTemplate restTemplate = new RestTemplate();
+            HttpComponentsClientHttpRequestFactory httpRequestFactory = new HttpComponentsClientHttpRequestFactory();
+            httpRequestFactory.setConnectionRequestTimeout(3 * 1000);
+            httpRequestFactory.setConnectTimeout(2 * 60 * 1000);
+            httpRequestFactory.setReadTimeout(10 * 60 * 1000);
+            RestTemplate restTemplate = new RestTemplate(httpRequestFactory);
             try {
                 ResponseEntity<String> responseEntity = restTemplate.exchange(urlSF, HttpMethod.POST, requestEntity, String.class);
                 responseJson = responseEntity.getBody();

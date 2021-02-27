@@ -4,7 +4,7 @@ pipeline {
             label 'metersphere || master'
         }
     }
-    options { quietPeriod(600) }
+    options { quietPeriod(60) }
     environment { 
         IMAGE_NAME = 'metersphere'
         IMAGE_PREFIX = 'swr.cn-east-3.myhuaweicloud.com/docker-work-test/metersphere'
