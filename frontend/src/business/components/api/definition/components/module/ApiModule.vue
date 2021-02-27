@@ -58,7 +58,8 @@ export default {
         condition: {
           protocol: OPTIONS[0].value,
           filterText: "",
-          trashEnable: false
+          trashEnable: false,
+          projectId: "",
         },
         projectId: "",
         data: [],
@@ -85,7 +86,9 @@ export default {
     },
     mounted() {
       this.projectId = getCurrentProjectID();
+      this.condition.projectId = getCurrentProjectID();
       this.$emit('protocolChange', this.condition.protocol);
+      this.$emit('projectIdChange', this.condition.projectId);
       this.list();
     },
     watch: {
@@ -98,6 +101,10 @@ export default {
       },
       'condition.trashEnable'() {
         this.$emit('enableTrash', this.condition.trashEnable);
+      },
+      'condition.projectId'(){
+        this.$emit('projectIdChange', this.condition.projectId);
+        this.list();
       },
       planId() {
         this.list();
@@ -114,7 +121,7 @@ export default {
         } else if (this.isRelevanceModel) {
           url = "/api/module/list/" + this.relevanceProjectId + "/" + this.condition.protocol;
         } else {
-          url = "/api/module/list/" + this.projectId + "/" + this.condition.protocol;
+          url = "/api/module/list/" + this.condition.projectId + "/" + this.condition.protocol;
           if (!this.projectId) {
             return;
           }
