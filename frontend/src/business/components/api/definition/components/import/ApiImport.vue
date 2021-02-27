@@ -298,7 +298,7 @@ export default {
       return param;
     },
     getAppIdList() {
-      this.$get("http://10.100.140.67:9119/service/apps", response => {
+      this.$get("https://shop-gateway-inner.tuhu.work/int-spring-arch-forseti-server/service/apps", response => {
         this.$set(this.formData, "appIdList", response.data);
       })
     },
