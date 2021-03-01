@@ -16,7 +16,7 @@
       <el-tag size="mini" style="margin-left: 20px" v-if="request.referenced==='Copy'">{{ $t('commons.copy') }}</el-tag>
       <el-tag size="mini" style="margin-left: 20px" v-if="request.referenced ==='REF'">{{ $t('api_test.scenario.reference') }}</el-tag>
       <span style="margin-left: 20px;">{{getProjectName(request.projectId)}}</span>
-      <ms-run :debug="true" :reportId="reportId" :run-data="runData"
+      <ms-run :debug="true" :reportId="reportId" :run-data="runData" :env-map="envMap"
               @runRefresh="runRefresh" ref="runTest"/>
 
     </template>
@@ -84,6 +84,8 @@
         default: false,
       },
       currentEnvironmentId: String,
+      projectList: Array,
+      envMap: Map
     },
     components: {
       CustomizeReqInfo,
@@ -96,7 +98,6 @@
         reportId: "",
         runData: [],
         isShowInput: false,
-        projects: []
       }
     },
     created() {
@@ -106,7 +107,6 @@
       this.request.projectId = getCurrentProjectID();
       // 加载引用对象数据
       this.getApiInfo();
-      this.getWsProjects();
       if (this.request.protocol === 'HTTP') {
         this.setUrl(this.request.url);
         this.setUrl(this.request.path);
@@ -250,13 +250,20 @@
         this.reload();
       },
       run() {
-        if (!this.currentEnvironmentId) {
-          this.$error(this.$t('api_test.environment.select_environment'));
-          return;
+        if (!this.envMap || this.envMap.size === 0) {
+          this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
+          return false;
+        } else if (this.envMap && this.envMap.size > 0) {
+          const env = this.envMap.get(this.request.projectId);
+          if (!env) {
+            this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
+            return false;
+          }
         }
         this.request.active = true;
         this.loading = true;
         this.runData = [];
+        this.runData.projectId = this.request.projectId;
         this.request.useEnvironment = this.currentEnvironmentId;
         this.request.customizeReq = this.isCustomizeReq;
         let debugData = {
@@ -279,17 +286,9 @@
           this.loading = false
         })
       },
-      getWsProjects() {
-        this.$get("/project/listAll", res => {
-          this.projects = res.data;
-        })
-      },
       getProjectName(id) {
-        const project = this.projects.find(p => p.id === id);
-        if (project) {
-          return project.name;
-        }
-        return '';
+        const project = this.projectList.find(p => p.id === id);
+        return project ? project.name : "";
       }
     }
   }
