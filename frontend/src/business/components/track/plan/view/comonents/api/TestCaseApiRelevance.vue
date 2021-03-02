@@ -13,6 +13,7 @@
         @refreshTable="refresh"
         @setModuleOptions="setModuleOptions"
         :is-read-only="true"
+        :relenvance-case-dialog="true"
         ref="nodeTree"/>
     </template>
 
