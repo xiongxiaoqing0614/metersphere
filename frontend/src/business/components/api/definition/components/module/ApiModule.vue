@@ -20,6 +20,8 @@
           :condition="condition"
           :current-module="currentModule"
           :is-read-only="isReadOnly"
+          :is-plan-id="isPlanId()"
+          :relenvance-case-dialog="relenvanceCaseDialog"
           @exportAPI="exportAPI"
           @saveAsEdit="saveAsEdit"
           @refreshTable="$emit('refreshTable')"
@@ -75,6 +77,12 @@ export default {
       },
       planId: String,
       relevanceProjectId: String,
+      relenvanceCaseDialog: {
+        type: Boolean,
+        default() {
+          return false
+        }
+      },
     },
     computed: {
       isPlanModel() {
@@ -207,6 +215,9 @@ export default {
       refresh() {
         this.list();
         this.$emit('refreshTable');
+      },
+      isPlanId() {
+        return this.planId ? true : false;
       },
     }
   }

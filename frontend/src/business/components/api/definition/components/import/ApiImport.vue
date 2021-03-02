@@ -301,11 +301,13 @@ export default {
       }
       //多选框数据处理
       if(this.selectedPlatformValue === 'Forseti') {
-					let s = []
+					let s = [];
 					for(var i = 0; i < this.formData.appId.length; i++) {
-						s.push(this.formData.appId[i].split(":")[0])
+						s.push(this.formData.appId[i].split(":")[0]);
 					}
-					param.appId = s.join(",")
+					param.appId = s.join(",");
+      }else{
+        param.appId = "";
       }
       return param;
     },
