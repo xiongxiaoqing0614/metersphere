@@ -5,15 +5,20 @@ import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.metersphere.api.dto.ApiTestImportRequest;
 import io.metersphere.api.dto.DeleteAPIReportRequest;
 import io.metersphere.api.dto.JmxInfoDTO;
 import io.metersphere.api.dto.automation.*;
+import io.metersphere.api.dto.automation.parse.ScenarioImport;
+import io.metersphere.api.dto.automation.parse.ScenarioImportParserFactory;
 import io.metersphere.api.dto.datacount.ApiDataCountResult;
 import io.metersphere.api.dto.definition.RunDefinitionRequest;
 import io.metersphere.api.dto.definition.request.*;
+import io.metersphere.api.dto.definition.request.unknown.MsJmeterElement;
 import io.metersphere.api.dto.definition.request.variable.ScenarioVariable;
 import io.metersphere.api.dto.scenario.environment.EnvironmentConfig;
 import io.metersphere.api.jmeter.JMeterService;
+import io.metersphere.api.parse.ApiImportParser;
 import io.metersphere.base.domain.*;
 import io.metersphere.base.mapper.ApiScenarioMapper;
 import io.metersphere.base.mapper.ApiScenarioReportMapper;
@@ -41,9 +46,6 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.jorphan.collections.HashTree;
 import org.apache.jorphan.collections.ListedHashTree;
-import org.dom4j.Document;
-import org.dom4j.DocumentHelper;
-import org.dom4j.Element;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -145,32 +147,11 @@ public class ApiAutomationService {
         request.setId(UUID.randomUUID().toString());
         checkNameExist(request);
 
-        final ApiScenarioWithBLOBs scenario = new ApiScenarioWithBLOBs();
-        scenario.setId(request.getId());
-        scenario.setName(request.getName());
-        scenario.setProjectId(request.getProjectId());
-        scenario.setTags(request.getTags());
-        scenario.setApiScenarioModuleId(request.getApiScenarioModuleId());
-        scenario.setModulePath(request.getModulePath());
-        scenario.setLevel(request.getLevel());
-        scenario.setFollowPeople(request.getFollowPeople());
-        scenario.setPrincipal(request.getPrincipal());
-        scenario.setStepTotal(request.getStepTotal());
-        scenario.setScenarioDefinition(JSON.toJSONString(request.getScenarioDefinition()));
+        final ApiScenarioWithBLOBs scenario = buildSaveScenario(request);
+
         scenario.setCreateTime(System.currentTimeMillis());
-        scenario.setUpdateTime(System.currentTimeMillis());
         scenario.setNum(getNextNum(request.getProjectId()));
-        if (StringUtils.isNotEmpty(request.getStatus())) {
-            scenario.setStatus(request.getStatus());
-        } else {
-            scenario.setStatus(ScenarioStatus.Underway.name());
-        }
-        if (request.getUserId() == null) {
-            scenario.setUserId(SessionUtils.getUserId());
-        } else {
-            scenario.setUserId(request.getUserId());
-        }
-        scenario.setDescription(request.getDescription());
+
         apiScenarioMapper.insert(scenario);
 
         List<String> bodyUploadIds = request.getBodyUploadIds();
@@ -192,7 +173,12 @@ public class ApiAutomationService {
         List<String> bodyUploadIds = request.getBodyUploadIds();
         FileUtils.createBodyFiles(bodyUploadIds, bodyFiles);
 
-        final ApiScenarioWithBLOBs scenario = new ApiScenarioWithBLOBs();
+        final ApiScenarioWithBLOBs scenario = buildSaveScenario(request);
+        apiScenarioMapper.updateByPrimaryKeySelective(scenario);
+    }
+
+    public ApiScenarioWithBLOBs buildSaveScenario(SaveApiScenarioRequest request) {
+        ApiScenarioWithBLOBs scenario = new ApiScenarioWithBLOBs();
         scenario.setId(request.getId());
         scenario.setName(request.getName());
         scenario.setProjectId(request.getProjectId());
@@ -203,16 +189,19 @@ public class ApiAutomationService {
         scenario.setFollowPeople(request.getFollowPeople());
         scenario.setPrincipal(request.getPrincipal());
         scenario.setStepTotal(request.getStepTotal());
-        scenario.setScenarioDefinition(JSON.toJSONString(request.getScenarioDefinition()));
         scenario.setUpdateTime(System.currentTimeMillis());
+        scenario.setScenarioDefinition(JSON.toJSONString(request.getScenarioDefinition()));
         if (StringUtils.isNotEmpty(request.getStatus())) {
             scenario.setStatus(request.getStatus());
         } else {
             scenario.setStatus(ScenarioStatus.Underway.name());
         }
-        scenario.setUserId(request.getUserId());
-        scenario.setDescription(request.getDescription());
-        apiScenarioMapper.updateByPrimaryKeySelective(scenario);
+        if (request.getUserId() == null) {
+            scenario.setUserId(SessionUtils.getUserId());
+        } else {
+            scenario.setUserId(request.getUserId());
+        }
+        return scenario;
     }
 
     public void delete(String id) {
@@ -447,6 +436,59 @@ public class ApiAutomationService {
         return jmeterHashTree;
     }
 
+    private String generateJmx(ApiScenarioWithBLOBs apiScenario) {
+        HashTree jmeterHashTree = new ListedHashTree();
+        MsTestPlan testPlan = new MsTestPlan();
+        testPlan.setName(apiScenario.getName());
+        testPlan.setHashTree(new LinkedList<>());
+        ParameterConfig config = new ParameterConfig();
+        config.setOperating(true);
+        try {
+
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            JSONObject element = JSON.parseObject(apiScenario.getScenarioDefinition());
+            MsScenario scenario = JSONObject.parseObject(apiScenario.getScenarioDefinition(), MsScenario.class);
+
+            // 多态JSON普通转换会丢失内容，需要通过 ObjectMapper 获取
+            if (element != null && StringUtils.isNotEmpty(element.getString("hashTree"))) {
+                LinkedList<MsTestElement> elements = mapper.readValue(element.getString("hashTree"),
+                        new TypeReference<LinkedList<MsTestElement>>() {
+                        });
+                scenario.setHashTree(elements);
+            }
+            if (element != null && StringUtils.isNotEmpty(element.getString("variables"))) {
+                LinkedList<ScenarioVariable> variables = mapper.readValue(element.getString("variables"),
+                        new TypeReference<LinkedList<ScenarioVariable>>() {
+                        });
+                scenario.setVariables(variables);
+            }
+            if (scenario == null) {
+                return null;
+            }
+            // 针对导入的jmx 处理
+            if (CollectionUtils.isNotEmpty(scenario.getHashTree()) && (scenario.getHashTree().get(0) instanceof MsJmeterElement)) {
+                scenario.toHashTree(jmeterHashTree, scenario.getHashTree(), config);
+                return scenario.getJmx(jmeterHashTree);
+            } else {
+                MsThreadGroup group = new MsThreadGroup();
+                group.setLabel(apiScenario.getName());
+                group.setName(apiScenario.getName());
+                group.setEnableCookieShare(scenario.isEnableCookieShare());
+                group.setHashTree(new LinkedList<MsTestElement>() {{
+                    this.add(scenario);
+                }});
+                testPlan.getHashTree().add(group);
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            MSException.throwException(ex.getMessage());
+        }
+        testPlan.toHashTree(jmeterHashTree, testPlan.getHashTree(), config);
+        return testPlan.getJmx(jmeterHashTree);
+    }
+
     /**
      * 场景测试执行
      *
@@ -454,13 +496,13 @@ public class ApiAutomationService {
      * @return
      */
     public String run(RunScenarioRequest request) {
-        List<String> ids = request.getScenarioIds();
-        if (request.isSelectAllDate()) {
-            ids = this.getAllScenarioIdsByFontedSelect(
-                    request.getModuleIds(), request.getName(), request.getProjectId(), request.getFilters(), request.getUnSelectIds());
-        }
+
+        ServiceUtils.getSelectAllIds(request, request.getCondition(),
+                (query) -> extApiScenarioMapper.selectIdsByQuery((ApiScenarioRequest) query));
+
+        List<String> ids = request.getIds();
         //检查是否有正在执行中的情景
-        this.checkScenarioIsRunnng(ids);
+        this.checkScenarioIsRunning(ids);
         List<ApiScenarioWithBLOBs> apiScenarios = extApiScenarioMapper.selectIds(ids);
 
         String runMode = ApiRunMode.SCENARIO.name();
@@ -477,7 +519,7 @@ public class ApiAutomationService {
         return request.getId();
     }
 
-    public void checkScenarioIsRunnng(List<String> ids) {
+    public void checkScenarioIsRunning(List<String> ids) {
         List<ApiScenarioReport> lastReportStatusByIds = apiReportService.selectLastReportByIds(ids);
         for (ApiScenarioReport report : lastReportStatusByIds) {
             if (StringUtils.equals(report.getStatus(), APITestStatus.Running.name())) {
@@ -519,10 +561,14 @@ public class ApiAutomationService {
     public String debugRun(RunDefinitionRequest request, List<MultipartFile> bodyFiles) {
         List<String> bodyUploadIds = new ArrayList<>(request.getBodyUploadIds());
         FileUtils.createBodyFiles(bodyUploadIds, bodyFiles);
-        EnvironmentConfig envConfig = null;
-        if (request.getEnvironmentId() != null) {
-            ApiTestEnvironmentWithBLOBs environment = environmentService.get(request.getEnvironmentId());
-            envConfig = JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class);
+        Map<String,EnvironmentConfig> envConfig = new HashMap<>();
+        Map<String, String> map = request.getEnvironmentMap();
+        if (map != null) {
+            map.keySet().forEach(id -> {
+                ApiTestEnvironmentWithBLOBs environment = environmentService.get(map.get(id));
+                EnvironmentConfig env = JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class);
+                envConfig.put(id, env);
+            });
         }
         ParameterConfig config = new ParameterConfig();
         config.setConfig(envConfig);
@@ -667,11 +713,7 @@ public class ApiAutomationService {
 
     public JmxInfoDTO genPerformanceTestJmx(RunScenarioRequest request) throws Exception {
         List<ApiScenarioWithBLOBs> apiScenarios = null;
-        List<String> ids = request.getScenarioIds();
-        if (request.isSelectAllDate()) {
-            ids = this.getAllScenarioIdsByFontedSelect(
-                    request.getModuleIds(), request.getName(), request.getProjectId(), request.getFilters(), request.getUnSelectIds());
-        }
+        List<String> ids = request.getIds();
         apiScenarios = extApiScenarioMapper.selectIds(ids);
         String testName = "";
         if (!apiScenarios.isEmpty()) {
@@ -683,7 +725,7 @@ public class ApiAutomationService {
         HashTree jmeterHashTree = generateHashTree(apiScenarios, request, null);
         String jmx = testPlan.getJmx(jmeterHashTree);
 
-        jmx = apiTestService.updateJmxString(jmx,testName,false);
+        jmx = apiTestService.updateJmxString(jmx, testName, true);
 
         //将ThreadGroup的testname改为接口名称
 //        Document doc = DocumentHelper.parseText(jmx);// 获取可续保保单列表报文模板
@@ -702,20 +744,17 @@ public class ApiAutomationService {
         return dto;
     }
 
-    public void bathEdit(SaveApiScenarioRequest request) {
-        if (CollectionUtils.isEmpty(request.getScenarioIds())) {
-            return;
-        }
-        if (request.isSelectAllDate()) {
-            request.setScenarioIds(this.getAllScenarioIdsByFontedSelect(
-                    request.getModuleIds(), request.getName(), request.getProjectId(), request.getFilters(), request.getUnSelectIds()));
-        }
+    public void bathEdit(ApiScenarioBatchRequest request) {
+
+        ServiceUtils.getSelectAllIds(request, request.getCondition(),
+                (query) -> extApiScenarioMapper.selectIdsByQuery((ApiScenarioRequest) query));
+
         if (StringUtils.isNotBlank(request.getEnvironmentId())) {
             bathEditEnv(request);
             return;
         }
         ApiScenarioExample apiScenarioExample = new ApiScenarioExample();
-        apiScenarioExample.createCriteria().andIdIn(request.getScenarioIds());
+        apiScenarioExample.createCriteria().andIdIn(request.getIds());
         ApiScenarioWithBLOBs apiScenarioWithBLOBs = new ApiScenarioWithBLOBs();
         BeanUtils.copyBean(apiScenarioWithBLOBs, request);
         apiScenarioWithBLOBs.setUpdateTime(System.currentTimeMillis());
@@ -724,9 +763,9 @@ public class ApiAutomationService {
                 apiScenarioExample);
     }
 
-    public void bathEditEnv(SaveApiScenarioRequest request) {
+    public void bathEditEnv(ApiScenarioBatchRequest request) {
         if (StringUtils.isNotBlank(request.getEnvironmentId())) {
-            List<ApiScenarioWithBLOBs> apiScenarios = selectByIdsWithBLOBs(request.getScenarioIds());
+            List<ApiScenarioWithBLOBs> apiScenarios = selectByIdsWithBLOBs(request.getIds());
             apiScenarios.forEach(item -> {
                 JSONObject object = JSONObject.parseObject(item.getScenarioDefinition());
                 object.put("environmentId", request.getEnvironmentId());
@@ -737,4 +776,125 @@ public class ApiAutomationService {
             });
         }
     }
+
+    public List<ApiScenarioWithBLOBs> getWithBLOBs(ApiScenarioWithBLOBs request) {
+        ApiScenarioExample example = new ApiScenarioExample();
+        example.createCriteria().andNameEqualTo(request.getName()).andProjectIdEqualTo(request.getProjectId()).andStatusNotEqualTo("Trash").andIdNotEqualTo(request.getId());
+        return apiScenarioMapper.selectByExampleWithBLOBs(example);
+    }
+
+    private void _importCreate(List<ApiScenarioWithBLOBs> sameRequest, ApiScenarioMapper batchMapper, ApiScenarioWithBLOBs scenarioWithBLOBs, ApiTestImportRequest apiTestImportRequest) {
+        if (CollectionUtils.isEmpty(sameRequest)) {
+            scenarioWithBLOBs.setId(UUID.randomUUID().toString());
+            batchMapper.insert(scenarioWithBLOBs);
+        } else {
+            //如果存在则修改
+            scenarioWithBLOBs.setId(sameRequest.get(0).getId());
+            batchMapper.updateByPrimaryKeyWithBLOBs(scenarioWithBLOBs);
+        }
+    }
+
+    private ApiScenarioWithBLOBs importCreate(ApiScenarioWithBLOBs request, ApiScenarioMapper batchMapper, ApiTestImportRequest apiTestImportRequest) {
+        final ApiScenarioWithBLOBs scenarioWithBLOBs = new ApiScenarioWithBLOBs();
+        BeanUtils.copyBean(scenarioWithBLOBs, request);
+        scenarioWithBLOBs.setCreateTime(System.currentTimeMillis());
+        scenarioWithBLOBs.setUpdateTime(System.currentTimeMillis());
+        scenarioWithBLOBs.setStatus(APITestStatus.Underway.name());
+        scenarioWithBLOBs.setProjectId(apiTestImportRequest.getProjectId());
+        if (StringUtils.isEmpty(request.getPrincipal())) {
+            scenarioWithBLOBs.setPrincipal(Objects.requireNonNull(SessionUtils.getUser()).getId());
+        }
+        if (request.getUserId() == null) {
+            scenarioWithBLOBs.setUserId(Objects.requireNonNull(SessionUtils.getUser()).getId());
+        } else {
+            scenarioWithBLOBs.setUserId(request.getUserId());
+        }
+        scenarioWithBLOBs.setDescription(request.getDescription());
+
+        List<ApiScenarioWithBLOBs> sameRequest = getWithBLOBs(scenarioWithBLOBs);
+        if (StringUtils.equals("fullCoverage", apiTestImportRequest.getModeId())) {
+            _importCreate(sameRequest, batchMapper, scenarioWithBLOBs, apiTestImportRequest);
+        } else if (StringUtils.equals("incrementalMerge", apiTestImportRequest.getModeId())) {
+            if (CollectionUtils.isEmpty(sameRequest)) {
+                batchMapper.insert(scenarioWithBLOBs);
+            }
+
+        } else {
+            _importCreate(sameRequest, batchMapper, scenarioWithBLOBs, apiTestImportRequest);
+        }
+        return scenarioWithBLOBs;
+    }
+
+    private void editScenario(ApiTestImportRequest request, ScenarioImport apiImport) {
+        SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);
+        ApiScenarioMapper batchMapper = sqlSession.getMapper(ApiScenarioMapper.class);
+        List<ApiScenarioWithBLOBs> data = apiImport.getData();
+        int num = 0;
+        if (!CollectionUtils.isEmpty(data) && data.get(0) != null && data.get(0).getProjectId() != null) {
+            num = getNextNum(data.get(0).getProjectId());
+        }
+        for (int i = 0; i < data.size(); i++) {
+            ApiScenarioWithBLOBs item = data.get(i);
+            if (item.getName().length() > 255) {
+                item.setName(item.getName().substring(0, 255));
+            }
+            item.setNum(num++);
+            importCreate(item, batchMapper, request);
+            if (i % 300 == 0) {
+                sqlSession.flushStatements();
+            }
+        }
+        sqlSession.flushStatements();
+    }
+
+    public ScenarioImport scenarioImport(MultipartFile file, ApiTestImportRequest request) {
+        ApiImportParser apiImportParser = ScenarioImportParserFactory.getImportParser(request.getPlatform());
+        ScenarioImport apiImport = null;
+        Optional.ofNullable(file)
+                .ifPresent(item -> request.setFileName(file.getOriginalFilename().substring(0, file.getOriginalFilename().lastIndexOf("."))));
+        try {
+            apiImport = (ScenarioImport) Objects.requireNonNull(apiImportParser).parse(file == null ? null : file.getInputStream(), request);
+        } catch (Exception e) {
+            LogUtil.error(e.getMessage(), e);
+            MSException.throwException(Translator.get("parse_data_error"));
+        }
+        if (apiImport != null) {
+            editScenario(request, apiImport);
+        }
+        return apiImport;
+    }
+
+    private List<ApiScenarioWithBLOBs> getExportResult(ApiScenarioBatchRequest request) {
+        ServiceUtils.getSelectAllIds(request, request.getCondition(),
+                (query) -> extApiScenarioMapper.selectIdsByQuery((ApiScenarioRequest) query));
+        ApiScenarioExample example = new ApiScenarioExample();
+        example.createCriteria().andIdIn(request.getIds());
+        List<ApiScenarioWithBLOBs> apiScenarioWithBLOBs = apiScenarioMapper.selectByExampleWithBLOBs(example);
+        return apiScenarioWithBLOBs;
+    }
+
+    public ApiScenrioExportResult export(ApiScenarioBatchRequest request) {
+        ApiScenrioExportResult result = new ApiScenrioExportResult();
+        result.setData(getExportResult(request));
+        result.setProjectId(request.getProjectId());
+        result.setVersion(System.getenv("MS_VERSION"));
+        return result;
+    }
+
+    public List<ApiScenrioExportJmx> exportJmx(ApiScenarioBatchRequest request) {
+        List<ApiScenarioWithBLOBs> apiScenarioWithBLOBs = getExportResult(request);
+        // 生成jmx
+        List<ApiScenrioExportJmx> resList = new ArrayList<>();
+        apiScenarioWithBLOBs.forEach(item -> {
+            if (StringUtils.isNotEmpty(item.getScenarioDefinition())) {
+                String jmx = generateJmx(item);
+                if (StringUtils.isNotEmpty(jmx)) {
+                    ApiScenrioExportJmx scenrioExportJmx = new ApiScenrioExportJmx(item.getName(), apiTestService.updateJmxString(jmx, null, true));
+                    resList.add(scenrioExportJmx);
+                }
+            }
+        });
+        return resList;
+    }
+
 }

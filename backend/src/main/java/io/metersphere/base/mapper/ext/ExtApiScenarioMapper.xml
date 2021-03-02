@@ -110,12 +110,20 @@
                 <property name="object" value="${condition}.creator"/>
             </include>
         </if>
-        <if test="${condition}.tags != null">
+        <if test='${condition}.tags != null and ${objectKey}.operator == "not like"'>
+            and (api_scenario.tags is null or api_scenario.tags
+                <include refid="condition">
+                    <property name="object" value="${condition}.tags"/>
+                </include>
+            )
+        </if>
+        <if test='${condition}.tags != null and ${objectKey}.operator == "like"'>
             and api_scenario.tags
             <include refid="condition">
                 <property name="object" value="${condition}.tags"/>
             </include>
         </if>
+
         <if test="${condition}.status != null">
             and api_scenario.last_result
             <include refid="condition">
@@ -134,18 +142,24 @@
         from api_scenario
         left join project on api_scenario.project_id = project.id
         left join user on api_scenario.user_id = user.id
+        <include refid="queryWhereCondition"/>
+        <include refid="io.metersphere.base.mapper.ext.ExtBaseMapper.orders"/>
+    </select>
+
+    <sql id="queryWhereCondition">
         <where>
             <if test="request.combine != null">
                 <include refid="combine">
                     <property name="condition" value="request.combine"/>
                     <property name="name" value="request.name"/>
+                    <property name="objectKey" value="request.combine.tags"/>
                 </include>
             </if>
 
             <if test="request.name != null">
                 and (api_scenario.name like CONCAT('%', #{request.name},'%')
-                        or api_scenario.tags like CONCAT('%', #{request.name},'%')
-                        or api_scenario.num like CONCAT('%', #{request.name},'%'))
+                or api_scenario.tags like CONCAT('%', #{request.name},'%')
+                or api_scenario.num like CONCAT('%', #{request.name},'%'))
             </if>
             <if test="request.workspaceId != null">
                 AND project.workspace_id = #{request.workspaceId}
@@ -223,19 +237,13 @@
             </if>
             <if test="request.notInTestPlan == true ">
                 and api_scenario.id not in (
-                    select pc.api_scenario_id
-                    from test_plan_api_scenario pc
-                    where pc.test_plan_id = #{request.planId}
+                select pc.api_scenario_id
+                from test_plan_api_scenario pc
+                where pc.test_plan_id = #{request.planId}
                 )
             </if>
         </where>
-        <if test="request.orders != null and request.orders.size() > 0">
-            order by
-            <foreach collection="request.orders" separator="," item="order">
-                api_scenario.${order.name} ${order.type}
-            </foreach>
-        </if>
-    </select>
+    </sql>
 
     <select id="selectByTagId" resultType="io.metersphere.base.domain.ApiScenarioWithBLOBs">
       select * from api_scenario where tags like CONCAT('%', #{id},'%')
@@ -319,6 +327,14 @@
     </select>
     <select id="getNextNum" resultType="io.metersphere.base.domain.ApiScenario">
         SELECT * FROM api_scenario WHERE api_scenario.project_id = #{projectId} ORDER BY num DESC LIMIT 1;
+    </select>
+
+    <select id="selectIdsByQuery" resultType="java.lang.String">
+        select api_scenario.id
+        from api_scenario
+        left join project on api_scenario.project_id = project.id
+        <include refid="queryWhereCondition"/>
+        <include refid="io.metersphere.base.mapper.ext.ExtBaseMapper.orders"/>
     </select>
 
 </mapper>

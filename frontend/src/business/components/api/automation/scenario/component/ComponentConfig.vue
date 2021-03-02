@@ -2,7 +2,7 @@
   <div class="request-form">
     <component :is="component" :scenario="scenario" :controller="scenario" :timer="scenario" :assertions="scenario" :extract="scenario" :jsr223-processor="scenario" :request="scenario" :currentScenario="currentScenario" :currentEnvironmentId="currentEnvironmentId" :node="node"
                :draggable="true" :title="title" :color="titleColor" :background-color="backgroundColor" @suggestClick="suggestClick(node)" :response="response"
-               @remove="remove" @copyRow="copyRow" @refReload="refReload"/>
+               @remove="remove" @copyRow="copyRow" @refReload="refReload" :project-list="projectList" :env-map="envMap"/>
   </div>
 </template>
 
@@ -16,10 +16,11 @@
   import MsApiComponent from "./ApiComponent";
   import MsLoopController from "./LoopController";
   import MsApiScenarioComponent from "./ApiScenarioComponent";
+  import JmeterElementComponent from "./JmeterElementComponent";
 
   export default {
     name: "ComponentConfig",
-    components: {MsConstantTimer, MsIfController, MsJsr233Processor, MsApiAssertions, MsApiExtract, MsApiComponent, MsLoopController, MsApiScenarioComponent},
+    components: {MsConstantTimer, MsIfController, MsJsr233Processor, MsApiAssertions, MsApiExtract, MsApiComponent, MsLoopController, MsApiScenarioComponent, JmeterElementComponent},
     props: {
       type: String,
       scenario: {},
@@ -27,6 +28,8 @@
       currentEnvironmentId: String,
       response: {},
       node: {},
+      projectList: Array,
+      envMap: Map
     },
     data() {
       return {
@@ -70,6 +73,9 @@
             name = "MsApiScenarioComponent";
             break;
           case "AuthManager":
+            break;
+          case "JmeterElement":
+            name = "JmeterElementComponent";
             break;
           default:
             name = "MsApiComponent";

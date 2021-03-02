@@ -53,7 +53,7 @@
       :destroy-on-close="true"
       v-loading="result.loading"
     >
-      <el-form :model="form" label-position="right" label-width="120px" size="small" :rules="rule"
+      <el-form :model="form" label-position="right" label-width="140px" size="small" :rules="rule"
                ref="testResourcePoolForm">
         <el-form-item :label="$t('commons.name')" prop="name">
           <el-input v-model="form.name" autocomplete="off"/>
@@ -62,7 +62,13 @@
           <el-input v-model="form.description" autocomplete="off"/>
         </el-form-item>
         <el-form-item :label="$t('commons.image')" prop="image">
-          <el-input v-model="form.image" autocomplete="off"/>
+          <el-input v-model="form.image"/>
+        </el-form-item>
+        <el-form-item label="Jmeter HEAP" prop="HEAP">
+          <el-input v-model="form.heap" placeholder="-Xms1g -Xmx1g -XX:MaxMetaspaceSize=256m"/>
+        </el-form-item>
+        <el-form-item label="Jmeter GC_ALGO" prop="GC_ALGO">
+          <el-input v-model="form.gcAlgo" placeholder="-XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:G1ReservePercent=20"/>
         </el-form-item>
         <el-form-item :label="$t('test_resource_pool.type')" prop="type">
           <el-select v-model="form.type" :placeholder="$t('test_resource_pool.select_pool_type')"
@@ -102,6 +108,13 @@
                 <el-form-item :label="$t('test_resource_pool.max_threads')"
                               :rules="requiredRules">
                   <el-input-number v-model="item.maxConcurrency" :min="1" :max="1000000000"/>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col>
+                <el-form-item label="nodeSelector">
+                  <el-input v-model="item.nodeSelector" placeholder='{"disktype": "ssd",...}'/>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -243,12 +256,16 @@ export default {
       if (this.infoList.length <= 0) {
         return {validate: false, msg: this.$t('test_resource_pool.cannot_empty')}
       }
-
+      let resourcePoolType = this.form.type;
       let resultValidate = {validate: true, msg: this.$t('test_resource_pool.fill_the_data')};
-      this.infoList.forEach(function (info) {
+      this.infoList.forEach(info => {
         for (let key in info) {
+          // 排除非必填项
+          if (key === 'nodeSelector') {
+            continue;
+          }
           if (info[key] != '0' && !info[key]) {
-            resultValidate.validate = false
+            resultValidate.validate = false;
             return false;
           }
         }
@@ -256,6 +273,13 @@ export default {
         if (!info.maxConcurrency) {
           resultValidate.validate = false
           return false;
+        }
+        if (resourcePoolType === 'K8S' && info.nodeSelector) {
+          let validate = this.isJsonString(info.nodeSelector);
+          if (!validate) {
+            resultValidate.validate = false;
+            resultValidate.msg = this.$t('test_resource_pool.node_selector_invalid');
+          }
         }
       });
 
@@ -380,6 +404,16 @@ export default {
         row.status = 'INVALID';
         this.result.loading = false;
       })
+    },
+    isJsonString(str) {
+      try {
+        if (typeof JSON.parse(str) == "object") {
+          return true;
+        }
+      } catch (e) {
+        console.log('json invalid');
+      }
+      return false;
     }
   }
 }

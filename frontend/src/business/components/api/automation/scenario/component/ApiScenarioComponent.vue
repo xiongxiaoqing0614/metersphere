@@ -16,30 +16,40 @@
       <el-tag size="mini" style="margin-left: 20px" v-if="scenario.referenced==='Deleted'" type="danger">{{$t('api_test.automation.reference_deleted')}}</el-tag>
       <el-tag size="mini" style="margin-left: 20px" v-if="scenario.referenced==='Copy'">{{ $t('commons.copy') }}</el-tag>
       <el-tag size="mini" style="margin-left: 20px" v-if="scenario.referenced==='REF'">{{ $t('api_test.scenario.reference') }}</el-tag>
+
+      <span style="margin-left: 20px;">{{getProjectName(scenario.projectId)}}</span>
     </template>
 
   </api-base-component>
 </template>
 
 <script>
-import MsSqlBasisParameters from "../../../definition/components/request/database/BasisParameters";
-import MsTcpBasisParameters from "../../../definition/components/request/tcp/TcpBasisParameters";
-import MsDubboBasisParameters from "../../../definition/components/request/dubbo/BasisParameters";
-import MsApiRequestForm from "../../../definition/components/request/http/ApiHttpRequestForm";
-import ApiBaseComponent from "../common/ApiBaseComponent";
+  import MsSqlBasisParameters from "../../../definition/components/request/database/BasisParameters";
+  import MsTcpBasisParameters from "../../../definition/components/request/tcp/TcpBasisParameters";
+  import MsDubboBasisParameters from "../../../definition/components/request/dubbo/BasisParameters";
+  import MsApiRequestForm from "../../../definition/components/request/http/ApiHttpRequestForm";
+  import ApiBaseComponent from "../common/ApiBaseComponent";
+  import {getProject} from "@/business/components/api/automation/scenario/event";
+  import {getCurrentProjectID} from "@/common/js/utils";
 
-export default {
-  name: "ApiScenarioComponent",
-  props: {
-    scenario: {},
-    node: {},
-    draggable: {
-      type: Boolean,
-      default: false,
+  export default {
+    name: "ApiScenarioComponent",
+    props: {
+      scenario: {},
+      node: {},
+      draggable: {
+        type: Boolean,
+        default: false,
+      },
+      currentEnvironmentId: String,
+      projectList: Array
     },
-  },
-  watch: {},
+    watch: {},
     created() {
+      if (!this.scenario.projectId) {
+        this.scenario.projectId = getCurrentProjectID();
+      }
+      getProject.$emit('addProjectEnv', this.scenario.projectId, this.currentEnvironmentId);
       if (this.scenario.id && this.scenario.referenced === 'REF' && !this.scenario.loaded) {
         this.result = this.$get("/api/automation/getApiScenario/" + this.scenario.id, response => {
           if (response.data) {
@@ -52,6 +62,10 @@ export default {
             }
             this.scenario.disabled = true;
             this.scenario.name = response.data.name;
+            if (!this.scenario.projectId) {
+              this.scenario.projectId = response.data.projectId;
+            }
+
             this.$emit('refReload');
           } else {
             this.scenario.referenced = "Deleted";
@@ -63,7 +77,7 @@ export default {
     data() {
       return {
         loading: false,
-        isShowInput: false
+        isShowInput: false,
       }
     },
     computed: {
@@ -79,8 +93,10 @@ export default {
         this.$emit('remove', this.scenario, this.node);
       },
       active(item) {
-        item.active = !item.active;
-        this.reload();
+        if (item && item.active) {
+          item.active = !item.active;
+          this.reload();
+        }
       },
       copyRow() {
         this.$emit('copyRow', this.scenario, this.node);
@@ -107,6 +123,10 @@ export default {
           }
         }
       },
+      getProjectName(id) {
+        const project = this.projectList.find(p => p.id === id) ;
+        return project ? project.name : "";
+      }
     }
   }
 </script>

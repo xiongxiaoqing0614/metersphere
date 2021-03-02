@@ -40,7 +40,7 @@
         <el-col>
           <el-form-item :label="$t('system_parameter_setting.test_recipients')">
             <el-input v-model="formInline.recipient" :placeholder="$t('system_parameter_setting.test_recipients')"
-                      autocomplete="new-password" show-password type="text"  ref="input">
+                      autocomplete="new-password" type="text" ref="input">
             </el-input>
             <p style="color: #8a8b8d">({{ $t('system_parameter_setting.tip') }})</p>
           </el-form-item>
@@ -124,7 +124,6 @@ export default {
         this.formInline = response.data;
         this.formInline.ssl = this.formInline.ssl === 'true';
         this.formInline.tls = this.formInline.tls === 'true';
-        console.log(this.formInline)
         this.$nextTick(() => {
           this.$refs.formInline.clearValidate();
         })

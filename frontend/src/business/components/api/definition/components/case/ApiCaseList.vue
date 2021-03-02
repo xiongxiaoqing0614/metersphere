@@ -38,7 +38,7 @@
     </ms-drawer>
 
     <!-- 执行组件 -->
-    <ms-run :debug="false" :environment="environment" :reportId="reportId" :run-data="runData"
+    <ms-run :debug="false" :environment="environment" :reportId="reportId" :run-data="runData" :env-map="envMap"
             @runRefresh="runRefresh" ref="runTest"/>
     <!--批量编辑-->
     <ms-batch-edit ref="batchEdit" @batchEdit="batchEdit" :typeArr="typeArr" :value-arr="valueArr"/>
@@ -54,8 +54,7 @@
   import {CASE_ORDER} from "../../model/JsonData";
   import {API_CASE_CONFIGS} from "@/business/components/common/components/search/search-components";
   import MsBatchEdit from "../basis/BatchEdit";
-  // import {CASE_PRIORITY, REQ_METHOD} from "../../model/JsonData";
-  import {CASE_PRIORITY,API_METHOD_COLOUR, API_STATUS, REQ_METHOD, TCP_METHOD, SQL_METHOD, DUBBO_METHOD} from "../../model/JsonData";
+  import {CASE_PRIORITY, REQ_METHOD, TCP_METHOD, SQL_METHOD, DUBBO_METHOD} from "../../model/JsonData";
 
   export default {
     name: 'ApiCaseList',
@@ -112,6 +111,7 @@
           priority: CASE_PRIORITY,
           method: REQ_METHOD,
         },
+        envMap: new Map
       }
     },
     watch: {
@@ -208,9 +208,11 @@
           this.condition.projectId = this.projectId;
           if (this.isCaseEdit) {
             this.condition.id = this.testCaseId;
-          } else {
+          }
+          if(this.api){
             this.condition.apiDefinitionId = this.api.id;
           }
+
           this.result = this.$post("/api/testcase/list", this.condition, response => {
             this.apiCaseList = response.data;
             this.apiCaseList.forEach(apiCase => {
@@ -270,10 +272,14 @@
         this.singleLoading = true;
         this.singleRunId = row.id;
         row.request.name = row.id;
-        row.request.useEnvironment = this.environment.id;
-        this.runData.push(row.request);
-        /*触发执行操作*/
-        this.reportId = getUUID().substring(0, 8);
+        this.$get('/api/definition/get/' + row.request.id, response => {
+          row.request.path = response.data.path;  //  取的path是对应接口的path，因此查库以获得
+          row.request.useEnvironment = this.environment.id;
+          row.request.projectId = getCurrentProjectID();
+          this.runData.push(row.request);
+          /*触发执行操作*/
+          this.reportId = getUUID().substring(0, 8);
+        });
       },
 
       batchRun() {

@@ -18,10 +18,30 @@
       <template v-slot:header>
         <el-input :placeholder="$t('test_track.module.search')" v-model="condition.filterText" size="small">
           <template v-slot:append>
-            <el-button v-if="!isReadOnly" icon="el-icon-folder-add" @click="addScenario" v-tester/>
+            <el-dropdown v-if="!isReadOnly" size="small" split-button type="primary" class="ms-api-button" @click="handleCommand('add-api')"
+                         v-tester
+                         @command="handleCommand">
+              <el-button icon="el-icon-folder-add" @click="addScenario"></el-button>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item command="add-scenario">{{ $t('api_test.automation.add_scenario') }}</el-dropdown-item>
+                <el-dropdown-item command="import">{{ $t('api_test.api_import.label') }}</el-dropdown-item>
+                <el-dropdown-item command="export">{{ $t('report.export') }}MS</el-dropdown-item>
+                <el-dropdown-item command="exportJmx">{{ $t('report.export') }}JMX</el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
           </template>
         </el-input>
         <module-trash-button v-if="!isReadOnly" :condition="condition" :exe="enableTrash"/>
+        <!-- 是否保留这个 -->
+        <!--<api-scenario-module-header-->
+        <!--:condition="condition"-->
+        <!--:current-module="currentModule"-->
+        <!--:is-read-only="isReadOnly"-->
+        <!--:project-id="projectId"-->
+        <!--@exportAPI="exportAPI"-->
+        <!--@addScenario="addScenario"-->
+        <!--@refreshTable="$emit('refreshTable')"-->
+        <!--@refresh="refresh"/>-->
       </template>
 
     </ms-node-tree>
@@ -30,29 +50,33 @@
       @saveAsEdit="saveAsEdit"
       @refresh="refresh"
       ref="basisScenario"/>
+
+    <api-import ref="apiImport" :moduleOptions="moduleOptions" @refreshAll="$emit('refreshAll')"/>
   </div>
 
 </template>
 
 <script>
-import SelectMenu from "../../../track/common/SelectMenu";
-import MsAddBasisScenario from "@/business/components/api/automation/scenario/AddBasisScenario";
-import {getCurrentProjectID} from "@/common/js/utils";
-import MsNodeTree from "../../../track/common/NodeTree";
-import {buildNodePath} from "../../definition/model/NodeTree";
-import ModuleTrashButton from "../../definition/components/module/ModuleTrashButton";
+  import SelectMenu from "../../../track/common/SelectMenu";
+  import MsAddBasisScenario from "@/business/components/api/automation/scenario/AddBasisScenario";
+  import {getCurrentProjectID} from "@/common/js/utils";
+  import MsNodeTree from "../../../track/common/NodeTree";
+  import {buildNodePath} from "../../definition/model/NodeTree";
+  import ModuleTrashButton from "../../definition/components/module/ModuleTrashButton";
+  import ApiImport from "./common/ScenarioImport";
 
-export default {
-  name: 'MsApiScenarioModule',
-  components: {
-    ModuleTrashButton,
-    MsNodeTree,
-    MsAddBasisScenario,
-    SelectMenu,
-  },
-  props: {
-    isReadOnly: {
-      type: Boolean,
+  export default {
+    name: 'MsApiScenarioModule',
+    components: {
+      ApiImport,
+      ModuleTrashButton,
+      MsNodeTree,
+      MsAddBasisScenario,
+      SelectMenu,
+    },
+    props: {
+      isReadOnly: {
+        type: Boolean,
         default() {
           return false
         }
@@ -78,6 +102,7 @@ export default {
         projectId: "",
         data: [],
         currentModule: undefined,
+        moduleOptions: [],
       }
     },
     mounted() {
@@ -99,7 +124,32 @@ export default {
       }
     },
     methods: {
-
+      handleCommand(e) {
+        switch (e) {
+          case "add-scenario":
+            this.addScenario();
+            break;
+          case "import":
+            this.result = this.$get("/api/automation/module/list/" + getCurrentProjectID(), response => {
+              if (response.data != undefined && response.data != null) {
+                this.data = response.data;
+                let moduleOptions = [];
+                this.data.forEach(node => {
+                  buildNodePath(node, {path: ''}, moduleOptions);
+                });
+                this.moduleOptions = moduleOptions
+              }
+            });
+            this.$refs.apiImport.open(this.currentModule);
+            break;
+          case "export":
+            this.$emit('exportAPI');
+            break;
+          case "exportJmx":
+            this.$emit('exportJmx');
+            break;
+        }
+      },
       list() {
         let url = undefined;
         if (this.isPlanModel) {
@@ -175,9 +225,9 @@ export default {
           this.$emit("nodeSelectEvent", node, nodeIds, pNodes);
         }
       },
-      // exportAPI() {
-      //   this.$emit('exportAPI');
-      // },
+      exportAPI() {
+        this.$emit('exportAPI');
+      },
       // debug() {
       //   this.$emit('debug');
       // },

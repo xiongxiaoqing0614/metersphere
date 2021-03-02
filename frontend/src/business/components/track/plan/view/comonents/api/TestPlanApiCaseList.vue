@@ -25,76 +25,92 @@
             <show-more-btn :is-show="scope.row.showMore && !isReadOnly" :buttons="buttons" :size="selectRows.size"/>
           </template>
         </el-table-column>
+        <template v-for="(item, index) in tableLabel">
+          <el-table-column v-if="item.id == 'num'" prop="num" sortable="custom" label="ID" show-overflow-tooltip
+                           :key="index"/>
+          <el-table-column v-if="item.id == 'name'" prop="name" sortable="custom"
+                           :label="$t('api_test.definition.api_name')" show-overflow-tooltip :key="index"/>
 
-        <el-table-column prop="num" sortable="custom" label="ID" show-overflow-tooltip/>
-        <el-table-column prop="name" sortable="custom" :label="$t('api_test.definition.api_name')" show-overflow-tooltip/>
+          <el-table-column
+            v-if="item.id == 'priority'"
+            prop="priority"
+            :filters="priorityFilters"
+            sortable="custom"
+            column-key="priority"
+            :label="$t('test_track.case.priority')"
+            show-overflow-tooltip
+            :key="index">
+            <template v-slot:default="scope">
+              <priority-table-item :value="scope.row.priority"/>
+            </template>
+          </el-table-column>
 
-        <el-table-column
-          prop="priority"
-          :filters="priorityFilters"
-          sortable="custom"
-          column-key="priority"
-          :label="$t('test_track.case.priority')"
-          show-overflow-tooltip>
-          <template v-slot:default="scope">
-            <priority-table-item :value="scope.row.priority"/>
-          </template>
-        </el-table-column>
+          <el-table-column
+            v-if="item.id == 'path'"
+            prop="path"
+            :label="$t('api_test.definition.api_path')"
+            show-overflow-tooltip
+            :key="index"/>
 
-        <el-table-column
-          prop="path"
-          :label="$t('api_test.definition.api_path')"
-          show-overflow-tooltip/>
+          <el-table-column
+            v-if="item.id == 'createUser'"
+            prop="createUser"
+            column-key="user_id"
+            sortable="custom"
+            :filters="userFilters"
+            :label="'创建人'"
+            show-overflow-tooltip
+            :key="index"/>
 
-        <el-table-column
-          prop="createUser"
-          column-key="user_id"
-          sortable="custom"
-          :filters="userFilters"
-          :label="'创建人'"
-          show-overflow-tooltip/>
+          <el-table-column
+            v-if="item.id == 'custom'"
+            sortable="custom"
+            width="160"
+            :label="$t('api_test.definition.api_last_time')"
+            prop="updateTime"
+            :key="index">
+            <template v-slot:default="scope">
+              <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
+            </template>
+          </el-table-column>
 
-        <el-table-column
-          sortable="custom"
-          width="160"
-          :label="$t('api_test.definition.api_last_time')"
-          prop="updateTime">
-          <template v-slot:default="scope">
-            <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
-          </template>
-        </el-table-column>
+          <el-table-column
+            v-if="item.id == 'tags'"
+            prop="tags"
+            :label="$t('commons.tag')"
+            :key="index">
+            <template v-slot:default="scope">
+                <ms-tag v-for="(itemName,index)  in scope.row.tags" :key="index" type="success" effect="plain" :content="itemName" style="margin-left: 5px"/>
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="tags" :label="$t('commons.tag')">
-          <template v-slot:default="scope">
-            <div v-for="(itemName,index)  in scope.row.tags" :key="index">
-              <ms-tag type="success" effect="plain" :content="itemName"/>
-            </div>
-          </template>
-        </el-table-column>
+          <el-table-column v-if="item.id == 'execResult'" :label="'执行状态'" min-width="130" align="center" :key="index">
+            <template v-slot:default="scope">
+              <div v-loading="rowLoading === scope.row.id">
+                <el-link type="danger"
+                         v-if="scope.row.execResult && scope.row.execResult === 'error'"
+                         @click="getReportResult(scope.row)" v-text="getResult(scope.row.execResult)"/>
+                <el-link v-else-if="scope.row.execResult && scope.row.execResult === 'success'"
+                         @click="getReportResult(scope.row)" v-text="getResult(scope.row.execResult)">
 
-        <el-table-column :label="'执行状态'" min-width="130" align="center">
-          <template v-slot:default="scope">
-            <div v-loading="rowLoading === scope.row.id">
-              <el-link type="danger"
-                       v-if="scope.row.execResult && scope.row.execResult === 'error'"
-                       @click="getReportResult(scope.row)" v-text="getResult(scope.row.execResult)"/>
-              <el-link v-else-if="scope.row.execResult && scope.row.execResult === 'success'"
-                       @click="getReportResult(scope.row)" v-text="getResult(scope.row.execResult)">
+                </el-link>
+                <div v-else v-text="getResult(scope.row.execResult)"/>
 
-              </el-link>
-              <div v-else v-text="getResult(scope.row.execResult)"/>
-
-              <div v-if="scope.row.id" style="color: #999999;font-size: 12px">
-                <span> {{ scope.row.updateTime | timestampFormatDate }}</span>
-                {{ scope.row.updateUser }}
+                <div v-if="scope.row.id" style="color: #999999;font-size: 12px">
+                  <span> {{ scope.row.updateTime | timestampFormatDate }}</span>
+                  {{ scope.row.updateUser }}
+                </div>
               </div>
-            </div>
-          </template>
-        </el-table-column>
-
+            </template>
+          </el-table-column>
+        </template>
         <el-table-column v-if="!isReadOnly" :label="$t('commons.operating')" align="center">
+          <template slot="header">
+            <header-label-operate @exec="customHeader"/>
+          </template>
           <template v-slot:default="scope">
-            <ms-table-operator-button class="run-button" :is-tester-permission="true" :tip="$t('api_test.run')" icon="el-icon-video-play"
+            <ms-table-operator-button class="run-button" :is-tester-permission="true" :tip="$t('api_test.run')"
+                                      icon="el-icon-video-play"
                                       @exec="singleRun(scope.row)" v-tester/>
             <ms-table-operator-button :is-tester-permission="true" :tip="$t('test_track.plan_view.cancel_relevance')"
                                       icon="el-icon-unlock" type="danger" @exec="handleDelete(scope.row)" v-tester/>
@@ -102,6 +118,8 @@
         </el-table-column>
 
       </el-table>
+      <header-custom ref="headerCustom" :initTableData="initTable" :optionalFields=headerItems
+                     :type=type></header-custom>
       <ms-table-pagination :change="initTable" :current-page.sync="currentPage" :page-size.sync="pageSize"
                            :total="total"/>
 
@@ -129,7 +147,7 @@ import MsBottomContainer from "../../../../../api/definition/components/BottomCo
 import ShowMoreBtn from "../../../../case/components/ShowMoreBtn";
 import MsBatchEdit from "../../../../../api/definition/components/basis/BatchEdit";
 import {API_METHOD_COLOUR, CASE_PRIORITY, RESULT_MAP} from "../../../../../api/definition/model/JsonData";
-import {getCurrentProjectID} from "@/common/js/utils";
+import {getCurrentProjectID, getCurrentUser} from "@/common/js/utils";
 import ApiListContainer from "../../../../../api/definition/components/list/ApiListContainer";
 import PriorityTableItem from "../../../../common/tableItems/planview/PriorityTableItem";
 import {getBodyUploadFiles, getUUID} from "../../../../../../../common/js/utils";
@@ -138,13 +156,18 @@ import MsRun from "../../../../../api/definition/components/Run";
 import TestPlanApiCaseResult from "./TestPlanApiCaseResult";
 import TestPlan from "../../../../../api/definition/components/jmeter/components/test-plan";
 import ThreadGroup from "../../../../../api/definition/components/jmeter/components/thread-group";
-import {WORKSPACE_ID} from "@/common/js/constants";
-import {_filter, _sort} from "@/common/js/tableUtils";
+import {TEST_CASE_LIST, TEST_PLAN_API_CASE, WORKSPACE_ID} from "@/common/js/constants";
+import {_filter, _sort, getLabel} from "@/common/js/tableUtils";
+import HeaderCustom from "@/business/components/common/head/HeaderCustom";
+import {Test_Plan_Api_Case, Track_Test_Case} from "@/business/components/common/model/JsonData";
+import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 
 
 export default {
   name: "TestPlanApiCaseList",
   components: {
+    HeaderLabelOperate,
+    HeaderCustom,
     TestPlanApiCaseResult,
     MsRun,
     TestPlanCaseListHeader,
@@ -163,11 +186,14 @@ export default {
   },
   data() {
     return {
+      type: TEST_PLAN_API_CASE,
+      headerItems: Test_Plan_Api_Case,
+      tableLabel: Test_Plan_Api_Case,
       condition: {},
       selectCase: {},
       result: {},
       moduleId: "",
-      status:'default',
+      status: 'default',
       deletePath: "/test/case/delete",
       selectRows: new Set(),
       buttons: [
@@ -228,14 +254,14 @@ export default {
       }
     },
     planId: String,
-    clickType:String
+    clickType: String
   },
   created: function () {
     this.getMaintainerOptions();
     this.initTable();
   },
   activated() {
-    this.status ='default'
+    this.status = 'default'
   },
   watch: {
     selectNodeIds() {
@@ -263,6 +289,9 @@ export default {
     },
   },
   methods: {
+    customHeader() {
+      this.$refs.headerCustom.open(this.tableLabel)
+    },
     getMaintainerOptions() {
       let workspaceId = localStorage.getItem(WORKSPACE_ID);
       this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
@@ -276,6 +305,7 @@ export default {
       this.$emit('isApiListEnableChange', data);
     },
     initTable() {
+      getLabel(this, TEST_PLAN_API_CASE);
       this.selectRows = new Set();
       this.condition.status = "";
       this.condition.moduleIds = this.selectNodeIds;
@@ -285,10 +315,10 @@ export default {
       if (this.currentProtocol != null) {
         this.condition.protocol = this.currentProtocol;
       }
-      if(this.clickType){
-        if(this.status =='default'){
+      if (this.clickType) {
+        if (this.status == 'default') {
           this.condition.status = this.clickType;
-        }else{
+        } else {
           this.condition.status = null;
         }
         this.status = 'all';

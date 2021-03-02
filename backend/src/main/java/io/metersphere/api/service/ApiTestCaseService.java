@@ -360,6 +360,12 @@ public class ApiTestCaseService {
         return apiTestCaseMapper.selectByExample(example);
     }
 
+    public List<ApiTestCaseWithBLOBs> selectCasesBydApiIds(List<String> apiIds) {
+        ApiTestCaseExample example = new ApiTestCaseExample();
+        example.createCriteria().andApiDefinitionIdIn(apiIds);
+        return apiTestCaseMapper.selectByExampleWithBLOBs(example);
+    }
+
     public Map<String, String> getRequest(ApiTestCaseRequest request) {
         List<ApiTestCaseWithBLOBs> list = extApiTestCaseMapper.getRequest(request);
         return list.stream().collect(Collectors.toMap(ApiTestCaseWithBLOBs::getId, ApiTestCaseWithBLOBs::getRequest));
@@ -507,9 +513,9 @@ public class ApiTestCaseService {
         ApiTestEnvironmentService environmentService = CommonBeanFactory.getBean(ApiTestEnvironmentService.class);
         ApiTestEnvironmentWithBLOBs environment = environmentService.get(request.getEnvironmentId());
         ParameterConfig parameterConfig = new ParameterConfig();
-        if (environment != null && environment.getConfig() != null) {
-            parameterConfig.setConfig(JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class));
-        }
+//        if (environment != null && environment.getConfig() != null) {
+//            parameterConfig.setConfig(JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class));
+//        }
         testPlan.toHashTree(jmeterHashTree, testPlan.getHashTree(), parameterConfig);
         return jmeterHashTree;
     }

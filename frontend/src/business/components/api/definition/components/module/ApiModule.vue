@@ -214,6 +214,7 @@ export default {
       },
       refresh() {
         this.list();
+        this.$emit('refreshTable');
       },
       isPlanId() {
         return this.planId ? true : false;

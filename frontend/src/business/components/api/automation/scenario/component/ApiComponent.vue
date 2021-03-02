@@ -15,7 +15,8 @@
       <el-tag size="mini" style="margin-left: 20px" v-if="request.referenced==='Deleted'" type="danger">{{$t('api_test.automation.reference_deleted')}}</el-tag>
       <el-tag size="mini" style="margin-left: 20px" v-if="request.referenced==='Copy'">{{ $t('commons.copy') }}</el-tag>
       <el-tag size="mini" style="margin-left: 20px" v-if="request.referenced ==='REF'">{{ $t('api_test.scenario.reference') }}</el-tag>
-      <ms-run :debug="true" :reportId="reportId" :run-data="runData"
+      <span style="margin-left: 20px;">{{getProjectName(request.projectId)}}</span>
+      <ms-run :debug="true" :reportId="reportId" :run-data="runData" :env-map="envMap"
               @runRefresh="runRefresh" ref="runTest"/>
 
     </template>
@@ -31,7 +32,7 @@
     <p class="tip">{{ $t('api_test.definition.request.req_param') }} </p>
     <ms-api-request-form :isShowEnable="true" :referenced="true" :headers="request.headers " :request="request"
                          v-if="request.protocol==='HTTP' || request.type==='HTTPSamplerProxy'"/>
-    <ms-tcp-basis-parameters :request="request" v-if="request.protocol==='TCP'|| request.type==='TCPSampler'"/>
+    <ms-tcp-basis-parameters :request="request" v-if="request.protocol==='TCP'|| request.type==='TCPSampler'" :showScript="false"/>
     <ms-sql-basis-parameters :request="request" v-if="request.protocol==='SQL'|| request.type==='JDBCSampler'"
                              :showScript="false"/>
     <ms-dubbo-basis-parameters :request="request"
@@ -60,28 +61,31 @@
 </template>
 
 <script>
-import MsSqlBasisParameters from "../../../definition/components/request/database/BasisParameters";
-import MsTcpBasisParameters from "../../../definition/components/request/tcp/TcpBasisParameters";
-import MsDubboBasisParameters from "../../../definition/components/request/dubbo/BasisParameters";
-import MsApiRequestForm from "../../../definition/components/request/http/ApiHttpRequestForm";
-import MsRequestResultTail from "../../../definition/components/response/RequestResultTail";
-import MsRun from "../../../definition/components/Run";
-import {getUUID} from "@/common/js/utils";
-import ApiBaseComponent from "../common/ApiBaseComponent";
-import ApiResponseComponent from "./ApiResponseComponent";
-import CustomizeReqInfo from "@/business/components/api/automation/scenario/common/CustomizeReqInfo";
+  import MsSqlBasisParameters from "../../../definition/components/request/database/BasisParameters";
+  import MsTcpBasisParameters from "../../../definition/components/request/tcp/TcpBasisParameters";
+  import MsDubboBasisParameters from "../../../definition/components/request/dubbo/BasisParameters";
+  import MsApiRequestForm from "../../../definition/components/request/http/ApiHttpRequestForm";
+  import MsRequestResultTail from "../../../definition/components/response/RequestResultTail";
+  import MsRun from "../../../definition/components/Run";
+  import {getUUID,getCurrentProjectID} from "@/common/js/utils";
+  import ApiBaseComponent from "../common/ApiBaseComponent";
+  import ApiResponseComponent from "./ApiResponseComponent";
+  import CustomizeReqInfo from "@/business/components/api/automation/scenario/common/CustomizeReqInfo";
+  import {getProject} from "@/business/components/api/automation/scenario/event";
 
-export default {
-  name: "MsApiComponent",
-  props: {
-    request: {},
-    currentScenario: {},
-    node: {},
-    draggable: {
-      type: Boolean,
-      default: false,
-    },
-    currentEnvironmentId: String,
+  export default {
+    name: "MsApiComponent",
+    props: {
+      request: {},
+      currentScenario: {},
+      node: {},
+      draggable: {
+        type: Boolean,
+        default: false,
+      },
+      currentEnvironmentId: String,
+      projectList: Array,
+      envMap: Map
     },
     components: {
       CustomizeReqInfo,
@@ -100,6 +104,7 @@ export default {
       if (!this.request.requestResult) {
         this.request.requestResult = {responseResult: {}};
       }
+      this.request.projectId = getCurrentProjectID();
       // 加载引用对象数据
       this.getApiInfo();
       if (this.request.protocol === 'HTTP') {
@@ -115,6 +120,7 @@ export default {
           }
         }
       }
+      getProject.$emit('addProjectEnv', this.request.projectId, this.currentEnvironmentId);
     },
     computed: {
       displayColor() {
@@ -210,6 +216,9 @@ export default {
               this.request.requestResult = requestResult;
               this.request.id = response.data.id;
               this.request.disabled = true;
+              if (!this.request.projectId) {
+                this.request.projectId = response.data.projectId;
+              }
               this.reload();
               this.sort();
             } else {
@@ -241,13 +250,20 @@ export default {
         this.reload();
       },
       run() {
-        if (!this.currentEnvironmentId) {
-          this.$error(this.$t('api_test.environment.select_environment'));
-          return;
+        if (!this.envMap || this.envMap.size === 0) {
+          this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
+          return false;
+        } else if (this.envMap && this.envMap.size > 0) {
+          const env = this.envMap.get(this.request.projectId);
+          if (!env) {
+            this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
+            return false;
+          }
         }
         this.request.active = true;
         this.loading = true;
         this.runData = [];
+        this.runData.projectId = this.request.projectId;
         this.request.useEnvironment = this.currentEnvironmentId;
         this.request.customizeReq = this.isCustomizeReq;
         let debugData = {
@@ -270,6 +286,10 @@ export default {
           this.loading = false
         })
       },
+      getProjectName(id) {
+        const project = this.projectList.find(p => p.id === id);
+        return project ? project.name : "";
+      }
     }
   }
 </script>

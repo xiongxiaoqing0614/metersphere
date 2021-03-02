@@ -1,5 +1,5 @@
 <template>
-  <ms-container v-if="renderComponent">
+  <ms-container v-if="renderComponent" v-loading="loading">
     <ms-aside-container>
       <ms-api-scenario-module
         @nodeSelectEvent="nodeChange"
@@ -8,6 +8,9 @@
         @setModuleOptions="setModuleOptions"
         @setNodeTree="setNodeTree"
         @enableTrash="enableTrash"
+        @exportAPI="exportAPI"
+        @exportJmx="exportJmx"
+        @refreshAll="refreshAll"
         :type="'edit'"
         ref="nodeTree"/>
     </ms-aside-container>
@@ -63,7 +66,7 @@
   import MsAsideContainer from "@/business/components/common/components/MsAsideContainer";
   import MsMainContainer from "@/business/components/common/components/MsMainContainer";
   import MsApiScenarioList from "@/business/components/api/automation/scenario/ApiScenarioList";
-  import {getUUID} from "@/common/js/utils";
+  import {getUUID, downloadFile} from "@/common/js/utils";
   import MsApiScenarioModule from "@/business/components/api/automation/scenario/ApiScenarioModule";
   import MsEditApiScenario from "./scenario/EditApiScenario";
   import {getCurrentProjectID} from "../../../../common/js/utils";
@@ -101,6 +104,7 @@
         currentModule: null,
         moduleOptions: [],
         tabs: [],
+        loading: false,
         trashEnable: false,
         selectNodeIds: [],
         nodeTree: []
@@ -126,6 +130,12 @@
       }
     },
     methods: {
+      exportAPI() {
+        this.$refs.apiScenarioList.exportApi();
+      },
+      exportJmx(){
+        this.$refs.apiScenarioList.exportJmx();
+      },
       checkRedirectEditPage(redirectParam) {
         if (redirectParam != null) {
           let selectParamArr = redirectParam.split("edit:");
@@ -151,13 +161,13 @@
       },
       changeRedirectParam(redirectIDParam) {
         this.redirectID = redirectIDParam;
-        if(redirectIDParam!=null){
-          if(this.redirectFlag == "none"){
+        if (redirectIDParam != null) {
+          if (this.redirectFlag == "none") {
             this.activeName = "default";
             this.addListener();
             this.redirectFlag = "redirected";
           }
-        }else{
+        } else {
           this.redirectFlag = "none";
         }
       },
@@ -188,8 +198,8 @@
       },
       addListener() {
         let index = this.tabs.findIndex(item => item.name === this.activeName); //  找到当前选中tab的index
-        if(index != -1) {   //  为当前选中的tab添加监听
-          this.$nextTick(()=>{
+        if (index != -1) {   //  为当前选中的tab添加监听
+          this.$nextTick(() => {
             this.$refs.autoScenarioConfig[index].addListener();
           });
         }
@@ -239,6 +249,10 @@
       refresh(data) {
         this.setTabTitle(data);
         this.$refs.apiScenarioList.search(data);
+      },
+      refreshAll() {
+        this.$refs.nodeTree.list();
+        this.$refs.apiScenarioList.search();
       },
       setTabTitle(data) {
         for (let index in this.tabs) {

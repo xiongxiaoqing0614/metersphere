@@ -7,11 +7,13 @@ import com.alibaba.fastjson.parser.Feature;
 import io.metersphere.api.dto.ApiTestImportRequest;
 import io.metersphere.api.dto.definition.ApiDefinitionResult;
 import io.metersphere.api.dto.definition.parse.ApiDefinitionImport;
+import io.metersphere.api.dto.definition.parse.ApiDefinitionImportUtil;
 import io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy;
 import io.metersphere.api.dto.scenario.Body;
 import io.metersphere.api.dto.scenario.KeyValue;
 import io.metersphere.api.dto.scenario.request.RequestType;
 import io.metersphere.api.service.ApiModuleService;
+import io.metersphere.base.domain.ApiDefinitionWithBLOBs;
 import io.metersphere.base.domain.ApiModule;
 import io.metersphere.commons.constants.ApiImportPlatform;
 import io.metersphere.commons.utils.CommonBeanFactory;
@@ -40,10 +42,8 @@ public class ForsetiParser extends ApiImportAbstractParser {
         String testStr = getDataFromForseti(request.getAppId());
         JSONObject testObject = JSONObject.parseObject(testStr, Feature.OrderedField);
 //        JSONArray dataObj = testObject.getJSONArray("data");
-        apiModuleService = CommonBeanFactory.getBean(ApiModuleService.class);
         this.projectId = request.getProjectId();
         return parseForsetiString(testStr, request);
-
     }
 
     private String getDataFromForseti(String appId){
@@ -72,7 +72,7 @@ public class ForsetiParser extends ApiImportAbstractParser {
 
     private ApiDefinitionImport  parseForsetiString(String jsonStr, ApiTestImportRequest importRequest){
         ApiDefinitionImport apiDefinitionImport = JSON.parseObject(jsonStr, ApiDefinitionImport.class);
-        List<ApiDefinitionResult> results = new ArrayList<ApiDefinitionResult>();
+        List<ApiDefinitionWithBLOBs> results = new ArrayList<ApiDefinitionWithBLOBs>();
         apiDefinitionImport.setData(results);
         JSONObject testObject = JSONObject.parseObject(jsonStr);
         JSONArray dataArray = testObject.getJSONArray("data");
@@ -80,8 +80,8 @@ public class ForsetiParser extends ApiImportAbstractParser {
         for(int i = 0; i < dataArray.size(); i++){
             JSONObject dataObj = dataArray.getJSONObject(i);
             String tag = dataObj.getString("appName");
-            ApiModule parentModule = getSelectModule(importRequest.getModuleId());
-            ApiModule module = buildModule(parentModule, tag, importRequest.isSaved());
+            ApiModule parentModule = ApiDefinitionImportUtil.getSelectModule(importRequest.getModuleId());
+            ApiModule module = ApiDefinitionImportUtil.buildModule(parentModule, tag, importRequest.getProjectId());
             JSONArray apiArray = dataObj.getJSONArray("apis");
             for(int j = 0; j < apiArray.size(); j++){
                 JSONObject apiObj = apiArray.getJSONObject(j);
@@ -99,7 +99,7 @@ public class ForsetiParser extends ApiImportAbstractParser {
                         if(apiTag.contains(","))
                             apiTag = apiTags[0];
                     }
-                    ApiModule apiModule = buildModule(module, apiTag, importRequest.isSaved());
+                    ApiModule apiModule = ApiDefinitionImportUtil.buildModule(module, apiTag, importRequest.getProjectId());
                     apiDefinition.setModuleId(apiModule.getId());
                 } else {
                     apiDefinition.setModuleId(module.getId());

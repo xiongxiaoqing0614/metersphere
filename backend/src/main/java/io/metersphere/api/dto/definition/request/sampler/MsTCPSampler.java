@@ -23,9 +23,7 @@ import org.apache.jmeter.testelement.property.StringProperty;
 import org.apache.jorphan.collections.HashTree;
 import org.apache.jorphan.collections.ListedHashTree;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -59,8 +57,8 @@ public class MsTCPSampler extends MsTestElement {
     private String password = "";
     @JSONField(ordinal = 33)
     private String request;
-    @JSONField(ordinal = 34)
-    private Object requestResult;
+    //    @JSONField(ordinal = 34)
+//    private Object requestResult;
     @JSONField(ordinal = 35)
     private List<KeyValue> parameters;
     @JSONField(ordinal = 36)
@@ -69,22 +67,25 @@ public class MsTCPSampler extends MsTestElement {
     private MsJSR223PreProcessor tcpPreProcessor;
     @JSONField(ordinal = 38)
     private String protocol = "TCP";
+    @JSONField(ordinal = 39)
+    private String projectId;
 
     @Override
     public void toHashTree(HashTree tree, List<MsTestElement> hashTree, ParameterConfig config) {
-        if (!this.isEnable()) {
-            return;
-        }
         if (this.getReferenced() != null && MsTestElementConstants.REF.name().equals(this.getReferenced())) {
             this.getRefElement(this);
         }
-        config.setConfig(getEnvironmentConfig(useEnvironment));
-        parseEnvironment(config.getConfig());
+        if (config.getConfig() == null) {
+            // 单独接口执行
+            this.setProjectId(config.getProjectId());
+            config.setConfig(getEnvironmentConfig(useEnvironment));
+        }
+        parseEnvironment(config.getConfig().get(this.projectId));
 
         // 添加环境中的公共变量
         Arguments arguments = this.addArguments(config);
         if (arguments != null) {
-            tree.add(this.addArguments(config));
+            tree.add(arguments);
         }
 
         final HashTree samplerHashTree = new ListedHashTree();
@@ -110,9 +111,10 @@ public class MsTCPSampler extends MsTestElement {
 
     private TCPSampler tcpSampler(ParameterConfig config) {
         TCPSampler tcpSampler = new TCPSampler();
+        tcpSampler.setEnabled(this.isEnable());
         tcpSampler.setName(this.getName());
-        String name = this.getParentName(this.getParent(), config);
-        if (StringUtils.isNotEmpty(name)) {
+        String name = this.getParentName(this.getParent());
+        if (StringUtils.isNotEmpty(name) && !config.isOperating()) {
             tcpSampler.setName(this.getName() + "<->" + name);
         }
 

@@ -111,24 +111,26 @@
                 <el-col :span="3" class="ms-col-one ms-font">
                   <el-checkbox v-model="enableCookieShare">共享cookie</el-checkbox>
                 </el-col>
-                <el-col :span="7" class="ms-font">
-                  <el-select v-model="currentEnvironmentId" size="small" class="ms-htt-width"
-                             :placeholder="$t('api_test.definition.request.run_env')"
-                             clearable>
-                    <el-option v-for="(environment, index) in environments" :key="index"
-                               :label="environment.name + (environment.config.httpConfig.socket ? (': ' + environment.config.httpConfig.protocol + '://' + environment.config.httpConfig.socket) : '')"
-                               :value="environment.id"/>
-                    <el-button class="ms-scenario-button" size="mini" type="primary" @click="openEnvironmentConfig">
-                      {{ $t('api_test.environment.environment_config') }}
-                    </el-button>
-                    <template v-slot:empty>
-                      <div class="empty-environment">
-                        <el-button class="ms-scenario-button" size="mini" type="primary" @click="openEnvironmentConfig">
-                          {{ $t('api_test.environment.environment_config') }}
-                        </el-button>
-                      </div>
-                    </template>
-                  </el-select>
+                <el-col :span="7" class="ms-col-one ms-font">
+                  <el-link type="primary" @click="handleEnv">环境配置</el-link>
+                  <!--                  <el-select v-model="currentEnvironmentId" size="small" class="ms-htt-width"-->
+                  <!--                             :placeholder="$t('api_test.definition.request.run_env')"-->
+                  <!--                             clearable>-->
+                  <!--                    <el-option v-for="(environment, index) in environments" :key="index"-->
+                  <!--                               :label="environment.name + (environment.config.httpConfig.socket ? (': ' + environment.config.httpConfig.protocol + '://' + environment.config.httpConfig.socket) : '')"-->
+                  <!--                               :value="environment.id"/>-->
+                  <!--                    <el-button class="ms-scenario-button" size="mini" type="primary" @click="openEnvironmentConfig">-->
+                  <!--                      {{ $t('api_test.environment.environment_config') }}-->
+                  <!--                    </el-button>-->
+                  <!--                    <template v-slot:empty>-->
+                  <!--                      <div class="empty-environment">-->
+                  <!--                        <el-button class="ms-scenario-button" size="mini" type="primary" @click="openEnvironmentConfig">-->
+                  <!--                          {{ $t('api_test.environment.environment_config') }}-->
+                  <!--                        </el-button>-->
+                  <!--                      </div>-->
+                  <!--                    </template>-->
+                  <!--                  </el-select>-->
+
                 </el-col>
                 <el-col :span="2">
                   <el-button :disabled="scenarioDefinition.length < 1" size="small" type="primary" @click="runDebug">{{$t('api_test.request.debug')}}</el-button>
@@ -147,7 +149,7 @@
                     <span class="custom-tree-node father" slot-scope="{ node, data}" style="width: 96%">
                       <!-- 步骤组件-->
                        <ms-component-config :type="data.type" :scenario="data" :response="response" :currentScenario="currentScenario"
-                                            :currentEnvironmentId="currentEnvironmentId" :node="node"
+                                            :currentEnvironmentId="currentEnvironmentId" :node="node" :project-list="projectList" :env-map="projectEnvMap"
                                             @remove="remove" @copyRow="copyRow" @suggestClick="suggestClick" @refReload="reload"/>
                     </span>
               </el-tree>
@@ -184,11 +186,13 @@
       <!--场景导入 -->
       <scenario-relevance @save="addScenario" ref="scenarioRelevance"/>
 
+      <api-scenario-env :project-ids="projectIds" :env-map="projectEnvMap" ref="apiScenarioEnv" @setProjectEnvMap="setProjectEnvMap"/>
+
       <!-- 环境 -->
       <api-environment-config ref="environmentConfig" @close="environmentConfigClose"/>
 
       <!--执行组件-->
-      <ms-run :debug="true" :environment="currentEnvironmentId" :reportId="reportId" :run-data="debugData"
+      <ms-run :debug="true" :environment="projectEnvMap" :reportId="reportId" :run-data="debugData"
               @runRefresh="runRefresh" ref="runTest"/>
       <!-- 调试结果 -->
       <el-drawer :visible.sync="debugVisible" :destroy-on-close="true" direction="ltr" :withHeader="true" :modal="false" size="90%">
@@ -204,44 +208,47 @@
 </template>
 
 <script>
-import {API_STATUS, PRIORITY} from "../../definition/model/JsonData";
-import {WORKSPACE_ID} from '@/common/js/constants';
-import {
-  Assertions,
-  ConstantTimer,
-  Extract,
-  IfController,
-  JSR223Processor,
-  LoopController
-} from "../../definition/model/ApiTestModel";
-import {parseEnvironment} from "../../definition/model/EnvironmentModel";
-import {ELEMENT_TYPE, ELEMENTS} from "./Setting";
-import MsApiCustomize from "./ApiCustomize";
-import {getCurrentProjectID, getUUID} from "@/common/js/utils";
-import ApiEnvironmentConfig from "../../definition/components/environment/ApiEnvironmentConfig";
-import MsInputTag from "./MsInputTag";
-import MsRun from "./DebugRun";
-import MsApiReportDetail from "../report/ApiReportDetail";
-import MsVariableList from "./variable/VariableList";
-import ApiImport from "../../definition/components/import/ApiImport";
-import "@/common/css/material-icons.css"
-import OutsideClick from "@/common/js/outside-click";
-import ScenarioApiRelevance from "./api/ApiRelevance";
-import ScenarioRelevance from "./api/ScenarioRelevance";
-import MsComponentConfig from "./component/ComponentConfig";
-import {handleCtrlSEvent} from "../../../../../common/js/utils";
+  import {API_STATUS, PRIORITY} from "../../definition/model/JsonData";
+  import {WORKSPACE_ID} from '@/common/js/constants';
+  import {
+    Assertions,
+    ConstantTimer,
+    Extract,
+    IfController,
+    JSR223Processor,
+    LoopController
+  } from "../../definition/model/ApiTestModel";
+  import {parseEnvironment} from "../../definition/model/EnvironmentModel";
+  import {ELEMENT_TYPE, ELEMENTS} from "./Setting";
+  import MsApiCustomize from "./ApiCustomize";
+  import {getCurrentProjectID, getUUID, objToStrMap, strMapToObj} from "@/common/js/utils";
+  import ApiEnvironmentConfig from "../../definition/components/environment/ApiEnvironmentConfig";
+  import MsInputTag from "./MsInputTag";
+  import MsRun from "./DebugRun";
+  import MsApiReportDetail from "../report/ApiReportDetail";
+  import MsVariableList from "./variable/VariableList";
+  import ApiImport from "../../definition/components/import/ApiImport";
+  import "@/common/css/material-icons.css"
+  import OutsideClick from "@/common/js/outside-click";
+  import ScenarioApiRelevance from "./api/ApiRelevance";
+  import ScenarioRelevance from "./api/ScenarioRelevance";
+  import MsComponentConfig from "./component/ComponentConfig";
+  import {handleCtrlSEvent} from "../../../../../common/js/utils";
+  import {getProject} from "@/business/components/api/automation/scenario/event";
+  import ApiScenarioEnv from "@/business/components/api/automation/scenario/ApiScenarioEnv";
 
-export default {
-  name: "EditApiScenario",
-  props: {
-    moduleOptions: Array,
-    currentScenario: {},
-  },
-  components: {
-    MsVariableList,
-    ScenarioRelevance,
-    ScenarioApiRelevance,
-    ApiEnvironmentConfig,
+  export default {
+    name: "EditApiScenario",
+    props: {
+      moduleOptions: Array,
+      currentScenario: {},
+    },
+    components: {
+      ApiScenarioEnv,
+      MsVariableList,
+      ScenarioRelevance,
+      ScenarioApiRelevance,
+      ApiEnvironmentConfig,
       MsApiReportDetail,
       MsInputTag, MsRun,
       MsApiCustomize,
@@ -291,7 +298,10 @@ export default {
         globalOptions: {
           spacing: 30
         },
-        response: {}
+        response: {},
+        projectIds: new Set,
+        projectEnvMap: new Map,
+        projectList: []
       }
     },
     created() {
@@ -300,9 +310,16 @@ export default {
       }
       this.projectId = getCurrentProjectID();
       this.operatingElements = ELEMENTS.get("ALL");
+      this.getWsProjects();
       this.getMaintainerOptions();
       this.getApiScenario();
       this.addListener(); //  添加 ctrl s 监听
+    },
+    mounted() {
+      getProject.$on('addProjectEnv', (projectId, projectEnv) => {
+        this.projectIds.add(projectId);
+        // this.projectEnvMap.set(projectId, projectEnv);
+      })
     },
     directives: {OutsideClick},
     computed: {
@@ -400,7 +417,7 @@ export default {
           },
           {
             title: this.$t('api_test.automation.scenario_import'),
-            show: this.operatingElements.indexOf('scenario') === 0,
+            show: this.operatingElements && this.operatingElements.indexOf('scenario') === 0,
             titleColor: "#606266",
             titleBgColor: "#F4F4F5",
             icon: "movie",
@@ -445,7 +462,7 @@ export default {
       },
       showButton(...names) {
         for (const name of names) {
-          if (this.operatingElements.includes(name)) {
+          if (name && this.operatingElements && this.operatingElements.includes(name)) {
             return true;
           }
         }
@@ -526,8 +543,10 @@ export default {
         }
       },
       showAll() {
-        this.operatingElements = ELEMENTS.get("ALL");
-        this.selectedTreeNode = undefined;
+        if (!this.customizeVisible) {
+          this.operatingElements = ELEMENTS.get("ALL");
+          this.selectedTreeNode = undefined;
+        }
         //this.reload();
       },
       apiListImport() {
@@ -596,6 +615,9 @@ export default {
         if (item.protocol) {
           request.protocol = item.protocol;
         }
+        if (request.protocol === "DUBBO") {
+          request.protocol = "dubbo://";
+        }
         request.id = item.id;
         request.name = item.name;
         request.refType = refType;
@@ -603,6 +625,7 @@ export default {
         request.enable === undefined ? request.enable = true : request.enable;
         request.active = false;
         request.resourceId = getUUID();
+        request.projectId = item.projectId;
         if (!request.url) {
           request.url = "";
         }
@@ -644,6 +667,12 @@ export default {
               const parent = node.parent
               const hashTree = parent.data.hashTree || parent.data;
               const index = hashTree.findIndex(d => d.resourceId != undefined && row.resourceId != undefined && d.resourceId === row.resourceId)
+              if (hashTree[index] && hashTree[index].projectId) {
+                this.projectIds.delete(hashTree[index].projectId);
+                if (this.projectEnvMap.has(hashTree[index].projectId)) {
+                  this.projectEnvMap.delete(hashTree[index].projectId);
+                }
+              }
               hashTree.splice(index, 1);
               this.sort();
               this.reload();
@@ -678,8 +707,12 @@ export default {
       },
       runDebug() {
         /*触发执行操作*/
-        if (!this.currentEnvironmentId) {
-          this.$error(this.$t('api_test.environment.select_environment'));
+        // if (!this.currentEnvironmentId) {
+        //   this.$error(this.$t('api_test.environment.select_environment'));
+        //   return;
+        // }
+        let sign = this.$refs.apiScenarioEnv.checkEnv();
+        if (!sign) {
           return;
         }
         this.$refs['currentScenario'].validate((valid) => {
@@ -693,7 +726,7 @@ export default {
               referenced: 'Created',
               enableCookieShare: this.enableCookieShare,
               headers: this.currentScenario.headers,
-              environmentId: this.currentEnvironmentId,
+              environmentMap: this.projectEnvMap,
               hashTree: this.scenarioDefinition
             };
             this.reportId = getUUID().substring(0, 8);
@@ -888,6 +921,12 @@ export default {
                 let obj = JSON.parse(response.data.scenarioDefinition);
                 if (obj) {
                   this.currentEnvironmentId = obj.environmentId;
+                  if (obj.environmentMap) {
+                    this.projectEnvMap = objToStrMap(obj.environmentMap);
+                  } else {
+                    // 兼容历史数据
+                    this.projectEnvMap.set(getCurrentProjectID(), obj.environmentId);
+                  }
                   this.currentScenario.variables = [];
                   let index = 1;
                   if (obj.variables) {
@@ -932,8 +971,9 @@ export default {
           variables: this.currentScenario.variables,
           headers: this.currentScenario.headers,
           referenced: 'Created',
-          environmentId: this.currentEnvironmentId,
-          hashTree: this.scenarioDefinition
+          environmentMap: strMapToObj(this.projectEnvMap),
+          hashTree: this.scenarioDefinition,
+          projectId: this.projectId,
         };
         this.currentScenario.scenarioDefinition = scenario;
         if (this.currentScenario.tags instanceof Array) {
@@ -971,7 +1011,21 @@ export default {
           size += this.currentScenario.headers.length - 1;
         }
         return size;
-      }
+      },
+      beforeDestroy() {
+        getProject.$off('addProjectEnv');
+      },
+      handleEnv() {
+        this.$refs.apiScenarioEnv.open();
+      },
+      setProjectEnvMap(projectEnvMap) {
+        this.projectEnvMap = projectEnvMap;
+      },
+      getWsProjects() {
+        this.$get("/project/listAll", res => {
+          this.projectList = res.data;
+        })
+      },
     }
   }
 </script>

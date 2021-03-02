@@ -1,16 +1,15 @@
-package io.metersphere.api.parse;
+package io.metersphere.api.dto.definition.parse;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import io.metersphere.api.dto.ApiTestImportRequest;
-import io.metersphere.api.dto.definition.ApiDefinitionResult;
-import io.metersphere.api.dto.definition.parse.ApiDefinitionImport;
 import io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy;
 import io.metersphere.api.dto.definition.response.HttpResponse;
 import io.metersphere.api.dto.scenario.Body;
 import io.metersphere.api.dto.scenario.KeyValue;
 import io.metersphere.api.dto.scenario.request.RequestType;
+import io.metersphere.base.domain.ApiDefinitionWithBLOBs;
 import io.metersphere.base.domain.ApiModule;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.utils.LogUtil;
@@ -69,16 +68,16 @@ public class Swagger3Parser extends SwaggerAbstractParser {
         return definitionImport;
     }
 
-    private List<ApiDefinitionResult> parseRequests(OpenAPI openAPI, ApiTestImportRequest importRequest) {
+    private List<ApiDefinitionWithBLOBs> parseRequests(OpenAPI openAPI, ApiTestImportRequest importRequest) {
         Paths paths = openAPI.getPaths();
 
         Set<String> pathNames = paths.keySet();
 
         this.components = openAPI.getComponents();
 
-        List<ApiDefinitionResult> results = new ArrayList<>();
+        List<ApiDefinitionWithBLOBs> results = new ArrayList<>();
 
-        ApiModule parentNode = getSelectModule(importRequest.getModuleId());
+        ApiModule parentNode = ApiDefinitionImportUtil.getSelectModule(importRequest.getModuleId());
 
         for (String pathName : pathNames) {
             PathItem pathItem = paths.get(pathName);
@@ -97,13 +96,13 @@ public class Swagger3Parser extends SwaggerAbstractParser {
                 Operation operation = operationsMap.get(method);
                 if (operation != null) {
                     MsHTTPSamplerProxy request = buildRequest(operation, pathName, method);
-                    ApiDefinitionResult apiDefinition = buildApiDefinition(request.getId(), operation, pathName, method,importRequest);
+                    ApiDefinitionWithBLOBs apiDefinition = buildApiDefinition(request.getId(), operation, pathName, method,importRequest);
                     parseParameters(operation, request);
                     parseRequestBody(operation.getRequestBody(), request.getBody());
                     addBodyHeader(request);
                     apiDefinition.setRequest(JSON.toJSONString(request));
                     apiDefinition.setResponse(JSON.toJSONString(parseResponse(operation.getResponses())));
-                    buildModule(parentNode, apiDefinition, operation.getTags(), importRequest.isSaved());
+                    buildModule(parentNode, apiDefinition, operation.getTags());
                     results.add(apiDefinition);
                 }
             }
@@ -112,7 +111,7 @@ public class Swagger3Parser extends SwaggerAbstractParser {
         return results;
     }
 
-    private ApiDefinitionResult buildApiDefinition(String id, Operation operation, String path, String method,ApiTestImportRequest importRequest) {
+    private ApiDefinitionWithBLOBs buildApiDefinition(String id, Operation operation, String path, String method,ApiTestImportRequest importRequest) {
         String name = "";
         if (StringUtils.isNotBlank(operation.getSummary())) {
             name = operation.getSummary();

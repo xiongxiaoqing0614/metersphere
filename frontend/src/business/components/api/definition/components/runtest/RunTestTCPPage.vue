@@ -98,25 +98,25 @@ export default {
         reportId: "",
       }
     },
-  props: {apiData: {}, currentProtocol: String, syncTabs: Array, projectId: String},
-  methods: {
-    handleCommand(e) {
-      switch (e) {
-        case "load_case":
-          return this.loadCase();
-        case "save_as_case":
-          return this.saveAsCase();
-        case "update_api":
-          return this.updateApi();
-        case "save_as_api":
+    props: {apiData: {}, currentProtocol: String,syncTabs: Array, projectId: String},
+    methods: {
+      handleCommand(e) {
+        switch (e) {
+          case "load_case":
+            return this.loadCase();
+          case "save_as_case":
+            return this.saveAsCase();
+          case "update_api":
+            return this.updateApi();
+          case "save_as_api":
             return this.saveAsApi();
           default:
             return this.$refs['requestForm'].validate();
         }
       },
-    refresh() {
-      this.$emit('refresh');
-    },
+      refresh(){
+        this.$emit('refresh');
+      },
       runTest() {
         this.$refs['apiData'].validate((valid) => {
           if (valid) {

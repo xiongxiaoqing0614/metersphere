@@ -2,14 +2,15 @@ package io.metersphere.api.controller;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import io.metersphere.api.dto.ApiTestImportRequest;
 import io.metersphere.api.dto.JmxInfoDTO;
 import io.metersphere.api.dto.automation.*;
+import io.metersphere.api.dto.automation.parse.ScenarioImport;
 import io.metersphere.api.dto.definition.RunDefinitionRequest;
 import io.metersphere.api.service.ApiAutomationService;
 import io.metersphere.base.domain.ApiScenario;
 import io.metersphere.base.domain.ApiScenarioWithBLOBs;
 import io.metersphere.base.domain.Schedule;
-import io.metersphere.commons.constants.ApiRunMode;
 import io.metersphere.commons.constants.RoleConstants;
 import io.metersphere.commons.utils.PageUtils;
 import io.metersphere.commons.utils.Pager;
@@ -103,7 +104,7 @@ public class ApiAutomationController {
 
     @PostMapping("/batch/edit")
     @RequiresRoles(value = {RoleConstants.TEST_USER, RoleConstants.TEST_MANAGER}, logical = Logical.OR)
-    public void bathEdit(@RequestBody SaveApiScenarioRequest request) {
+    public void bathEdit(@RequestBody ApiScenarioBatchRequest request) {
         apiAutomationService.bathEdit(request);
     }
 
@@ -146,5 +147,24 @@ public class ApiAutomationController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileOperationRequest.getName() + "\"")
                 .body(bytes);
     }
+
+    @PostMapping(value = "/import", consumes = {"multipart/form-data"})
+    @RequiresRoles(value = {RoleConstants.TEST_USER, RoleConstants.TEST_MANAGER}, logical = Logical.OR)
+    public ScenarioImport scenarioImport(@RequestPart(value = "file", required = false) MultipartFile file, @RequestPart("request") ApiTestImportRequest request) {
+        return apiAutomationService.scenarioImport(file, request);
+    }
+
+    @PostMapping(value = "/export")
+    @RequiresRoles(value = {RoleConstants.TEST_USER, RoleConstants.TEST_MANAGER}, logical = Logical.OR)
+    public ApiScenrioExportResult export(@RequestBody ApiScenarioBatchRequest request) {
+        return apiAutomationService.export(request);
+    }
+
+    @PostMapping(value = "/export/jmx")
+    @RequiresRoles(value = {RoleConstants.TEST_USER, RoleConstants.TEST_MANAGER}, logical = Logical.OR)
+    public List<ApiScenrioExportJmx> exportJmx(@RequestBody ApiScenarioBatchRequest request) {
+        return apiAutomationService.exportJmx(request);
+    }
+
 }
 
