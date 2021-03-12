@@ -14,6 +14,8 @@ public class ApiDefinitionImportParserFactory {
             return new Swagger2Parser();
         } else if (StringUtils.equals(ApiImportPlatform.Forseti.name(), platform)) {
             return new ForsetiParser();
+        }else if (StringUtils.equals(ApiImportPlatform.Har.name(), platform)) {
+            return new HarParser();
         }
         return null;
     }

@@ -71,7 +71,6 @@
   import ApiBaseComponent from "../common/ApiBaseComponent";
   import ApiResponseComponent from "./ApiResponseComponent";
   import CustomizeReqInfo from "@/business/components/api/automation/scenario/common/CustomizeReqInfo";
-  import {getProject} from "@/business/components/api/automation/scenario/event";
 
   export default {
     name: "MsApiComponent",
@@ -104,7 +103,10 @@
       if (!this.request.requestResult) {
         this.request.requestResult = {responseResult: {}};
       }
-      this.request.projectId = getCurrentProjectID();
+      // 跨项目关联，如果没有ID，则赋值本项目ID
+      if (!this.request.projectId) {
+        this.request.projectId = getCurrentProjectID();
+      }
       // 加载引用对象数据
       this.getApiInfo();
       if (this.request.protocol === 'HTTP') {
@@ -120,7 +122,6 @@
           }
         }
       }
-      getProject.$emit('addProjectEnv', this.request.projectId, this.currentEnvironmentId);
     },
     computed: {
       displayColor() {
@@ -250,16 +251,19 @@
         this.reload();
       },
       run() {
-        if (!this.envMap || this.envMap.size === 0) {
-          this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
-          return false;
-        } else if (this.envMap && this.envMap.size > 0) {
-          const env = this.envMap.get(this.request.projectId);
-          if (!env) {
+        if (this.isApiImport) {
+          if (!this.envMap || this.envMap.size === 0) {
             this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
             return false;
+          } else if (this.envMap && this.envMap.size > 0) {
+            const env = this.envMap.get(this.request.projectId);
+            if (!env) {
+              this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
+              return false;
+            }
           }
         }
+
         this.request.active = true;
         this.loading = true;
         this.runData = [];

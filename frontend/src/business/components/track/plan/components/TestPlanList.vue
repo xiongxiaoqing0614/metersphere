@@ -83,13 +83,13 @@
             <el-progress :percentage="scope.row.testRate"></el-progress>
           </template>
         </el-table-column>
-        <el-table-colum
+        <el-table-column
           v-if="item.id == 'projectName'"
           prop="projectName"
           :label="$t('test_track.plan.plan_project')"
           show-overflow-tooltip
           :key="index">
-        </el-table-colum>
+        </el-table-column>
         <el-table-column
           v-if="item.id == 'plannedStartTime'"
           sortable
@@ -279,14 +279,6 @@ export default {
         let data = response.data;
         this.total = data.itemCount;
         this.tableData = data.listObject;
-        for (let i = 0; i < this.tableData.length; i++) {
-          let path = "/test/plan/project";
-          this.$post(path, {planId: this.tableData[i].id}, res => {
-            let arr = res.data;
-            let projectIds = arr.filter(d => d.id !== this.tableData[i].projectId).map(data => data.id);
-            this.$set(this.tableData[i], "projectIds", projectIds);
-          })
-        }
       });
     },
     buildPagePath(path) {
