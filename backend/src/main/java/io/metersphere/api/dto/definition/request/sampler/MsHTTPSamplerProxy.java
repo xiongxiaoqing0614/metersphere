@@ -8,7 +8,6 @@ import io.metersphere.api.dto.definition.request.auth.MsAuthManager;
 import io.metersphere.api.dto.definition.request.dns.MsDNSCacheManager;
 import io.metersphere.api.dto.scenario.Body;
 import io.metersphere.api.dto.scenario.KeyValue;
-import io.metersphere.api.dto.scenario.environment.EnvironmentConfig;
 import io.metersphere.commons.constants.MsTestElementConstants;
 import io.metersphere.commons.utils.LogUtil;
 import io.metersphere.commons.utils.ScriptEngineUtils;
@@ -86,8 +85,8 @@ public class MsHTTPSamplerProxy extends MsTestElement {
     @JSONField(ordinal = 34)
     private List<KeyValue> arguments;
 
-//    @JSONField(ordinal = 35)
-//    private Object requestResult;
+    @JSONField(ordinal = 35)
+    private Object requestResult;
 
     @JSONField(ordinal = 36)
     private MsAuthManager authManager;
@@ -107,6 +106,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         }
         sampler.setProperty(TestElement.TEST_CLASS, HTTPSamplerProxy.class.getName());
         sampler.setProperty(TestElement.GUI_CLASS, SaveService.aliasToClass("HttpTestSampleGui"));
+        sampler.setProperty("MS-ID", this.getId());
         sampler.setMethod(this.getMethod());
         sampler.setContentEncoding("UTF-8");
         sampler.setConnectTimeout(this.getConnectTimeout() == null ? "6000" : this.getConnectTimeout());
@@ -123,7 +123,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         // 添加环境中的公共变量
         Arguments arguments = this.addArguments(config);
         if (arguments != null) {
-            tree.add(arguments);
+            tree.add(config.valueSupposeMock(arguments));
         }
         try {
             if (config.isEffective(this.getProjectId())) {
@@ -232,7 +232,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
             }
         }
         if (this.authManager != null) {
-            this.authManager.toHashTree(tree, hashTree, config);
+            this.authManager.setAuth(tree, this.authManager, sampler);
         }
     }
 
@@ -307,7 +307,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
     public void setHeader(HashTree tree, List<KeyValue> headers) {
         HeaderManager headerManager = new HeaderManager();
         headerManager.setEnabled(true);
-        headerManager.setName(StringUtils.isNotEmpty(this.getName()) ? this.getName() : "HeaderManager");
+        headerManager.setName(StringUtils.isNotEmpty(this.getName()) ? this.getName() + "HeaderManager" : "HeaderManager");
         headerManager.setProperty(TestElement.TEST_CLASS, HeaderManager.class.getName());
         headerManager.setProperty(TestElement.GUI_CLASS, SaveService.aliasToClass("HeaderPanel"));
         headers.stream().filter(KeyValue::isValid).filter(KeyValue::isEnable).forEach(keyValue ->

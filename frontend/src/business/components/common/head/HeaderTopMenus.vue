@@ -1,6 +1,6 @@
 <template>
   <el-menu mode="horizontal" menu-trigger="click"
-           background-color="#2c2a48"
+           :background-color="color"
            class="header-top-menus"
            text-color="#F2F2F2"
            active-text-color="#fff"
@@ -18,6 +18,10 @@
                   v-permission="['test_manager','test_user','test_viewer']">
       {{ $t('commons.performance') }}
     </el-menu-item>
+    <el-menu-item index="/report" v-permission="['test_manager','test_user','test_viewer']" v-if="isReport">
+      {{ $t('commons.report_statistics.title') }}
+    </el-menu-item>
+
     <el-menu-item index="/setting" onselectstart="return false">
       {{ $t('commons.system_setting') }}
     </el-menu-item>
@@ -25,12 +29,19 @@
 </template>
 
 <script>
+  const requireContext = require.context('@/business/components/xpack/', true, /router\.js$/)
+  const report = requireContext.keys().map(key => requireContext(key).report);
+  const isReport = report && report != null && report.length > 0 && report[0] != undefined ? true : false;
   export default {
     name: "MsTopMenus",
     data() {
       return {
-        activeIndex: '/'
+        activeIndex: '/',
+        isReport: isReport
       }
+    },
+    props: {
+      color: String
     },
     watch: {
       '$route'(to) {

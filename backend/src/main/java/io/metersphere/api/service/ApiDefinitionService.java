@@ -10,6 +10,7 @@ import io.metersphere.api.dto.datacount.ApiDataCountResult;
 import io.metersphere.api.dto.definition.*;
 import io.metersphere.api.dto.definition.parse.ApiDefinitionImport;
 import io.metersphere.api.dto.definition.parse.ApiDefinitionImportParserFactory;
+import io.metersphere.api.dto.definition.parse.Swagger3Parser;
 import io.metersphere.api.dto.definition.request.ParameterConfig;
 import io.metersphere.api.dto.definition.request.ScheduleInfoSwaggerUrlRequest;
 import io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy;
@@ -91,7 +92,7 @@ public class ApiDefinitionService {
 
     private static Cache cache = Cache.newHardMemoryCache(0, 3600 * 24);
 
-    private static final String BODY_FILE_DIR = "/opt/metersphere/data/body";
+    private static final String BODY_FILE_DIR = FileUtils.BODY_FILE_DIR;
 
     public List<ApiDefinitionResult> list(ApiDefinitionRequest request) {
         request = this.initRequest(request, true, true);
@@ -437,11 +438,9 @@ public class ApiDefinitionService {
         Map<String, EnvironmentConfig> envConfig = new HashMap<>();
         Map<String, String> map = request.getEnvironmentMap();
         if (map != null && map.size() > 0) {
-            map.keySet().forEach(id -> {
-                ApiTestEnvironmentWithBLOBs environment = environmentService.get(map.get(id));
-                EnvironmentConfig env = JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class);
-                envConfig.put(id, env);
-            });
+            ApiTestEnvironmentWithBLOBs environment = environmentService.get(map.get(request.getProjectId()));
+            EnvironmentConfig env = JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class);
+            envConfig.put(request.getProjectId(), env);
             config.setConfig(envConfig);
         }
 
@@ -764,18 +763,27 @@ public class ApiDefinitionService {
         scheduleService.addOrUpdateCronJob(request, SwaggerUrlImportJob.getJobKey(request.getResourceId()), SwaggerUrlImportJob.getTriggerKey(request.getResourceId()), SwaggerUrlImportJob.class);
     }
 
-    public ApiExportResult export(ApiBatchRequest request) {
+    public ApiExportResult export(ApiBatchRequest request, String type) {
+        ApiExportResult apiExportResult;
         ServiceUtils.getSelectAllIds(request, request.getCondition(),
                 (query) -> extApiDefinitionMapper.selectIds(query));
         ApiDefinitionExample example = new ApiDefinitionExample();
         example.createCriteria().andIdIn(request.getIds());
-        ApiExportResult apiExportResult = new ApiExportResult();
-        apiExportResult.setData(apiDefinitionMapper.selectByExampleWithBLOBs(example));
-        apiExportResult.setCases(apiTestCaseService.selectCasesBydApiIds(request.getIds()));
-        apiExportResult.setProjectName(request.getProjectId());
-        apiExportResult.setProtocol(request.getProtocol());
-        apiExportResult.setProjectId(request.getProjectId());
-        apiExportResult.setVersion(System.getenv("MS_VERSION"));
+
+        if (StringUtils.equals(type, "MS")) { //  导出为 Metersphere 格式
+            apiExportResult = new MsApiExportResult();
+            ((MsApiExportResult) apiExportResult).setData(apiDefinitionMapper.selectByExampleWithBLOBs(example));
+            ((MsApiExportResult) apiExportResult).setCases(apiTestCaseService.selectCasesBydApiIds(request.getIds()));
+            ((MsApiExportResult) apiExportResult).setProjectName(request.getProjectId());
+            ((MsApiExportResult) apiExportResult).setProtocol(request.getProtocol());
+            ((MsApiExportResult) apiExportResult).setProjectId(request.getProjectId());
+            ((MsApiExportResult) apiExportResult).setVersion(System.getenv("MS_VERSION"));
+        }
+        else { //  导出为 Swagger 格式
+            Swagger3Parser swagger3Parser = new Swagger3Parser();
+            System.out.println(apiDefinitionMapper.selectByExampleWithBLOBs(example));
+            apiExportResult = swagger3Parser.swagger3Export(apiDefinitionMapper.selectByExampleWithBLOBs(example));
+        }
         return apiExportResult;
     }
 }

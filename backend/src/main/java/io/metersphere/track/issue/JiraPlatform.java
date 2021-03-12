@@ -7,6 +7,7 @@ import io.metersphere.commons.constants.IssuesManagePlatform;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.utils.EncryptUtils;
 import io.metersphere.commons.utils.LogUtil;
+import io.metersphere.track.dto.DemandDTO;
 import io.metersphere.track.issue.domain.PlatformUser;
 import io.metersphere.track.request.testcase.IssuesRequest;
 import org.apache.commons.lang3.StringUtils;
@@ -76,6 +77,11 @@ public class JiraPlatform extends AbstractIssuePlatform {
             }
         });
         return list;
+    }
+
+    @Override
+    public List<DemandDTO> getDemandList(String projectId) {
+        return null;
     }
 
     @Override
@@ -180,8 +186,8 @@ public class JiraPlatform extends AbstractIssuePlatform {
             String url = object.getString("url");
             HttpHeaders headers = auth(account, password);
             HttpEntity<MultiValueMap> requestEntity = new HttpEntity<>(headers);
-            RestTemplate restTemplate = new RestTemplate();
-            restTemplate.exchange(url + "rest/api/2/issue/createmeta", HttpMethod.GET, requestEntity, String.class);
+            // 忽略ssl
+            restTemplateIgnoreSSL.exchange(url + "rest/api/2/issue/createmeta", HttpMethod.GET, requestEntity, String.class);
         } catch (Exception e) {
             LogUtil.error(e.getMessage(), e);
             MSException.throwException("验证失败！");

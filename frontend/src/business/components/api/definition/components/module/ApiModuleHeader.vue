@@ -1,14 +1,5 @@
 <template>
   <div>
-    <el-select v-if="isReadOnly && !isPlanId && !relenvanceCaseDialog" class="protocol-project-select" size="small" v-model="condition.projectId">
-      <el-option
-        v-for="item in allProjects"
-        :key="item.id"
-        :label="item.name"
-        :value="item.id"
-        :disabled="item.disabled">
-      </el-option>
-    </el-select>
     <el-select class="protocol-select" size="small" v-model="condition.protocol">
       <el-option
         v-for="item in options"
@@ -23,13 +14,29 @@
       <template v-slot:append>
         <el-dropdown v-if="!isReadOnly" size="small" split-button type="primary" class="ms-api-button" @click="handleCommand('add-api')"
                      v-tester
-                     @command="handleCommand">
+                     @command="handleCommand"
+                     :hide-on-click='false'
+                     trigger="click">
           <el-button icon="el-icon-folder-add" @click="addApi"></el-button>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item command="add-api">{{ $t('api_test.definition.request.title') }}</el-dropdown-item>
             <el-dropdown-item command="debug">{{ $t('api_test.definition.request.fast_debug') }}</el-dropdown-item>
             <el-dropdown-item command="import">{{ $t('api_test.api_import.label') }}</el-dropdown-item>
-            <el-dropdown-item command="export">{{ $t('report.export') }}</el-dropdown-item>
+            <el-dropdown-item command="export">
+              <el-dropdown placement="right-start" @command="chooseExportType">
+                <span>
+                  {{ $t('report.export') }} <i class="el-icon-arrow-down el-icon--right"></i>
+                </span>
+                <el-dropdown-menu slot="dropdown">
+                  <template>
+                    <el-dropdown-item command="export-MS">{{ $t('report.export_to_ms_format') }}</el-dropdown-item>
+                    <el-dropdown-item command="export-Swagger" v-show="condition.protocol=='HTTP'">
+                      {{ $t('report.export_to_swagger3_format') }}
+                    </el-dropdown-item>
+                  </template>
+                </el-dropdown-menu>
+              </el-dropdown>
+            </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </template>
@@ -53,15 +60,15 @@ import ApiImport from "../import/ApiImport";
 import ModuleTrashButton from "./ModuleTrashButton";
 import {getCurrentProjectID} from "../../../../../../common/js/utils";
 import {buildNodePath} from "@/business/components/api/definition/model/NodeTree";
+import TemplateComponent from "../../../../track/plan/view/comonents/report/TemplateComponent/TemplateComponent";
 
 export default {
   name: "ApiModuleHeader",
-  components: {ModuleTrashButton, ApiImport, MsAddBasisApi},
+  components: {TemplateComponent, ModuleTrashButton, ApiImport, MsAddBasisApi},
   data() {
     return {
       options: OPTIONS,
-      moduleOptions: {},
-      allProjects:{}
+      moduleOptions: {}
     }
   },
   props: {
@@ -83,21 +90,6 @@ export default {
         return false
       }
     },
-    isPlanId: {
-      type: Boolean,
-      default() {
-        return false
-      }
-    },
-    relenvanceCaseDialog: {
-      type: Boolean,
-      default() {
-        return false
-      }
-    },
-  },
-  created() {
-    this.getAllProjects();
   },
   methods: {
 
@@ -129,12 +121,19 @@ export default {
           });
           this.$refs.apiImport.open(this.currentModule);
           break;
-        default:
-          if (!getCurrentProjectID()) {
-            this.$warning(this.$t('commons.check_project_tip'));
-            return;
-          }
-          this.$emit('exportAPI');
+      }
+    },
+    chooseExportType(e) {
+      if (!getCurrentProjectID()) {
+        this.$warning(this.$t('commons.check_project_tip'));
+        return;
+      }
+      switch (e) {
+        case "export-MS":
+          this.$emit('exportAPI', 'MS');
+          break;
+        case "export-Swagger":
+          this.$emit('exportAPI', 'Swagger');
           break;
       }
     },
@@ -153,11 +152,6 @@ export default {
     },
     enableTrash() {
       this.condition.trashEnable = true;
-    },
-    getAllProjects(){
-      this.$get("/project/listAll", response => {
-        this.allProjects = response.data
-      })
     }
   }
 }
@@ -168,7 +162,6 @@ export default {
 .protocol-select {
   width: 92px;
   height: 30px;
-  margin-top: 10px;
 }
 
 .read-only {

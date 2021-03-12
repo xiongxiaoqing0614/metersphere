@@ -125,7 +125,6 @@ export default {
     },
     props: {
       currentProtocol: String,
-      currentProjectId: String,
       selectNodeIds: Array,
       visible: {
         type: Boolean,
@@ -157,9 +156,6 @@ export default {
       currentProtocol() {
         this.initTable();
       },
-      currentProjectId() {
-        this.initTable();
-      },
       projectId() {
         this.initTable();
       }
@@ -168,14 +164,13 @@ export default {
       isApiListEnableChange(data) {
         this.$emit('isApiListEnableChange', data);
       },
-      initTable() {
+      initTable(projectId) {
         this.condition.status = "";
         this.condition.moduleIds = this.selectNodeIds;
-        if (this.currentProjectId != null) {
-          this.condition.projectId = this.currentProjectId;
-        } else {
-          this.condition.projectId = getCurrentProjectID();
-
+        if (projectId != null && typeof projectId === 'string') {
+          this.condition.projectId = projectId;
+        } else if (this.projectId != null) {
+          this.condition.projectId = this.projectId;
         }
         if (this.currentProtocol != null) {
           this.condition.protocol = this.currentProtocol;

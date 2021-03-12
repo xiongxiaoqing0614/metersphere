@@ -24,7 +24,7 @@
 
         <el-table-column v-if="!referenced" width="30" min-width="30" :resizable="false" align="center">
           <template v-slot:default="scope">
-            <show-more-btn :is-show="scope.row.showMore" :buttons="buttons" :size="selectDataCounts"/>
+            <show-more-btn :is-show="scope.row.showMore" :buttons="buttons" :size="selectDataCounts" v-tester/>
           </template>
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
@@ -33,7 +33,8 @@
                            min-width="120px"
                            show-overflow-tooltip :key="index">
             <template slot-scope="scope">
-              <el-tooltip content="编辑">
+              <span style="cursor:pointer" v-if="isReadOnly"> {{ scope.row.num }} </span>
+              <el-tooltip v-else content="编辑">
                 <a style="cursor:pointer" @click="edit(scope.row)"> {{ scope.row.num }} </a>
               </el-tooltip>
             </template>
@@ -107,7 +108,7 @@
                            min-width="120px"
                            show-overflow-tooltip :key="index"/>
         </template>
-        <el-table-column fixed="right" :label="$t('commons.operating')" width="190px" v-if="!referenced">
+        <el-table-column fixed="right" :label="$t('commons.operating')" width="190px" v-if="!referenced && !isReadOnly">
           <template slot="header">
             <header-label-operate @exec="customHeader"/>
           </template>
@@ -145,15 +146,12 @@
         <!--测试计划-->
         <el-drawer :visible.sync="planVisible" :destroy-on-close="true" direction="ltr" :withHeader="false"
                    :title="$t('test_track.plan_view.test_result')" :modal="false" size="90%">
-          <ms-test-plan-list @addTestPlan="addTestPlan" @cancel="cancel"/>
+          <ms-test-plan-list @addTestPlan="addTestPlan(arguments)" @cancel="cancel" ref="testPlanList" :row="selectRows"/>
         </el-drawer>
       </div>
     </el-card>
 
     <batch-edit ref="batchEdit" @batchEdit="batchEdit" :typeArr="typeArr" :value-arr="valueArr" :dialog-title="$t('test_track.case.batch_edit_case')">
-      <template v-slot:value>
-        <environment-select :current-data="{}" :project-id="projectId"/>
-      </template>
     </batch-edit>
 
     <batch-move @refresh="search" @moveSave="moveSave" ref="testBatchMove"/>
@@ -166,7 +164,7 @@
   import MsTablePagination from "@/business/components/common/pagination/TablePagination";
   import ShowMoreBtn from "@/business/components/track/case/components/ShowMoreBtn";
   import MsTag from "../../../common/components/MsTag";
-  import {downloadFile, getCurrentProjectID, getCurrentUser, getUUID} from "@/common/js/utils";
+  import {downloadFile, getCurrentProjectID, getCurrentUser, getUUID, strMapToObj} from "@/common/js/utils";
   import MsApiReportDetail from "../report/ApiReportDetail";
   import MsTableMoreBtn from "./TableMoreBtn";
   import MsScenarioExtendButtons from "@/business/components/api/automation/scenario/ScenarioExtendBtns";
@@ -235,6 +233,11 @@
         default() {
           return []
         },
+      },
+      //用于判断是否是只读用户
+      isReadOnly: {
+        type: Boolean,
+        default: false,
       }
     },
     data() {
@@ -279,7 +282,9 @@
           },
           {
             name: this.$t('test_track.case.batch_move_case'), handleClick: this.handleBatchMove
-          }
+          },
+          {name: this.$t('api_test.definition.request.batch_delete'), handleClick: this.handleDeleteBatch},
+
         ],
         isSelectAllDate: false,
         selectRows: new Set(),
@@ -288,7 +293,8 @@
           {id: 'level', name: this.$t('test_track.case.priority')},
           {id: 'status', name: this.$t('test_track.plan.plan_status')},
           {id: 'principal', name: this.$t('api_test.definition.request.responsible'), optionMethod: this.getPrincipalOptions},
-          {id: 'environmentId', name: this.$t('api_test.definition.request.run_env'), optionMethod: this.getEnvsOptions},
+          // {id: 'environmentId', name: this.$t('api_test.definition.request.run_env'), optionMethod: this.getEnvsOptions},
+          {id: 'projectEnv', name: this.$t('api_test.definition.request.run_env')},
         ],
         statusFilters: [
           {text: this.$t('test_track.plan.plan_status_prepare'), value: 'Prepare'},
@@ -319,7 +325,8 @@
             {name: this.$t('test_track.plan.plan_status_completed'), id: 'Completed'}
           ],
           principal: [],
-          environmentId: []
+          environmentId: [],
+          projectEnv: [],
         },
       }
     },
@@ -432,6 +439,7 @@
       },
       handleBatchEdit() {
         this.$refs.batchEdit.open(this.selectDataCounts);
+        this.$refs.batchEdit.setScenarioSelectRows(this.selectRows);
       },
       handleBatchMove() {
         this.$refs.testBatchMove.open(this.moduleTree, [], this.moduleOptions);
@@ -446,13 +454,31 @@
         });
       },
       batchEdit(form) {
-        let param = {};
-        param[form.type] = form.value;
-        this.buildBatchParam(param);
-        this.$post('/api/automation/batch/edit', param, () => {
-          this.$success(this.$t('commons.save_success'));
-          this.search();
-        });
+        // 批量修改环境
+        if (form.type === 'projectEnv') {
+          let param = {};
+          let map = new Map();
+          this.selectRows.forEach(row => {
+            map.set(row.id, row.projectIds);
+          })
+          param.mapping = strMapToObj(map);
+          param.envMap = strMapToObj(form.projectEnvMap);
+          this.$post('/api/automation/batch/update/env', param, () => {
+            this.$success(this.$t('commons.save_success'));
+            this.search();
+          })
+        } else {
+          // 批量修改其它
+          let param = {};
+          param[form.type] = form.value;
+          this.buildBatchParam(param);
+          this.$post('/api/automation/batch/edit', param, () => {
+            this.$success(this.$t('commons.save_success'));
+            this.search();
+          });
+        }
+
+
       },
       getPrincipalOptions(option) {
         let workspaceId = localStorage.getItem(WORKSPACE_ID);
@@ -478,17 +504,31 @@
       cancel() {
         this.planVisible = false;
       },
-      addTestPlan(plans) {
-        let obj = {planIds: plans, scenarioIds: this.selection};
+      addTestPlan(params) {
+        let obj = {planIds: params[0], scenarioIds: this.selection};
 
-        obj.projectId = getCurrentProjectID();
-        obj.selectAllDate = this.isSelectAllDate;
-        obj.unSelectIds = this.unSelection;
-        obj = Object.assign(obj, this.condition);
+        // obj.projectId = getCurrentProjectID();
+        // obj.selectAllDate = this.isSelectAllDate;
+        // obj.unSelectIds = this.unSelection;
+        // obj = Object.assign(obj, this.condition);
+
+        // todo 选取全部数据
+        if (this.isSelectAllDate) {
+          this.$warning("暂不支持批量添加所有场景到测试计划！");
+        }
 
         this.planVisible = false;
+
+        let map = new Map();
+        this.selectRows.forEach(row => {
+          map.set(row.id, row.projectIds);
+        })
+        obj.mapping = strMapToObj(map);
+        obj.envMap = strMapToObj(params[1]);
+
         this.$post("/api/automation/scenario/plan", obj, response => {
           this.$success(this.$t("commons.save_success"));
+          this.search();
         });
       },
       getReport() {
@@ -564,6 +604,29 @@
           this.search();
         })
       },
+      handleDeleteBatch(row) {
+        if (this.trashEnable) {
+          let ids = Array.from(this.selectRows).map(row => row.id);
+          this.$post('/api/automation/deleteBatch/', ids, () => {
+            this.$success(this.$t('commons.delete_success'));
+            this.search();
+          });
+          return;
+        }
+        this.$alert(this.$t('api_test.definition.request.delete_confirm') + " ？", '', {
+          confirmButtonText: this.$t('commons.confirm'),
+          callback: (action) => {
+            if (action === 'confirm') {
+              let ids = Array.from(this.selectRows).map(row => row.id);
+              this.$post('/api/automation/removeToGc/', ids, () => {
+                this.$success(this.$t('commons.delete_success'));
+                this.search();
+              });
+            }
+          }
+        });
+      },
+
       execute(row) {
         this.infoDb = false;
         let url = "/api/automation/run";

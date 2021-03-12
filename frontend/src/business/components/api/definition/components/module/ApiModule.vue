@@ -20,8 +20,6 @@
           :condition="condition"
           :current-module="currentModule"
           :is-read-only="isReadOnly"
-          :is-plan-id="isPlanId()"
-          :relenvance-case-dialog="relenvanceCaseDialog"
           @exportAPI="exportAPI"
           @saveAsEdit="saveAsEdit"
           @refreshTable="$emit('refreshTable')"
@@ -60,8 +58,7 @@ export default {
         condition: {
           protocol: OPTIONS[0].value,
           filterText: "",
-          trashEnable: false,
-          projectId: "",
+          trashEnable: false
         },
         projectId: "",
         data: [],
@@ -77,12 +74,6 @@ export default {
       },
       planId: String,
       relevanceProjectId: String,
-      relenvanceCaseDialog: {
-        type: Boolean,
-        default() {
-          return false
-        }
-      },
     },
     computed: {
       isPlanModel() {
@@ -94,9 +85,7 @@ export default {
     },
     mounted() {
       this.projectId = getCurrentProjectID();
-      this.condition.projectId = getCurrentProjectID();
       this.$emit('protocolChange', this.condition.protocol);
-      this.$emit('projectIdChange', this.condition.projectId);
       this.list();
     },
     watch: {
@@ -110,10 +99,6 @@ export default {
       'condition.trashEnable'() {
         this.$emit('enableTrash', this.condition.trashEnable);
       },
-      'condition.projectId'(){
-        this.$emit('projectIdChange', this.condition.projectId);
-        this.list();
-      },
       planId() {
         this.list();
       },
@@ -122,14 +107,14 @@ export default {
       }
     },
     methods: {
-      list() {
+      list(projectId) {
         let url = undefined;
         if (this.isPlanModel) {
           url = '/api/module/list/plan/' + this.planId + '/' + this.condition.protocol;
         } else if (this.isRelevanceModel) {
           url = "/api/module/list/" + this.relevanceProjectId + "/" + this.condition.protocol;
         } else {
-          url = "/api/module/list/" + this.condition.projectId + "/" + this.condition.protocol;
+          url = "/api/module/list/" + (projectId ? projectId : this.projectId) + "/" + this.condition.protocol;
           if (!this.projectId) {
             return;
           }
@@ -203,8 +188,8 @@ export default {
           this.$refs.nodeTree.append({}, dataArr[0]);
         }
       },
-      exportAPI() {
-        this.$emit('exportAPI');
+      exportAPI(type) {
+        this.$emit('exportAPI', type);
       },
       debug() {
         this.$emit('debug');
@@ -215,9 +200,6 @@ export default {
       refresh() {
         this.list();
         this.$emit('refreshTable');
-      },
-      isPlanId() {
-        return this.planId ? true : false;
       },
     }
   }

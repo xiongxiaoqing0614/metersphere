@@ -27,5 +27,27 @@ CREATE TABLE IF NOT EXISTS `api_document_share`  (
      INDEX `share_api_id`(`share_api_id`(125)) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
--- test_case_review add coloumn
+-- swagger_url_project
+alter table swagger_url_project
+    modify module_id varchar(120) null;
+
+-- add_test_case
+alter table test_case
+    add demand_id varchar(120) null;
+
+alter table test_case
+    add demand_name varchar(999) null;
+-- test_case_review add column
 ALTER TABLE test_case_review ADD tags VARCHAR(2000) NULL;
+
+-- alter test_plan_api_scenario
+alter table test_plan_api_scenario change environment_id environment longtext null comment 'Relevance environment';
+
+-- file add sort column
+alter table file_metadata add sort int default 0;
+
+-- add Original state
+alter table api_definition add original_state varchar(64);
+alter table api_scenario add original_state varchar(64);
+update api_definition set original_state='Underway';
+update api_scenario set original_state='Underway';

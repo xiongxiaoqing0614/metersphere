@@ -84,7 +84,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column
+<!--          <el-table-column
             v-if="item.id=='method'"
             prop="method"
             :filters="methodFilters"
@@ -95,7 +95,7 @@
             <template v-slot:default="scope">
               <method-table-item :value="scope.row.method"/>
             </template>
-          </el-table-column>
+          </el-table-column>-->
 
           <el-table-column
             v-if="item.id=='nodePath'"
@@ -312,6 +312,14 @@ export default {
       getLabel(this, TEST_CASE_REVIEW_CASE_LIST);
       if (this.reviewId) {
         this.condition.reviewId = this.reviewId;
+      }
+      if (this.clickType) {
+        if (this.status == 'default') {
+          this.condition.status = this.clickType;
+        } else {
+          this.condition.status = null;
+        }
+        this.status = 'all';
       }
       this.condition.nodeIds = this.selectNodeIds;
       if (this.reviewId) {

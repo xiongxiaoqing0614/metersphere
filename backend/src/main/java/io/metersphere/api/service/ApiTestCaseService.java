@@ -22,6 +22,7 @@ import io.metersphere.base.mapper.ext.ExtApiDefinitionExecResultMapper;
 import io.metersphere.base.mapper.ext.ExtApiTestCaseMapper;
 import io.metersphere.base.mapper.ext.ExtTestPlanApiCaseMapper;
 import io.metersphere.base.mapper.ext.ExtTestPlanTestCaseMapper;
+import io.metersphere.commons.constants.TestPlanStatus;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.utils.*;
 import io.metersphere.i18n.Translator;
@@ -50,6 +51,8 @@ import java.util.stream.Collectors;
 @Transactional(rollbackFor = Exception.class)
 public class ApiTestCaseService {
     @Resource
+    TestPlanMapper testPlanMapper;
+    @Resource
     private ApiTestCaseMapper apiTestCaseMapper;
     @Resource
     private SqlSessionFactory sqlSessionFactory;
@@ -74,7 +77,7 @@ public class ApiTestCaseService {
     @Resource
     private TestPlanApiCaseMapper testPlanApiCaseMapper;
 
-    private static final String BODY_FILE_DIR = "/opt/metersphere/data/body";
+    private static final String BODY_FILE_DIR = FileUtils.BODY_FILE_DIR;
 
     public List<ApiTestCaseResult> list(ApiTestCaseRequest request) {
         request.setOrders(ServiceUtils.getDefaultOrder(request.getOrders()));
@@ -330,6 +333,14 @@ public class ApiTestCaseService {
             testPlanApiCase.setUpdateTime(System.currentTimeMillis());
             batchMapper.insertIfNotExists(testPlanApiCase);
         });
+        TestPlan testPlan = testPlanMapper.selectByPrimaryKey(request.getPlanId());
+        if (StringUtils.equals(testPlan.getStatus(), TestPlanStatus.Prepare.name())
+                || StringUtils.equals(testPlan.getStatus(), TestPlanStatus.Completed.name())) {
+            testPlan.setStatus(TestPlanStatus.Underway.name());
+            testPlan.setActualStartTime(System.currentTimeMillis());  // 将状态更新为进行中时，开始时间也要更新
+            testPlan.setActualEndTime(null);
+            testPlanMapper.updateByPrimaryKey(testPlan);
+        }
         sqlSession.flushStatements();
     }
 
@@ -486,6 +497,7 @@ public class ApiTestCaseService {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         MsTestElement element = mapper.readValue(testCaseWithBLOBs.getRequest(), new TypeReference<MsTestElement>() {
         });
+        element.setProjectId(testCaseWithBLOBs.getProjectId());
         if (StringUtils.isBlank(request.getEnvironmentId())) {
             TestPlanApiCaseExample example = new TestPlanApiCaseExample();
             example.createCriteria().andTestPlanIdEqualTo(request.getTestPlanId()).andApiCaseIdEqualTo(request.getCaseId());
@@ -513,9 +525,14 @@ public class ApiTestCaseService {
         ApiTestEnvironmentService environmentService = CommonBeanFactory.getBean(ApiTestEnvironmentService.class);
         ApiTestEnvironmentWithBLOBs environment = environmentService.get(request.getEnvironmentId());
         ParameterConfig parameterConfig = new ParameterConfig();
-//        if (environment != null && environment.getConfig() != null) {
-//            parameterConfig.setConfig(JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class));
-//        }
+
+        Map<String, EnvironmentConfig> envConfig = new HashMap<>(16);
+        if (environment != null && environment.getConfig() != null) {
+            EnvironmentConfig environmentConfig = JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class);
+            envConfig.put(testCaseWithBLOBs.getProjectId(), environmentConfig);
+            parameterConfig.setConfig(envConfig);
+        }
+
         testPlan.toHashTree(jmeterHashTree, testPlan.getHashTree(), parameterConfig);
         return jmeterHashTree;
     }
