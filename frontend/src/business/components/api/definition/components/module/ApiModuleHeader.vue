@@ -1,14 +1,5 @@
 <template>
   <div>
-    <el-select v-if="isReadOnly" class="protocol-project-select" size="small" v-model="condition.projectId">
-      <el-option
-        v-for="item in allProjects"
-        :key="item.id"
-        :label="item.name"
-        :value="item.id"
-        :disabled="item.disabled">
-      </el-option>
-    </el-select>
     <el-select class="protocol-select" size="small" v-model="condition.protocol">
       <el-option
         v-for="item in options"
@@ -53,7 +44,6 @@ import ApiImport from "../import/ApiImport";
 import ModuleTrashButton from "./ModuleTrashButton";
 import {getCurrentProjectID} from "../../../../../../common/js/utils";
 import {buildNodePath} from "@/business/components/api/definition/model/NodeTree";
-import { PROJECT_NAME } from '../../../../../../common/js/constants';
 
 export default {
   name: "ApiModuleHeader",
@@ -61,8 +51,7 @@ export default {
   data() {
     return {
       options: OPTIONS,
-      moduleOptions: {},
-      allProjects:{}
+      moduleOptions: {}
     }
   },
   props: {
@@ -84,10 +73,6 @@ export default {
         return false
       }
     },
-  },
-  created() {
-    this.getAllProjects();
-    this.getDefaultProject();
   },
   methods: {
 
@@ -143,14 +128,6 @@ export default {
     },
     enableTrash() {
       this.condition.trashEnable = true;
-    },
-    getDefaultProject(){
-      this.condition.defaultProject = localStorage.getItem(PROJECT_NAME)
-    },
-    getAllProjects(){
-      this.$get("/project/listAll", response => {
-        this.allProjects = response.data
-      })
     }
   }
 }
@@ -161,7 +138,6 @@ export default {
 .protocol-select {
   width: 92px;
   height: 30px;
-  margin-top: 10px;
 }
 
 .read-only {

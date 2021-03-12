@@ -5,7 +5,6 @@
       <ms-api-module
         @nodeSelectEvent="nodeChange"
         @protocolChange="handleProtocolChange"
-        @projectIdChange="handleProjectIdChange"
         @refreshTable="refresh"
         @setModuleOptions="setModuleOptions"
         :is-read-only="true"
@@ -15,7 +14,6 @@
     <scenario-relevance-api-list
       v-if="isApiListEnable"
       :current-protocol="currentProtocol"
-      :current-project-id="currentProjectId"
       :select-node-ids="selectNodeIds"
       :is-api-list-enable="isApiListEnable"
       @isApiListEnableChange="isApiListEnableChange"
@@ -24,7 +22,6 @@
     <scenario-relevance-case-list
       v-if="!isApiListEnable"
       :current-protocol="currentProtocol"
-      :current-project-id="currentProjectId"
       :select-node-ids="selectNodeIds"
       :is-api-list-enable="isApiListEnable"
       @isApiListEnableChange="isApiListEnableChange"
@@ -60,7 +57,6 @@ export default {
     return {
       result: {},
       currentProtocol: null,
-      currentProjectId: null,
       selectNodeIds: [],
             moduleOptions: {},
             isApiListEnable: true,
@@ -110,9 +106,6 @@ export default {
         },
         handleProtocolChange(protocol) {
           this.currentProtocol = protocol;
-        },
-        handleProjectIdChange(projectId) {
-          this.currentProjectId = projectId;
         },
         setModuleOptions(data) {
           this.moduleOptions = data;
