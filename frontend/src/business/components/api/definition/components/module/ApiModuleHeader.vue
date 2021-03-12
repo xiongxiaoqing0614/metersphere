@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-select v-if="isReadOnly && !isPlanId && !relenvanceCaseDialog" class="protocol-project-select" size="small" v-model="condition.projectId">
+    <el-select v-if="isReadOnly" class="protocol-project-select" size="small" v-model="condition.projectId">
       <el-option
         v-for="item in allProjects"
         :key="item.id"
@@ -53,6 +53,7 @@ import ApiImport from "../import/ApiImport";
 import ModuleTrashButton from "./ModuleTrashButton";
 import {getCurrentProjectID} from "../../../../../../common/js/utils";
 import {buildNodePath} from "@/business/components/api/definition/model/NodeTree";
+import { PROJECT_NAME } from '../../../../../../common/js/constants';
 
 export default {
   name: "ApiModuleHeader",
@@ -83,21 +84,10 @@ export default {
         return false
       }
     },
-    isPlanId: {
-      type: Boolean,
-      default() {
-        return false
-      }
-    },
-    relenvanceCaseDialog: {
-      type: Boolean,
-      default() {
-        return false
-      }
-    },
   },
   created() {
     this.getAllProjects();
+    this.getDefaultProject();
   },
   methods: {
 
@@ -153,6 +143,9 @@ export default {
     },
     enableTrash() {
       this.condition.trashEnable = true;
+    },
+    getDefaultProject(){
+      this.condition.defaultProject = localStorage.getItem(PROJECT_NAME)
     },
     getAllProjects(){
       this.$get("/project/listAll", response => {
