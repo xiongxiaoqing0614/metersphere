@@ -7,8 +7,10 @@
         @refreshTable="refresh"
         @setTreeNodes="setTreeNodes"
         @exportTestCase="exportTestCase"
+        @saveAsEdit="editTestCase"
         :type="'edit'"
-        ref="nodeTree"/>
+        ref="nodeTree"
+      />
     </ms-aside-container>
 
     <ms-main-container>
@@ -37,8 +39,9 @@
             @setCondition="setCondition"
             ref="testCaseList">
           </test-case-list>
-          <testcase-minder
+          <test-case-minder
             :tree-nodes="treeNodes"
+            :project-id="projectId"
             v-if="activeDom === 'right'"
             ref="testCaseList"/>
           </ms-tab-button>
@@ -95,17 +98,17 @@ import SelectMenu from "../common/SelectMenu";
 import MsContainer from "../../common/components/MsContainer";
 import MsAsideContainer from "../../common/components/MsAsideContainer";
 import MsMainContainer from "../../common/components/MsMainContainer";
-import {checkoutTestManagerOrTestUser, getCurrentProjectID, getUUID, hasRoles} from "../../../../common/js/utils";
+import {checkoutTestManagerOrTestUser, getCurrentProjectID, getUUID} from "../../../../common/js/utils";
 import TestCaseNodeTree from "../common/TestCaseNodeTree";
-import {TrackEvent,LIST_CHANGE} from "@/business/components/common/head/ListEvent";
-import TestcaseMinder from "@/business/components/common/components/MsModuleMinder";
+
 import MsTabButton from "@/business/components/common/components/MsTabButton";
+import TestCaseMinder from "@/business/components/track/common/minder/TestCaseMinder";
 
 export default {
   name: "TestCase",
   components: {
+    TestCaseMinder,
     MsTabButton,
-    TestcaseMinder,
     TestCaseNodeTree,
     MsMainContainer,
     MsAsideContainer, MsContainer, TestCaseList, NodeTree, TestCaseEdit, SelectMenu
@@ -127,11 +130,13 @@ export default {
       renderComponent:true,
       loading: false,
       type:'',
-      activeDom: 'left'
+      activeDom: 'left',
+      projectId: ""
     }
   },
   mounted() {
     this.init(this.$route);
+    this.projectId = getCurrentProjectID();
   },
   watch: {
     redirectID() {
@@ -161,7 +166,6 @@ export default {
     },
     isRedirectEdit: function () {
       let redirectParam = this.$route.params.dataSelectRange;
-      this.checkRedirectEditPage(redirectParam);
       return redirectParam;
     }
   },
@@ -191,31 +195,8 @@ export default {
         this.redirectFlag = "none";
       }
     },
-    checkRedirectEditPage(redirectParam) {
-      if (redirectParam != null) {
-        let selectParamArr = redirectParam.split("edit:");
-        if (selectParamArr.length == 2) {
-          let scenarioId = selectParamArr[1];
-          let projectId = getCurrentProjectID();
-          //查找单条数据，跳转修改页面
-         /* let url = "/api/automation/list/" + 1 + "/" + 1;
-          this.$post(url, {id: scenarioId, projectId: projectId}, response => {
-            let data = response.data;
-            if (data != null) {
-              //如果树未加载
-              if (JSON.stringify(this.moduleOptions) === '{}') {
-                this.$refs.nodeTree.list();
-              }
-              let row = data.listObject[0];
-              row.tags = JSON.parse(row.tags);
-              this.editScenario(row);
-            }
-          });*/
-        }
-      }
-    },
     addTab(tab) {
-      if (!getCurrentProjectID()) {
+      if (!this.projectId) {
         this.$warning(this.$t('commons.check_project_tip'));
         return;
       }
@@ -275,7 +256,7 @@ export default {
           this.testCaseReadOnly = true;
         }
         let caseId = this.$route.params.caseId;
-        if (!getCurrentProjectID()) {
+        if (!this.projectId) {
           this.$warning(this.$t('commons.check_project_tip'));
           return;
         }
@@ -301,25 +282,17 @@ export default {
         return;
       }
       this.addTab({name: 'edit', testCaseInfo: testCase});
-
-
     },
+
     copyTestCase(testCase) {
       this.type="copy"
       this.testCaseReadOnly = false;
       let item = {};
       testCase.isCopy = true;
       this.addTab({name: 'edit', testCaseInfo: testCase});
-
-/*
-      this.$refs.testCaseEditDialog.open(item);
-*/
     },
     showTestCaseDetail(testCase) {
       this.testCaseReadOnly = true;
-/*
-      this.$refs.testCaseEditDialog.open(testCase);
-*/
     },
     refresh() {
       this.selectNodeIds = [];

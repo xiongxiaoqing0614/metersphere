@@ -241,7 +241,8 @@ export default {
     base_config: '基本配置',
     base: {
       url: '當前站點URL',
-      url_tip: '例如：http://localhost:8081'
+      url_tip: '例如：http://localhost:8081',
+      url_is_null: '當前站點URL不能為空'
     }
   },
   workspace: {
@@ -477,7 +478,7 @@ export default {
     delete_file: "文件已存在，請先刪除同名文件！",
     thread_num: '並發用戶數：',
     input_thread_num: '請輸入線程數',
-    duration: '壓測時長（秒）',
+    duration: '壓測時長',
     granularity: '聚合時間（秒）',
     input_duration: '請輸入時長',
     rps_limit: 'RPS上限：',
@@ -1034,6 +1035,7 @@ export default {
         },
         scenario_schedule: "場景",
         test_plan_schedule: "測試計畫",
+        swagger_schedule: "swagger",
         confirm: {
           close_title: "要關閉這條定時任務嗎？",
         }
