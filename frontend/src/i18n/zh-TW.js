@@ -1,5 +1,9 @@
 export default {
   commons: {
+    please_select_import_mode: '請選擇導入模式',
+    please_select_import_module: '請選擇導入模塊',
+    pass_rate: '通過率',
+    execution_times: '執行次數',
     cover: '覆蓋',
     not_cover: '不覆蓋',
     import: '導入',
@@ -1108,6 +1112,7 @@ export default {
     cancel_relevance_success: "取消關聯成功",
     switch_project: "切換項目",
     case: {
+      minder: "腦圖",
       check_select: "請勾選用例",
       export_all_cases: '確定要導出全部用例嗎?',
       input_test_case: '請輸入關聯用例名稱',
@@ -1316,6 +1321,7 @@ export default {
       executor: "執行人",
       execute_result: "執行結果",
       pass: "通過",
+      not_pass: "不通過",
       failure: "失敗",
       blocking: "阻塞",
       skip: "跳過",
@@ -1609,5 +1615,11 @@ export default {
     delete_prompt: '此操作會刪除認證源，是否繼續？ ',
     title: '認證設置',
     auth_name_valid: '名稱不支持特殊字符',
+  },
+  table: {
+    header_display_field: '表頭顯示欄位',
+    fields_to_be_selected: '待選欄位',
+    selected_fields: '已選欄位'
   }
+
 };

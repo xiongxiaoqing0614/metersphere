@@ -1,5 +1,9 @@
 export default {
   commons: {
+    please_select_import_mode: '请选择导入模式',
+    please_select_import_module: '请选择导入模块',
+    pass_rate: '通过率',
+    execution_times: '执行次数',
     cover: '覆盖',
     not_cover: '不覆盖',
     import: '导入',
@@ -1110,6 +1114,7 @@ export default {
     cancel_relevance_success: "取消关联成功",
     switch_project: "切换项目",
     case: {
+      minder: "脑图",
       check_select: "请勾选用例",
       export_all_cases: '确定要导出全部用例吗?',
       input_test_case: '请输入关联用例名称',
@@ -1318,6 +1323,7 @@ export default {
       executor: "执行人",
       execute_result: "执行结果",
       pass: "通过",
+      not_pass: "不通过",
       failure: "失败",
       blocking: "阻塞",
       skip: "跳过",
@@ -1611,5 +1617,10 @@ export default {
     delete_prompt: '此操作会删除认证源，是否继续？',
     title: '认证设置',
     auth_name_valid: '名称不支持特殊字符',
+  },
+  table: {
+    header_display_field: '表头显示字段',
+    fields_to_be_selected: '待选字段',
+    selected_fields: '已选字段'
   }
 };

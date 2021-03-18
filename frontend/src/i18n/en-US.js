@@ -1,5 +1,9 @@
 export default {
   commons: {
+    please_select_import_mode: 'Please select import mode',
+    please_select_import_module: 'Please select import module',
+    pass_rate: 'Pass rate',
+    execution_times: 'Execution times',
     cover: 'Cover',
     not_cover: 'Not Cover',
     import: 'Import',
@@ -1106,6 +1110,7 @@ export default {
     cancel_relevance_success: "Unlinked successfully",
     switch_project: "Switch project",
     case: {
+      minder: "Minder",
       check_select: "Please check the case",
       export_all_cases: 'Are you sure you want to export all use cases?',
       input_test_case: 'Please enter the associated case name',
@@ -1314,6 +1319,7 @@ export default {
       executor: "Executor",
       execute_result: "Result",
       pass: "Pass",
+      not_pass: "UnPass",
       failure: "Failure",
       blocking: "Blocking",
       skip: "Skip",
@@ -1608,5 +1614,10 @@ export default {
     delete_prompt: 'This operation will delete the authentication source, do you want to continue? ',
     title: 'Auth Source',
     auth_name_valid: 'Name does not support special characters',
+  },
+  table: {
+    header_display_field: 'Header display field',
+    fields_to_be_selected: 'Fields to be selected',
+    selected_fields: 'Selected fields'
   }
 };

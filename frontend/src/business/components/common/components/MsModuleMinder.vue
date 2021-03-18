@@ -6,6 +6,8 @@
       :import-json="importJson"
       :height="700"
       :progress-enable="false"
+      :tags="tags"
+      :distinct-tags="distinctTags"
       @save="save"
     />
   </div>
@@ -28,33 +30,26 @@ export default {
       default() {
         return new Map();
       }
+    },
+    tags: {
+      type: Array,
+      default() {
+        return []
+      }
+    },
+    distinctTags: {
+      type: Array,
+      default() {
+        return []
+      }
     }
   },
   data() {
     return {
-      importJsonTest: {
-        "root": {
-          "data": {
-            "text": "test111"
-          },
-          "children": [
-            { "data": { "text": "新闻"}},
-            { "data": { "text": "网页"} },
-            { "data": { "text": "贴吧"} },
-            { "data": { "text": "知道"} },
-            { "data": { "text": "音乐" } },
-            { "data": { "text": "图片"} },
-            { "data": { "text": "视频"} },
-            { "data": { "text": "地图" } },
-            { "data": { "text": "百科","expandState":"collapse"}}
-          ]
-        },
-        "template":"default"
-      },
       importJson: {
         root: {
           data: {
-            text: "全部用例",
+            text: this.$t('test_track.review_view.all_case'),
             disable: true,
             id: "root",
             path: ""
@@ -82,6 +77,15 @@ export default {
     },
     parse(root, children) {
       root.children = [];
+      if (root.data.id ===  'root') {
+        // nodeId 为空的用例
+        let rootChildData = this.dataMap.get("");
+        if (rootChildData) {
+          rootChildData.forEach((dataNode) => {
+            root.children.push(dataNode);
+          })
+        }
+      }
       // 添加数据节点
       let dataNodes = this.dataMap.get(root.data.id);
       if (dataNodes) {
