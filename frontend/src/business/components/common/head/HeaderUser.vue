@@ -9,6 +9,7 @@
         <el-dropdown-item command="about">{{ $t('commons.about_us') }} <i class="el-icon-info"/></el-dropdown-item>
         <el-dropdown-item command="help">{{ $t('commons.help_documentation') }}</el-dropdown-item>
         <el-dropdown-item command="ApiHelp">{{ $t('commons.api_help_documentation') }}</el-dropdown-item>
+        <el-dropdown-item command="WikiHelp">{{ $t('commons.tuhu_wiki_documentation') }}</el-dropdown-item>
         <el-dropdown-item command="old" v-show=isReadOnly @click.native="changeBar('old')">
           {{ $t('commons.cut_back_old_version') }}
         </el-dropdown-item>
@@ -73,6 +74,9 @@ export default {
           break;
         case "ApiHelp":
           window.open('/swagger-ui/index.html?configUrl=/v3/api-docs/swagger-config', "_blank");
+          break;
+        case "WikiHelp":
+          window.location.href = "https://wiki.tuhu.cn/pages/viewpage.action?pageId=99285997";
           break;
         default:
           break;

@@ -17,6 +17,7 @@ export default {
     comment: '評論',
     examples: '示例',
     help_documentation: '幫助文檔',
+    tuhu_wiki_documentation: '途虎Wiki文檔',
     api_help_documentation: 'API文檔',
     delete_cancelled: '已取消刪除',
     workspace: '工作空間',
