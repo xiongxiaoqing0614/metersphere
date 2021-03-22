@@ -17,6 +17,7 @@ export default {
     comment: 'comment',
     examples: 'examples',
     help_documentation: 'Help documentation',
+    tuhu_wiki_documentation: 'Tuhu Wiki documentation',
     delete_cancelled: 'Delete cancelled',
     workspace: 'Workspace',
     organization: 'Organization',
