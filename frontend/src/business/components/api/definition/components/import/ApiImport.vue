@@ -148,7 +148,7 @@ export default {
       protocol: "",
       platforms: [
         {
-          name: 'Metersphere',
+          name: 'MeterSphere',
           value: 'Metersphere',
           tip: this.$t('api_test.api_import.ms_tip'),
           exportTip: this.$t('api_test.api_import.ms_export_tip'),
@@ -175,7 +175,7 @@ export default {
           suffixes: new Set(['json'])
         },
         {
-          name: 'Har',
+          name: 'HAR',
           value: 'Har',
           tip: this.$t('api_test.api_import.har_tip'),
           exportTip: this.$t('api_test.api_import.har_export_tip'),

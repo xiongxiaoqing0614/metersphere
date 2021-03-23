@@ -48,10 +48,8 @@
                       <span class="cast_item">{{ testCase.priority }}</span>
                     </el-col>
                     <el-col :span="5">
-                      <span class="cast_label">{{ $t('test_track.case.case_type') }}：</span>
-                      <span class="cast_item" v-if="testCase.type === 'functional'">{{ $t('commons.functional') }}</span>
-                      <span class="cast_item" v-if="testCase.type === 'performance'">{{ $t('commons.performance') }}</span>
-                      <span class="cast_item" v-if="testCase.type === 'api'">{{ $t('commons.api') }}</span>
+                      <span class="cast_label">{{ $t('test_track.case.module') }}：</span>
+                      <span class="cast_item">{{ testCase.nodePath }}</span>
                     </el-col>
                     <el-col :span="10">
                       <test-plan-test-case-status-button class="status-button"
@@ -64,15 +62,6 @@
 
                   <el-row>
                     <el-col :span="4" :offset="1">
-                      <span class="cast_label">{{ $t('test_track.case.method') }}：</span>
-                      <span v-if="testCase.method === 'manual'">{{ $t('test_track.case.manual') }}</span>
-                      <span v-if="testCase.method === 'auto'">{{ $t('test_track.case.auto') }}</span>
-                    </el-col>
-                    <el-col :span="5">
-                      <span class="cast_label">{{ $t('test_track.case.module') }}：</span>
-                      <span class="cast_item">{{ testCase.nodePath }}</span>
-                    </el-col>
-                    <el-col :span="4" :offset="1">
                       <span class="cast_label">{{ $t('test_track.plan.plan_project') }}：</span>
                       <span class="cast_item">{{ testCase.projectName }}</span>
                     </el-col>
@@ -82,6 +71,15 @@
                     <el-col :span="4" :offset="1" v-if="testCase.testId == 'other'">
                       <span class="cast_label">{{ $t('test_track.case.test_name') }}：</span>
                       <span class="cast_item">{{ testCase.otherTestName }}</span>
+                    </el-col>
+                  </el-row>
+
+                  <el-row>
+                    <el-col :offset="1">
+                      <span class="cast_label">关联测试：</span>
+                      <span v-for="(item,index) in testCase.list" :key="index">
+                        <el-button @click="openTest(item)" type="text" style="margin-left: 7px;">{{ item.testName }}</el-button>
+                      </span>
                     </el-col>
                   </el-row>
 
@@ -351,7 +349,7 @@ import ApiTestDetail from "../test/ApiTestDetail";
 import ApiTestResult from "../test/ApiTestResult";
 import PerformanceTestDetail from "../test/PerformanceTestDetail";
 import PerformanceTestResult from "../test/PerformanceTestResult";
-import {listenGoBack, removeGoBackListener} from "@/common/js/utils";
+import {getUUID, listenGoBack, removeGoBackListener} from "@/common/js/utils";
 import TestCaseAttachment from "@/business/components/track/case/components/TestCaseAttachment";
 import CaseComment from "@/business/components/track/case/components/CaseComment";
 import MsPreviousNextButton from "../../../../../common/components/MsPreviousNextButton";
@@ -558,6 +556,29 @@ export default {
           }
         }
       });
+    },
+    openTest(item) {
+      const type = item.testType;
+      const id = item.testId;
+      switch (type) {
+        case "performance": {
+          let performanceData = this.$router.resolve({
+            path: '/performance/test/edit/' + id,
+          })
+          window.open(performanceData.href, '_blank');
+          break;
+        }
+        case "testcase": {
+          let caseData = this.$router.resolve({name:'ApiDefinition',params:{redirectID:getUUID(),dataType:"apiTestCase",dataSelectRange:'single:'+id}});
+          window.open(caseData.href, '_blank');
+          break;
+        }
+        case "automation": {
+          let automationData = this.$router.resolve({name:'ApiAutomation',params:{redirectID:getUUID(),dataType:"scenario",dataSelectRange:'edit:'+id}});
+          window.open(automationData.href, '_blank');
+          break;
+        }
+      }
     },
     getRelatedTest() {
       if (this.testCase.method === 'auto' && this.testCase.testId && this.testCase.testId !== 'other') {

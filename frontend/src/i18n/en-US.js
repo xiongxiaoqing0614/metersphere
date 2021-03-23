@@ -328,7 +328,7 @@ export default {
       use_tip_tapd: 'Basic Auth account information is queried in "Company Management-Security and Integration-Open Platform"',
       use_tip_jira: 'Jira software server authentication information is account password, Jira software cloud authentication information is account + token (account settings-security-create API token)',
       use_tip_zentao: 'The account password is a Zentao account with corresponding permissions, and the account needs to have super model calling interface permissions',
-      use_tip_two: 'After saving the Basic Auth account information, you need to manually associate the ID/key in the Metersphere project',
+      use_tip_two: 'After saving the Basic Auth account information, you need to manually associate the ID/key in the MeterSphere project',
       link_the_project_now: 'Link the project now',
       cancel_edit: 'Cancel edit',
       cancel_integration: 'Cancel integration',
@@ -438,7 +438,7 @@ export default {
     downloadJtl: 'Download JTL',
     test_execute_again: 'Test Execute Again',
     export: 'Export',
-    export_to_ms_format: 'Export to Metersphere format',
+    export_to_ms_format: 'Export to MeterSphere format',
     export_to_swagger3_format: 'Export to Swagger3.0 format',
     compare: 'Compare',
     generation_error: 'Report generation error, unable to view, please check log details!',
@@ -662,7 +662,9 @@ export default {
           desc: "Description",
           value: "Data",
           not_required: "Not required",
-        }
+        },
+        esb_copy_confirm: "Copy this node data struct",
+        esb_title: "You can use ${name} or ${parent name.child name} to generate xml struct in report template",
       },
       document: {
         order: "Order",
@@ -808,7 +810,7 @@ export default {
       url_description: "etc: https://fit2cloud.com",
       path_description: "etc：/login",
       parameters: "Query parameters",
-      jmeter_func: "Jmeter Functions",
+      jmeter_func: "JMeter Functions",
       parameters_filter_example: "Example",
       parameters_filter_tips: "Only support MockJs function result preview",
       parameters_advance: "Advanced parameter settings",
@@ -890,8 +892,8 @@ export default {
         code_template_get_response_header: "Get Response Header",
         code_template_get_response_code: "Get Response Code",
         code_template_get_response_result: "Get Response Result",
-        code_add_report_length : "Add report length to head",
-        code_hide_report_length : "Hide report length"
+        code_add_report_length: "Add report length to head",
+        code_hide_report_length: "Hide report length"
       },
       dubbo: {
         protocol: "protocol",
@@ -1129,7 +1131,9 @@ export default {
     cancel_relevance_success: "Unlinked successfully",
     switch_project: "Switch project",
     case: {
+      list: "List",
       minder: "Minder",
+      minder_create_tip: "failed, unable to create its parent module in minder",
       check_select: "Please check the case",
       export_all_cases: 'Are you sure you want to export all use cases?',
       input_test_case: 'Please enter the associated case name',
@@ -1437,7 +1441,8 @@ export default {
     status_change_success: 'Successfully changed the status!',
     status_change_failed: 'Failed to change the status, resource pool is invalid!',
     check_in: 'Check in',
-    node_selector_invalid: 'nodeSelector must be JSON'
+    node_selector_invalid: 'nodeSelector must be JSON',
+    pod_thread_limit: 'Maximum number of threads per POD'
   },
   system_parameter_setting: {
     mailbox_service_settings: 'Mailbox Settings',
