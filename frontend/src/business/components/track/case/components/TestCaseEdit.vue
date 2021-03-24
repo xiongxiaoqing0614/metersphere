@@ -97,17 +97,12 @@
                 </el-select>
               </el-form-item>
             </el-col>
-            <el-col :span="7">
-                <el-form-item :label="$t('test_track.case.relate_test')" :label-width="formLabelWidth" prop="testId">
-                  <el-cascader  show-all-levels	   v-model="form.selected" :props="props"  ></el-cascader>
-                </el-form-item>
-            </el-col>
-<!--            <el-col :span="7" v-if="form.testId=='other'">
-              <el-form-item :label="$t('test_track.case.test_name')" :label-width="formLabelWidth" prop="testId">
-                <el-input v-model="form.otherTestName" :placeholder="$t('test_track.case.input_test_case')"></el-input>
+            <el-col :span="14">
+              <el-form-item :label="$t('test_track.case.relate_test')" :label-width="formLabelWidth">
+                <el-cascader filterable placeholder="请选择要关联的测试" show-all-levels v-model="form.selected" :props="props"
+                             class="ms-case"></el-cascader>
               </el-form-item>
-            </el-col>-->
-
+            </el-col>
           </el-row>
 
           <el-row>
@@ -125,8 +120,9 @@
               </el-form-item>
 
             </el-col>
-            <el-col :span="10">
-              <el-form-item label="需求名称" :label-width="formLabelWidth" prop="demandName" v-if="form.demandId=='other'">
+            <el-col :span="10" :offset="1">
+              <el-form-item label="需求ID/名称" :label-width="formLabelWidth" prop="demandName"
+                            v-if="form.demandId=='other'">
                 <el-input v-model="form.demandName"></el-input>
               </el-form-item>
             </el-col>
@@ -291,10 +287,8 @@
 import {TokenKey, WORKSPACE_ID} from '@/common/js/constants';
 import MsDialogFooter from '../../../common/components/MsDialogFooter'
 import {getCurrentUser, listenGoBack, removeGoBackListener} from "@/common/js/utils";
-import {LIST_CHANGE, TrackEvent} from "@/business/components/common/head/ListEvent";
 import {Message} from "element-ui";
 import TestCaseAttachment from "@/business/components/track/case/components/TestCaseAttachment";
-import {getCurrentProjectID} from "../../../../../common/js/utils";
 import {buildNodePath} from "../../../api/definition/model/NodeTree";
 import CaseComment from "@/business/components/track/case/components/CaseComment";
 import MsInputTag from "@/business/components/api/automation/scenario/MsInputTag";
@@ -328,11 +322,9 @@ export default {
             resolve(nodes)
           }
           if(node.level==1){
-            this.projectId = getCurrentProjectID()
             this.testOptions = [];
             let url = '';
             this.form.type=node.data.value
-            console.log(this.form.type)
             if (this.form.type === 'testcase' || this.form.type === 'automation') {
               url = '/api/' + this.form.type + '/list/' + this.projectId
             } else if (this.form.type === 'performance' || this.form.type === 'api') {
@@ -340,7 +332,6 @@ export default {
             }
             if (this.projectId && this.form.type != '' && this.form.type != 'undefined') {
               this.$get(url, response => {
-                response.data.unshift({id: 'other', name: this.$t('test_track.case.other')})
                 const nodes = response.data
                   .map(item => ({
                     value: item.id,
@@ -359,7 +350,6 @@ export default {
       statuOptions:API_STATUS,
       comments: [],
       result: {},
-      projectId: "",
       dialogFormVisible: false,
       form: {
         name: '',
@@ -439,11 +429,24 @@ export default {
     },
     type: String
   },
+  computed: {
+    projectId() {
+      return this.$store.state.projectId
+    },
+  },
   mounted() {
     this.getSelectOptions();
     if (this.type === 'edit' || this.type === 'copy') {
       this.open(this.currentTestCaseInfo)
     }
+    // Cascader 级联选择器: 点击文本就让它自动点击前面的input就可以触发选择。
+    setInterval(function () {
+      document.querySelectorAll('.el-cascader-node__label').forEach(el => {
+        el.onclick = function () {
+          if (this.previousElementSibling) this.previousElementSibling.click();
+        };
+      });
+    }, 1000);
   },
   watch: {
     treeNodes() {
@@ -496,9 +499,6 @@ export default {
       this.$nextTick(() => (this.isStepTableAlive = true));
     },
     open(testCase) {
-      console.log("测试用例")
-      console.log(testCase)
-      this.projectId = getCurrentProjectID();
       if (window.history && window.history.pushState) {
         history.pushState(null, null, document.URL);
         window.addEventListener('popstate', this.close);
@@ -581,8 +581,9 @@ export default {
       }
       Object.assign(this.form, tmp);
       this.form.module = testCase.nodeId;
-      this.form.testId=testCase.selected
-      console.log(this.form.testId)
+      /*
+            this.form.testId=testCase.selected
+      */
       this.getFileMetaData(testCase);
     },
     setTestCaseExtInfo(testCase) {
@@ -677,8 +678,6 @@ export default {
               }
               this.dialogFormVisible = false;
               this.$emit("refresh");
-              // 发送广播，刷新 head 上的最新列表
-              TrackEvent.$emit(LIST_CHANGE);
             });
           }
         } else {
@@ -689,7 +688,6 @@ export default {
     buildParam() {
       let param = {};
       Object.assign(param, this.form);
-      console.log(this.form)
       param.steps = JSON.stringify(this.form.steps);
       param.nodeId = this.form.module;
       this.moduleOptions.forEach(item => {
@@ -778,8 +776,6 @@ export default {
       });
     },
     getTestOptions(val) {
-      console.log(val)
-      this.projectId = getCurrentProjectID()
       this.testOptions = [];
       let url = '';
       if (this.form.type === 'testcase' || this.form.type === 'automation') {
@@ -801,7 +797,6 @@ export default {
     },
     getDemandOptions() {
       if (this.demandOptions.length === 0) {
-        this.projectId = getCurrentProjectID();
         this.result = {loading : true};
         this.$get("demand/list/" + this.projectId).then(response => {
           this.demandOptions = response.data.data;
@@ -995,6 +990,10 @@ export default {
 }
 
 .ms-case-input {
+  width: 100%;
+}
+
+.ms-case {
   width: 100%;
 }
 

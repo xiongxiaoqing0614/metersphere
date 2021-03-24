@@ -131,7 +131,7 @@
           <el-table-column v-if="item.id=='tags'" prop="tags" :label="$t('commons.tag')" :key="index">
             <template v-slot:default="scope">
               <ms-tag v-for="(itemName,index)  in scope.row.tags" :key="index" type="success" effect="plain"
-                      :content="itemName" style="margin-left: 5px"/>
+                      :content="itemName" style="margin-left: 0px; margin-right: 2px"/>
             </template>
           </el-table-column>
 
@@ -210,7 +210,6 @@ import {LIST_CHANGE, TrackEvent} from "@/business/components/common/head/ListEve
 import StatusTableItem from "@/business/components/track/common/tableItems/planview/StatusTableItem";
 import TestCaseDetail from "./TestCaseDetail";
 import ReviewStatus from "@/business/components/track/case/components/ReviewStatus";
-import {downloadFile, getCurrentProjectID, getCurrentUser} from "../../../../../common/js/utils";
 import MsTag from "@/business/components/common/components/MsTag";
 import {
   _filter,
@@ -259,7 +258,7 @@ export default {
     return {
       type: TEST_CASE_LIST,
       headerItems: Track_Test_Case,
-      tableLabel: [],
+      tableLabel: Track_Test_Case,
       result: {},
       deletePath: "/test/case/delete",
       condition: {
@@ -330,7 +329,6 @@ export default {
         maintainer: [],
       },
       currentCaseId: null,
-      projectId: "",
       selectDataCounts: 0,
       selectDataRange: "all"
     }
@@ -352,6 +350,11 @@ export default {
       type: Boolean,
       default: false,
     }
+  },
+  computed: {
+    projectId() {
+      return this.$store.state.projectId
+    },
   },
   created: function () {
     this.$emit('setCondition', this.condition);
@@ -390,7 +393,6 @@ export default {
       this.selectDataRange = dataType === 'case' ? dataRange : 'all';
     },
     initTableData() {
-      this.projectId = getCurrentProjectID();
       this.condition.planId = "";
       this.condition.nodeIds = [];
       initCondition(this.condition);
@@ -409,10 +411,14 @@ export default {
     getData() {
       this.getSelectDataRange();
       this.condition.selectThisWeedData = false;
+      this.condition.selectThisWeedRelevanceData = false;
       this.condition.caseCoverage = null;
       switch (this.selectDataRange) {
         case 'thisWeekCount':
           this.condition.selectThisWeedData = true;
+          break;
+        case 'thisWeekRelevanceCount':
+          this.condition.selectThisWeedRelevanceData = true;
           break;
         case 'uncoverage':
           this.condition.caseCoverage = 'uncoverage';
@@ -443,6 +449,10 @@ export default {
               item.tags = JSON.parse(item.tags);
             }
           })
+          if (this.$refs.table) {
+            this.$refs.table.doLayout()
+          }
+
         });
       }
     },
@@ -530,14 +540,14 @@ export default {
       this.selectDataCounts = getSelectDataCounts(this.condition, this.total, this.selectRows);
     },
     importTestCase() {
-      if (!getCurrentProjectID()) {
+      if (!this.projectId) {
         this.$warning(this.$t('commons.check_project_tip'));
         return;
       }
       this.$refs.testCaseImport.open();
     },
     exportTestCase() {
-      if (!getCurrentProjectID()) {
+      if (!this.projectId) {
         this.$warning(this.$t('commons.check_project_tip'));
         return;
       }

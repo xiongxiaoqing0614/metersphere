@@ -16,6 +16,8 @@ public class ApiDefinitionImportParserFactory {
             return new ForsetiParser();
         }else if (StringUtils.equals(ApiImportPlatform.Har.name(), platform)) {
             return new HarParser();
+        }else if (StringUtils.equals(ApiImportPlatform.ESB.name(), platform)) {
+            return new ESBParser();
         }
         return null;
     }
