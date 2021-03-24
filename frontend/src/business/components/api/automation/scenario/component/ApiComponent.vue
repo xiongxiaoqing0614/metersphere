@@ -9,7 +9,10 @@
     :draggable="true"
     :color="displayColor.color"
     :background-color="displayColor.backgroundColor"
-    :title="displayTitle">
+    :title="displayTitle"
+    :environments="environments"
+    :isApiListImport="isApiListImport"
+    :apiImport="apiImport()">
 
     <template v-slot:behindHeaderLeft>
       <el-tag size="mini" style="margin-left: 20px" v-if="request.referenced==='Deleted'" type="danger">{{$t('api_test.automation.reference_deleted')}}</el-tag>
@@ -82,6 +85,11 @@ export default {
       default: false,
     },
     currentEnvironmentId: String,
+    environments: {
+        type: Array,
+        default: () => []
+      },
+    isApiListImport: Boolean,
     },
     components: {
       CustomizeReqInfo,
@@ -248,7 +256,9 @@ export default {
         this.request.active = true;
         this.loading = true;
         this.runData = [];
-        this.request.useEnvironment = this.currentEnvironmentId;
+        // if(!this.request.useEnvironment){
+        //   this.request.useEnvironment = this.currentEnvironmentId;
+        // }
         this.request.customizeReq = this.isCustomizeReq;
         let debugData = {
           id: this.currentScenario.id, name: this.currentScenario.name, type: "scenario",
@@ -269,6 +279,12 @@ export default {
         this.$nextTick(() => {
           this.loading = false
         })
+      },
+      apiImport() {
+        if (this.request.referenced != undefined && this.request.referenced === 'Deleted' || this.request.referenced == 'REF' || this.request.referenced === 'Copy') {
+          return true
+        }
+        return false;
       },
     }
   }

@@ -1,6 +1,6 @@
 <template>
   <div class="request-form">
-    <component :is="component" :scenario="scenario" :controller="scenario" :timer="scenario" :assertions="scenario" :extract="scenario" :jsr223-processor="scenario" :request="scenario" :currentScenario="currentScenario" :currentEnvironmentId="currentEnvironmentId" :node="node"
+    <component :is="component" :scenario="scenario" :controller="scenario" :timer="scenario" :assertions="scenario" :extract="scenario" :jsr223-processor="scenario" :request="scenario" :currentScenario="currentScenario" :currentEnvironmentId="currentEnvironmentId" :node="node" :environments="environments" :isApiListImport="isApiListImport" 
                :draggable="true" :title="title" :color="titleColor" :background-color="backgroundColor" @suggestClick="suggestClick(node)" :response="response"
                @remove="remove" @copyRow="copyRow" @refReload="refReload"/>
   </div>
@@ -28,6 +28,11 @@
       currentEnvironmentId: String,
       response: {},
       node: {},
+      environments: {
+        type: Array,
+        default: () => []
+      },
+      isApiListImport: Boolean,
     },
     data() {
       return {

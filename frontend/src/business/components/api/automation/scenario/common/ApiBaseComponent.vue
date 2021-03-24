@@ -24,6 +24,26 @@
         <slot name="behindHeaderLeft"></slot>
       </span>
 
+      <span class="environment-mid" v-if="apiImport || isApiListImport || data.useEnvironment">
+        <el-select v-model="data.useEnvironment" size="small" class="ms-htt-width"
+                    :placeholder="$t('api_test.definition.request.run_env')"
+                    clearable>
+          <el-option v-for="(environment, index) in environments" :key="index"
+                      :label="environment.name + (environment.config.httpConfig.socket ? (': ' + environment.config.httpConfig.protocol + '://' + environment.config.httpConfig.socket) : '')"
+                      :value="environment.id"/>
+          <!-- <el-button class="ms-scenario-button" size="mini" type="primary" @click="openEnvironmentConfig">
+            {{ $t('api_test.environment.environment_config') }}
+          </el-button> -->
+          <template v-slot:empty>
+            <div class="empty-environment">
+              <el-button class="ms-scenario-button" size="mini" type="primary" >
+                {{ $t('api_test.environment.environment_config') }}
+              </el-button>
+            </div>
+          </template>
+        </el-select>
+      </span>
+
       <div class="header-right" @click.stop>
         <slot name="message"></slot>
         <el-tooltip :content="$t('test_resource_pool.enable_disable')" placement="top">
@@ -54,6 +74,7 @@
 </template>
 
 <script>
+import {getCurrentProjectID, getUUID} from "@/common/js/utils";
   export default {
     name: "ApiBaseComponent",
     data() {
@@ -93,9 +114,16 @@
           return true
         }
       },
-      title: String
+      title: String,
+      environments: {
+        type: Array,
+        default: () => []
+      },
+      isApiListImport: Boolean,
+      apiImport: Boolean,
     },
     created() {
+      this.projectId = getCurrentProjectID();
       if (!this.data.name) {
         this.isShowInput = true;
       }
@@ -122,6 +150,13 @@
         this.$nextTick(() => {
           this.$refs.nameEdit.focus();
         });
+      },
+      openEnvironmentConfig() {
+        if (!this.projectId) {
+          this.$error(this.$t('api_test.select_project'));
+          return;
+        }
+        this.$refs.environmentConfig.open(this.projectId);
       }
     }
   }
@@ -160,6 +195,10 @@
     min-width: 100%;
     min-inline-size: 0px;
     border: 0px;
+  }
+
+  .environment-mid{
+    margin-left: 30px;
   }
 
 </style>

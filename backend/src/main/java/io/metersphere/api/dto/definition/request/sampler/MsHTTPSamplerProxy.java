@@ -116,7 +116,12 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         sampler.setUseKeepAlive(true);
         sampler.setDoMultipart(this.isDoMultipartPost());
         if (config != null && config.getConfig() != null) {
-            config.setConfig(config.getConfig());
+            if(useEnvironment != null){
+                config.setConfig(getEnvironmentConfig(useEnvironment));
+            }
+            else {
+                config.setConfig(config.getConfig());
+            }
         } else {
             config.setConfig(getEnvironmentConfig(useEnvironment));
         }
