@@ -206,7 +206,9 @@ create table system_header
 (
     type  varchar(150)  null,
     props varchar(1000) null
-);
+
+)ENGINE = InnoDB
+ DEFAULT CHARSET = utf8mb4;
 -- init system_header
 insert into system_header (type, props)
 values ('api_scenario_list',
@@ -239,10 +241,7 @@ insert into system_header (type, props)
 values ('test_case_list',
         '[{"id":"tags","label":"标签"},{"id":"nodePath","label":"所属模块"},{"id":"updateTime","label":"更新时间"},{"id":"num","label":"ID"},{"id":"name","label":"名称"},{"id":"priority","label":"用例等级"},{"id":"reviewStatus","label":"评审状态"}]');
 insert into system_header (type, props)
-values ('test_case_list',
-        '[{"id":"tags","label":"标签"},{"id":"nodePath","label":"所属模块"},{"id":"updateTime","label":"更新时间"},{"id":"num","label":"ID"},{"id":"name","label":"名称"},{"id":"priority","label":"用例等级"},{"id":"reviewStatus","label":"评审状态"}]');
-insert into system_header (type, props)
 values ('test_plan_scenario_case',
         '[{"id":"num","label":"ID"},{"id":"name","label":"名称"},{"id":"level","label":"用例等级"},{"id":"tagNames","label":"标签"},{"id":"userId","label":"创建人"},{"id":"updateTime","label":"最后更新时间"},{"id":"stepTotal","label":"通过"},{"id":"lastResult","label":"失败"},{"id":"passRate","label":"通过率"}]');
 
-
+alter table system_header add primary key(type);
