@@ -11,7 +11,6 @@
     :background-color="displayColor.backgroundColor"
     :title="displayTitle"
     :environments="environments"
-    :isApiListImport="isApiListImport"
     :apiImport="apiImport()">
 
     <template v-slot:behindHeaderLeft>
@@ -89,7 +88,6 @@ export default {
         type: Array,
         default: () => []
       },
-    isApiListImport: Boolean,
     },
     components: {
       CustomizeReqInfo,

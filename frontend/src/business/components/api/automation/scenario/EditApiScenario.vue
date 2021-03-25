@@ -147,7 +147,7 @@
                     <span class="custom-tree-node father" slot-scope="{ node, data}" style="width: 96%">
                       <!-- 步骤组件-->
                        <ms-component-config :type="data.type" :scenario="data" :response="response" :currentScenario="currentScenario"
-                                            :currentEnvironmentId="currentEnvironmentId" :node="node" :environments="environments" :isApiListImport="isApiListImport"
+                                            :currentEnvironmentId="currentEnvironmentId" :node="node" :environments="environments" 
                                             @remove="remove" @copyRow="copyRow" @suggestClick="suggestClick" @refReload="reload"/>
                     </span>
               </el-tree>
@@ -265,7 +265,6 @@ export default {
           principal: [{required: true, message: this.$t('api_test.definition.request.responsible'), trigger: 'change'}],
         },
         environments: [],
-        isApiListImport: false,
         currentEnvironmentId: "",
         maintainerOptions: [],
         value: API_STATUS[0].id,
@@ -462,7 +461,6 @@ export default {
         }
       },
       addComponent(type) {
-        this.isApiListImport = false;
         switch (type) {
           case ELEMENT_TYPE.IfController:
             this.selectedTreeNode != undefined ? this.selectedTreeNode.hashTree.push(new IfController()) :
@@ -618,7 +616,6 @@ export default {
         }
       },
       pushApiOrCase(data, refType, referenced) {
-        this.isApiListImport = true;
         data.forEach(item => {
           this.setApiParameter(item, refType, referenced);
         });
@@ -862,14 +859,16 @@ export default {
               let hashTree = this.currentScenario.scenarioDefinition.hashTree;
               for(var i in hashTree){
                 var hasEnv = false;
-                for(var keyName in hashTree[i]){
-                  if(keyName == "useEnvironment"){
-                    hasEnv = true;
-                    break;
+                if(hashTree[i].type == "HTTPSamplerProxy"){
+                  for(var keyName in hashTree[i]){
+                    if(keyName == "useEnvironment"){
+                      hasEnv = true;
+                      break;
+                    }
                   }
-                }
-                if (!hasEnv){
-                  this.currentScenario.scenarioDefinition.hashTree[i].useEnvironment = this.currentEnvironmentId;
+                  if (!hasEnv){
+                    this.currentScenario.scenarioDefinition.hashTree[i].useEnvironment = this.currentEnvironmentId;
+                  }
                 }
               }
             }

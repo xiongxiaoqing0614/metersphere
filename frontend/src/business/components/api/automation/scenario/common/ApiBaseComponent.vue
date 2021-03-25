@@ -24,7 +24,7 @@
         <slot name="behindHeaderLeft"></slot>
       </span>
 
-      <span class="environment-mid" v-if="apiImport || isApiListImport || data.useEnvironment">
+      <span class="environment-mid" v-if="apiImport">
         <el-select v-model="data.useEnvironment" size="small" class="ms-htt-width"
                     :placeholder="$t('api_test.definition.request.run_env')"
                     clearable>
@@ -119,7 +119,6 @@ import {getCurrentProjectID, getUUID} from "@/common/js/utils";
         type: Array,
         default: () => []
       },
-      isApiListImport: Boolean,
       apiImport: Boolean,
     },
     created() {
