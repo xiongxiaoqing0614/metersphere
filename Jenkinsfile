@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Build/Test') {
             steps {
-                sh "/opt/apache-maven/bin/mvn clean package"
+                sh "export https_proxy=http://proxy.tuhu.work:8001 http_proxy=http://proxy.tuhu.work:8001 all_proxy=socks5://proxy.tuhu.work:8001 && /opt/apache-maven/bin/mvn clean package"
             }
         }
         stage('Docker build & push') {
