@@ -93,21 +93,26 @@ public class MsHTTPSamplerProxy extends MsTestElement {
 
     @Override
     public void toHashTree(HashTree tree, List<MsTestElement> hashTree, ParameterConfig config) {
-        if (!this.isEnable()) {
+        // 非导出操作，且不是启用状态则跳过执行
+        if (!config.isOperating() && !this.isEnable()) {
             return;
         }
         if (this.getReferenced() != null && MsTestElementConstants.REF.name().equals(this.getReferenced())) {
             this.getRefElement(this);
         }
         HTTPSamplerProxy sampler = new HTTPSamplerProxy();
-        sampler.setEnabled(true);
+        sampler.setEnabled(this.isEnable());
         sampler.setName(this.getName());
-        String name = this.getParentName(this.getParent(), config);
-        if (StringUtils.isNotEmpty(name)) {
+        if (StringUtils.isEmpty(this.getName())) {
+            sampler.setName("HTTPSamplerProxy");
+        }
+        String name = this.getParentName(this.getParent());
+        if (StringUtils.isNotEmpty(name) && !config.isOperating()) {
             sampler.setName(this.getName() + "<->" + name);
         }
         sampler.setProperty(TestElement.TEST_CLASS, HTTPSamplerProxy.class.getName());
         sampler.setProperty(TestElement.GUI_CLASS, SaveService.aliasToClass("HttpTestSampleGui"));
+        sampler.setProperty("MS-ID", this.getId());
         sampler.setMethod(this.getMethod());
         sampler.setContentEncoding("UTF-8");
         sampler.setConnectTimeout(this.getConnectTimeout() == null ? "6000" : this.getConnectTimeout());
@@ -115,25 +120,31 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         sampler.setFollowRedirects(this.isFollowRedirects());
         sampler.setUseKeepAlive(true);
         sampler.setDoMultipart(this.isDoMultipartPost());
-        if (config != null && config.getConfig() != null) {
-            if(useEnvironment != null){
-                config.setConfig(getEnvironmentConfig(useEnvironment));
-            }
-            else {
-                config.setConfig(config.getConfig());
-            }
-        } else {
+
+        if (config.getConfig() == null) {
+            // 单独接口执行
+            this.setProjectId(config.getProjectId());
             config.setConfig(getEnvironmentConfig(useEnvironment));
         }
+        else{
+            if (config != null && config.getConfig() != null) {
+                if (useEnvironment != null) {
+                    config.setConfig(getEnvironmentConfig(useEnvironment));
+                } else {
+                    config.setConfig(config.getConfig());
+                }
+            }
+        }
+
 
         // 添加环境中的公共变量
         Arguments arguments = this.addArguments(config);
         if (arguments != null) {
-            tree.add(this.addArguments(config));
+            tree.add(ParameterConfig.valueSupposeMock(arguments));
         }
         try {
-            if (config != null && config.getConfig() != null) {
-                String url = config.getConfig().getHttpConfig().getProtocol() + "://" + config.getConfig().getHttpConfig().getSocket();
+            if (config.isEffective(this.getProjectId())) {
+                String url = config.getConfig().get(this.getProjectId()).getHttpConfig().getProtocol() + "://" + config.getConfig().get(this.getProjectId()).getHttpConfig().getSocket();
                 // 补充如果是完整URL 则用自身URL
                 boolean isUrl = false;
                 if (StringUtils.isNotEmpty(this.getUrl()) && isURL(this.getUrl())) {
@@ -143,12 +154,14 @@ public class MsHTTPSamplerProxy extends MsTestElement {
                 URL urlObject = new URL(url);
                 if (isUrl) {
                     sampler.setDomain(URLDecoder.decode(urlObject.getHost(), "UTF-8"));
-                    sampler.setPort(urlObject.getPort());
+                    if (urlObject.getPort() > 0) {
+                        sampler.setPort(urlObject.getPort());
+                    }
                     sampler.setProtocol(urlObject.getProtocol());
                 } else {
-                    sampler.setDomain(config.getConfig().getHttpConfig().getDomain());
-                    sampler.setPort(config.getConfig().getHttpConfig().getPort());
-                    sampler.setProtocol(config.getConfig().getHttpConfig().getProtocol());
+                    sampler.setDomain(config.getConfig().get(this.getProjectId()).getHttpConfig().getDomain());
+                    sampler.setPort(config.getConfig().get(this.getProjectId()).getHttpConfig().getPort());
+                    sampler.setProtocol(config.getConfig().get(this.getProjectId()).getHttpConfig().getProtocol());
                 }
                 String envPath = StringUtils.equals(urlObject.getPath(), "/") ? "" : urlObject.getPath();
                 if (StringUtils.isNotBlank(this.getPath()) && !isUrl) {
@@ -180,6 +193,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
                 sampler.setPort(urlObject.getPort());
                 sampler.setProtocol(urlObject.getProtocol());
                 String envPath = StringUtils.equals(urlObject.getPath(), "/") ? "" : urlObject.getPath();
+                sampler.setPath(envPath);
                 if (CollectionUtils.isNotEmpty(this.getRest()) && this.isRest()) {
                     envPath = getRestParameters(URLDecoder.decode(envPath, "UTF-8"));
                     sampler.setPath(envPath);
@@ -220,16 +234,16 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         }
 
         // 通用请求Headers
-        if (config != null && config.getConfig() != null && config.getConfig().getHttpConfig() != null
-                && CollectionUtils.isNotEmpty(config.getConfig().getHttpConfig().getHeaders())) {
-            setHeader(httpSamplerTree, config.getConfig().getHttpConfig().getHeaders());
+        if (config.isEffective(this.getProjectId()) && config.getConfig().get(this.getProjectId()).getHttpConfig() != null
+                && CollectionUtils.isNotEmpty(config.getConfig().get(this.getProjectId()).getHttpConfig().getHeaders())) {
+            setHeader(httpSamplerTree, config.getConfig().get(this.getProjectId()).getHttpConfig().getHeaders());
         }
 
         //判断是否要开启DNS
-        if (config != null && config.getConfig() != null && config.getConfig().getCommonConfig() != null
-                && config.getConfig().getCommonConfig().isEnableHost()) {
-            MsDNSCacheManager.addEnvironmentVariables(httpSamplerTree, this.getName(), config.getConfig());
-            MsDNSCacheManager.addEnvironmentDNS(httpSamplerTree, this.getName(), config.getConfig());
+        if (config.isEffective(this.getProjectId()) && config.getConfig().get(this.getProjectId()).getCommonConfig() != null
+                && config.getConfig().get(this.getProjectId()).getCommonConfig().isEnableHost()) {
+            MsDNSCacheManager.addEnvironmentVariables(httpSamplerTree, this.getName(), config.getConfig().get(this.getProjectId()));
+            MsDNSCacheManager.addEnvironmentDNS(httpSamplerTree, this.getName(), config.getConfig().get(this.getProjectId()));
         }
         if (CollectionUtils.isNotEmpty(hashTree)) {
             for (MsTestElement el : hashTree) {
@@ -237,7 +251,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
             }
         }
         if (this.authManager != null) {
-            this.authManager.toHashTree(tree, hashTree, config);
+            this.authManager.setAuth(tree, this.authManager, sampler);
         }
     }
 
@@ -312,13 +326,15 @@ public class MsHTTPSamplerProxy extends MsTestElement {
     public void setHeader(HashTree tree, List<KeyValue> headers) {
         HeaderManager headerManager = new HeaderManager();
         headerManager.setEnabled(true);
-        headerManager.setName(this.getName() + "Headers");
+        headerManager.setName(StringUtils.isNotEmpty(this.getName()) ? this.getName() + "HeaderManager" : "HeaderManager");
         headerManager.setProperty(TestElement.TEST_CLASS, HeaderManager.class.getName());
         headerManager.setProperty(TestElement.GUI_CLASS, SaveService.aliasToClass("HeaderPanel"));
         headers.stream().filter(KeyValue::isValid).filter(KeyValue::isEnable).forEach(keyValue ->
                 headerManager.add(new Header(keyValue.getName(), keyValue.getValue()))
         );
-        tree.add(headerManager);
+        if (headerManager.getHeaders().size() > 0) {
+            tree.add(headerManager);
+        }
     }
 
     public boolean isURL(String str) {

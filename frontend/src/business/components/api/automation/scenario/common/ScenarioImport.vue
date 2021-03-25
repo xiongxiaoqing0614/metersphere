@@ -26,7 +26,7 @@
               <el-option v-for="item in moduleOptions" :key="item.id" :label="item.path" :value="item.id"/>
             </el-select>
           </el-form-item>
-          <el-form-item :label="$t('commons.import_mode')">
+          <el-form-item   v-if="!isHar" :label="$t('commons.import_mode')">
             <el-select size="small" v-model="formData.modeId" class="project-select" clearable>
               <el-option v-for="item in modeOptions" :key="item.id" :label="item.name" :value="item.id"/>
             </el-select>
@@ -69,8 +69,7 @@
 
 <script>
   import MsDialogFooter from "../../../../common/components/MsDialogFooter";
-  import {listenGoBack, removeGoBackListener, getCurrentProjectID} from "@/common/js/utils";
-  import {buildNodePath} from "@/business/components/api/definition/model/NodeTree";
+  import {listenGoBack, removeGoBackListener} from "@/common/js/utils";
 
   export default {
     name: "ScenarioImport",
@@ -99,7 +98,7 @@
         protocol: "",
         platforms: [
           {
-            name: 'Metersphere',
+            name: 'MeterSphere',
             value: 'Metersphere',
             tip: this.$t('api_test.api_import.ms_tip'),
             exportTip: this.$t('api_test.api_import.ms_export_tip'),
@@ -113,11 +112,18 @@
             suffixes: new Set(['json'])
           },
           {
-            name: 'Jmeter',
+            name: 'JMeter',
             value: 'Jmeter',
             tip: this.$t('api_test.api_import.jmeter_tip'),
             exportTip: this.$t('api_test.api_import.jmeter_export_tip'),
             suffixes: new Set(['jmx'])
+          },
+          {
+            name: 'HAR',
+            value: 'Har',
+            tip: this.$t('api_test.api_import.har_tip'),
+            exportTip: this.$t('api_test.api_import.har_export_tip'),
+            suffixes: new Set(['har'])
           }
         ],
         selectedPlatform: {},
@@ -148,6 +154,14 @@
             break;
           }
         }
+      },
+    },
+    computed: {
+      isHar() {
+        return this.selectedPlatformValue === 'Har';
+      },
+      projectId() {
+        return this.$store.state.projectId
       },
     },
     methods: {
@@ -229,7 +243,7 @@
           })
           param.modeId = this.formData.modeId
         }
-        param.projectId = getCurrentProjectID();
+        param.projectId = this.projectId;
         if (!this.swaggerUrlEable) {
           param.swaggerUrl = undefined;
         }

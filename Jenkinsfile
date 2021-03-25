@@ -4,7 +4,7 @@ pipeline {
             label 'metersphere || master'
         }
     }
-    options { quietPeriod(600) }
+    options { quietPeriod(60) }
     environment { 
         IMAGE_NAME = 'metersphere'
         IMAGE_PREFIX = 'swr.cn-east-3.myhuaweicloud.com/docker-work-test/metersphere'
@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Build/Test') {
             steps {
-                sh "/opt/apache-maven/bin/mvn clean package"
+                sh "export https_proxy=http://proxy.tuhu.work:8001 http_proxy=http://proxy.tuhu.work:8001 all_proxy=socks5://proxy.tuhu.work:8001 && /opt/apache-maven/bin/mvn clean package"
             }
         }
         stage('Docker build & push') {

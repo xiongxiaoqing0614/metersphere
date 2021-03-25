@@ -1,12 +1,12 @@
 package io.metersphere.api.dto.definition.parse;
 
-import io.metersphere.api.dto.definition.request.MsScenario;
 import io.metersphere.base.domain.ApiDefinitionWithBLOBs;
-import io.metersphere.base.domain.ApiScenarioWithBLOBs;
 import io.metersphere.base.domain.ApiTestCaseWithBLOBs;
+import io.metersphere.base.domain.EsbApiParamsWithBLOBs;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class ApiDefinitionImport {
@@ -14,10 +14,9 @@ public class ApiDefinitionImport {
     private String protocol;
     private List<ApiDefinitionWithBLOBs> data;
 
-    //导入场景
-    private MsScenario scenarioDefinition;
-    private List<ApiScenarioWithBLOBs> scenarioDefinitionData;
-
     // 新版本带用例导出
     private List<ApiTestCaseWithBLOBs> cases;
+
+    //ESB文件导入的附属数据类
+    private Map<String,EsbApiParamsWithBLOBs> esbApiParamsMap;
 }

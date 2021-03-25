@@ -1,12 +1,13 @@
 <template>
   <div class="card-container">
-    <el-card class="card-content" v-loading="result.loading">
-      <template v-slot:header>
         <ms-table-header :is-tester-permission="true" :condition.sync="condition" @search="initTableData"
                          :show-create="false" :tip="$t('commons.search_by_id_name_tag')">
+
+          <!-- 不显示 “全部用例” 标题,使标题为空 -->
           <template v-slot:title>
-            <node-breadcrumb class="table-title" :nodes="selectParentNodes" @refresh="breadcrumbRefresh"/>
+            <span></span>
           </template>
+
           <template v-slot:button>
             <ms-table-button :is-tester-permission="true" v-if="!showMyTestCase" icon="el-icon-s-custom"
                              :content="$t('test_track.plan_view.my_case')" @click="searchMyTestCase"/>
@@ -15,11 +16,8 @@
             <ms-table-button :is-tester-permission="true" icon="el-icon-connection"
                              :content="$t('test_track.plan_view.relevance_test_case')"
                              @click="$emit('openTestCaseRelevanceDialog')"/>
-            <ms-table-button :is-tester-permission="true" icon="el-icon-document-remove"
-                             :content="$t('test_track.plan_view.cancel_all_relevance')" @click="handleDeleteBatch"/>
           </template>
         </ms-table-header>
-      </template>
 
       <executor-edit ref="executorEdit" :select-ids="new Set(Array.from(this.selectRows).map(row => row.id))"
                      @refresh="initTableData"/>
@@ -27,6 +25,7 @@
                    :select-ids="new Set(Array.from(this.selectRows).map(row => row.id))" @refresh="initTableData"/>
 
       <el-table
+        ref="table"
         class="adjust-table"
         border
         @select-all="handleSelectAll"
@@ -47,7 +46,7 @@
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
           <el-table-column
-            v-if="item.prop == 'num'"
+            v-if="item.id == 'num'"
             prop="num"
             sortable="custom"
             :label="$t('commons.id')"
@@ -56,7 +55,7 @@
             :key="index">
           </el-table-column>
           <el-table-column
-            v-if="item.prop=='name'"
+            v-if="item.id=='name'"
             prop="name"
             :label="$t('commons.name')"
             min-width="120px"
@@ -64,7 +63,7 @@
             show-overflow-tooltip>
           </el-table-column>
           <el-table-column
-            v-if="item.prop=='priority'"
+            v-if="item.id=='priority'"
             prop="priority"
             :filters="priorityFilters"
             column-key="priority"
@@ -77,7 +76,7 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop=='type'"
+            v-if="item.id=='type'"
             prop="type"
             :filters="typeFilters"
             column-key="type"
@@ -90,18 +89,16 @@
             </template>
           </el-table-column>
 
-          <el-table-column v-if="item.prop=='tags'" prop="tags" :label="$t('commons.tag')" min-width="120px"
+          <el-table-column v-if="item.id=='tags'" prop="tags" :label="$t('commons.tag')" min-width="120px"
                            :key="index"
           >
             <template v-slot:default="scope">
-              <div v-for="(tag, index) in scope.row.showTags" :key="tag + '_' + index">
-                <ms-tag type="success" effect="plain" :content="tag"/>
-              </div>
+                <ms-tag v-for="(tag, index) in scope.row.showTags" :key="tag + '_' + index" type="success" effect="plain" :content="tag" style="margin-left: 0px; margin-right: 2px"/>
             </template>
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop=='method'"
+            v-if="item.id=='method'"
             prop="method"
             :filters="methodFilters"
             column-key="method"
@@ -115,7 +112,7 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop=='nodePath'"
+            v-if="item.id=='nodePath'"
             prop="nodePath"
             :label="$t('test_track.case.module')"
             min-width="120px"
@@ -124,7 +121,7 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop=='projectName'"
+            v-if="item.id=='projectName'"
             prop="projectName"
             :label="$t('test_track.plan.plan_project')"
             min-width="120px"
@@ -133,7 +130,7 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop=='issuesContent'"
+            v-if="item.id=='issuesContent'"
             :label="$t('test_track.issue.issue')"
             min-width="80px"
             show-overflow-tooltip
@@ -167,7 +164,7 @@
 
 
           <el-table-column
-            v-if="item.prop == 'executorName'"
+            v-if="item.id == 'executorName'"
             prop="executorName"
             :filters="executorFilters"
             min-width="100px"
@@ -175,9 +172,19 @@
             column-key="executor"
             :label="$t('test_track.plan_view.executor')">
           </el-table-column>
+          <!-- 责任人(创建该用例时所关联的责任人) -->
+          <el-table-column
+            v-if="item.id == 'maintainer'"
+            prop="maintainer"
+            :filters="maintainerFilters"
+            min-width="100px"
+            :key="index"
+            column-key="maintainer"
+            :label="$t('api_test.definition.request.responsible')">
+          </el-table-column>
 
           <el-table-column
-            v-if="item.prop == 'status'"
+            v-if="item.id == 'status'"
             prop="status"
             :filters="statusFilters"
             column-key="status"
@@ -212,7 +219,7 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop == 'updateTime'"
+            v-if="item.id == 'updateTime'"
 
             sortable
             prop="updateTime"
@@ -230,9 +237,7 @@
           min-width="100"
           :label="$t('commons.operating')">
           <template slot="header">
-            <span>{{ $t('commons.operating') }}
-             <i class='el-icon-setting' style="color:#7834c1; margin-left:10px" @click="customHeader"> </i>
-            </span>
+            <header-label-operate @exec="customHeader"/>
           </template>
           <template v-slot:default="scope">
             <ms-table-operator-button :is-tester-permission="true" :tip="$t('commons.edit')" icon="el-icon-edit"
@@ -254,7 +259,7 @@
         :is-read-only="isReadOnly"
         @refreshTable="search"/>
 
-    </el-card>
+<!--    </el-card>-->
     <batch-edit ref="batchEdit" @batchEdit="batchEdit"
                 :type-arr="typeArr" :value-arr="valueArr" :dialog-title="$t('test_track.case.batch_edit_case')"/>
   </div>
@@ -291,14 +296,16 @@ import BatchEdit from "../../../../case/components/BatchEdit";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import {hub} from "@/business/components/track/plan/event-bus";
 import MsTag from "@/business/components/common/components/MsTag";
-import {_filter, _sort} from "@/common/js/tableUtils";
+import {_filter, _sort, getLabel, getSystemLabel} from "@/common/js/tableUtils";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import {Test_Plan_Function_Test_Case} from "@/business/components/common/model/JsonData";
+import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 
 
 export default {
   name: "FunctionalTestCaseList",
   components: {
+    HeaderLabelOperate,
     HeaderCustom,
     FunctionalTestCaseEdit,
     MsTableOperatorButton,
@@ -314,7 +321,7 @@ export default {
     return {
       type: TEST_PLAN_FUNCTION_TEST_CASE,
       headerItems: Test_Plan_Function_Test_Case,
-      tableLabel: Test_Plan_Function_Test_Case,
+      tableLabel: [],
       result: {},
       deletePath: "/test/case/delete",
       condition: {
@@ -354,6 +361,7 @@ export default {
         {text: this.$t('test_track.plan.plan_status_running'), value: 'Underway'},
       ],
       executorFilters: [],
+      maintainerFilters: [],
       showMore: false,
       buttons: [
         {
@@ -416,13 +424,17 @@ export default {
   beforeDestroy() {
     hub.$off("openFailureTestCase");
   },
+  created() {
+    getSystemLabel(this, this.type)
+  },
   methods: {
     customHeader() {
+      getLabel(this, TEST_PLAN_FUNCTION_TEST_CASE);
       this.$refs.headerCustom.open(this.tableLabel)
     },
 
     initTableData() {
-      this.getLabel()
+      this.autoCheckStatus();
       if (this.planId) {
         // param.planId = this.planId;
         this.condition.planId = this.planId;
@@ -464,26 +476,16 @@ export default {
             }
           }
           this.selectRows.clear();
+          if (this.$refs.table) {
+            this.$refs.table.doLayout()
+          }
         });
       }
+      getLabel(this, TEST_PLAN_FUNCTION_TEST_CASE);
     },
-    getLabel() {
-      let param = {}
-      param.userId = getCurrentUser().id;
-      param.type = TEST_PLAN_FUNCTION_TEST_CASE
-      this.result = this.$post('/system/header/info', param, response => {
-        if (response.data != null) {
-          let arry = eval(response.data.props);
-          let obj = {};
-          for (let key in arry) {
-            obj[key] = arry[key];
-          }
-          let newObj = Object.keys(obj).map(val => ({
-            prop: obj[val]
-          }))
-          this.tableLabel = newObj
-        }
-      })
+    autoCheckStatus() {
+      this.$post('/test/plan/autoCheck/' + this.planId, (response) => {
+      });
     },
     showDetail(row, event, column) {
       this.isReadOnly = true;
@@ -684,6 +686,9 @@ export default {
         this.executorFilters = response.data.map(u => {
           return {text: u.name, value: u.id}
         });
+        this.maintainerFilters = response.data.map(u => {
+          return {text: u.id + '(' + u.name + ')', value: u.id};
+        });
       });
     }
   }
@@ -691,6 +696,9 @@ export default {
 </script>
 
 <style scoped>
+.ms-table-header {
+  margin: 20px;
+}
 
 .search {
   margin-left: 10px;
@@ -703,5 +711,9 @@ export default {
 
 .el-tag {
   margin-left: 10px;
+}
+
+.ms-table-header >>> .table-title {
+  height: 0px;
 }
 </style>

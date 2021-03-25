@@ -46,16 +46,20 @@ public class MsJDBCSampler extends MsTestElement {
     private List<KeyValue> variables;
     @JSONField(ordinal = 26)
     private String environmentId;
-    @JSONField(ordinal = 27)
-    private Object requestResult;
+    //    @JSONField(ordinal = 27)
+//    private Object requestResult;
     @JSONField(ordinal = 28)
     private String dataSourceId;
     @JSONField(ordinal = 29)
     private String protocol = "SQL";
 
+    @JSONField(ordinal = 30)
+    private String useEnvironment;
+
     @Override
     public void toHashTree(HashTree tree, List<MsTestElement> hashTree, ParameterConfig config) {
-        if (!this.isEnable()) {
+        // 非导出操作，且不是启用状态则跳过执行
+        if (!config.isOperating() && !this.isEnable()) {
             return;
         }
         if (this.getReferenced() != null && MsTestElementConstants.REF.name().equals(this.getReferenced())) {
@@ -70,7 +74,10 @@ public class MsJDBCSampler extends MsTestElement {
         }
         final HashTree samplerHashTree = tree.add(jdbcSampler(config));
         tree.add(jdbcDataSource());
-        tree.add(arguments(this.getName() + " Variables", this.getVariables()));
+        Arguments arguments = arguments(StringUtils.isNotEmpty(this.getName()) ? this.getName() : "Arguments", this.getVariables());
+        if (arguments != null) {
+            tree.add(arguments);
+        }
         if (CollectionUtils.isNotEmpty(hashTree)) {
             hashTree.forEach(el -> {
                 el.toHashTree(samplerHashTree, el.getHashTree(), config);
@@ -111,13 +118,16 @@ public class MsJDBCSampler extends MsTestElement {
 
     private JDBCSampler jdbcSampler(ParameterConfig config) {
         JDBCSampler sampler = new JDBCSampler();
+        sampler.setEnabled(this.isEnable());
         sampler.setName(this.getName());
-        String name = this.getParentName(this.getParent(), config);
-        if (StringUtils.isNotEmpty(name)) {
+        String name = this.getParentName(this.getParent());
+        if (StringUtils.isNotEmpty(name) && !config.isOperating()) {
             sampler.setName(this.getName() + "<->" + name);
         }
         sampler.setProperty(TestElement.TEST_CLASS, JDBCSampler.class.getName());
         sampler.setProperty(TestElement.GUI_CLASS, SaveService.aliasToClass("TestBeanGUI"));
+        sampler.setProperty("MS-ID", this.getId());
+
         // request.getDataSource() 是ID，需要转换为Name
         sampler.setProperty("dataSource", this.dataSource.getName());
         sampler.setProperty("query", this.getQuery());

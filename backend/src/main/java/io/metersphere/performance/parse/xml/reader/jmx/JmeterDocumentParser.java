@@ -9,6 +9,7 @@ import io.metersphere.config.KafkaProperties;
 import io.metersphere.i18n.Translator;
 import io.metersphere.performance.engine.EngineContext;
 import io.metersphere.performance.parse.xml.reader.DocumentParser;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -89,8 +90,6 @@ public class JmeterDocumentParser implements DocumentParser {
                     if (nodeNameEquals(ele, HASH_TREE_ELEMENT)) {
                         parseHashTree(ele);
                     } else if (nodeNameEquals(ele, TEST_PLAN)) {
-                        processSetupTestPlan(ele);
-                        processTearDownTestPlan(ele);
                         processCheckoutConfigTestElement(ele);
                         processCheckoutDnsCacheManager(ele);
                         processCheckoutArguments(ele);
@@ -133,9 +132,42 @@ public class JmeterDocumentParser implements DocumentParser {
                     } else if (nodeNameEquals(ele, CSV_DATA_SET)) {
                         processCsvDataSet(ele);
                     }
+                    // 处理http上传的附件
+                    if (isHTTPFileArg(ele)) {
+                        processArgumentFiles(ele);
+                    }
                 }
             }
         }
+    }
+
+    private void processArgumentFiles(Element element) {
+        NodeList childNodes = element.getChildNodes();
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node item = childNodes.item(i);
+            if (item instanceof Element && nodeNameEquals(item, STRING_PROP)) {
+                String filenameTag = ((Element) item).getAttribute("name");
+                if (StringUtils.equals(filenameTag, "File.path")) {
+                    // 截取文件名
+                    handleFilename(item);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void handleFilename(Node item) {
+        String separator = "/";
+        String filename = item.getTextContent();
+        if (!StringUtils.contains(filename, "/")) {
+            separator = "\\";
+        }
+        filename = filename.substring(filename.lastIndexOf(separator) + 1);
+        item.setTextContent(filename);
+    }
+
+    private boolean isHTTPFileArg(Element ele) {
+        return "HTTPFileArg".equals(ele.getAttribute("elementType"));
     }
 
     private void processCsvDataSet(Element element) {
@@ -146,13 +178,7 @@ public class JmeterDocumentParser implements DocumentParser {
                 String filenameTag = ((Element) item).getAttribute("name");
                 if (StringUtils.equals(filenameTag, "filename")) {
                     // 截取文件名
-                    String separator = "/";
-                    String filename = item.getTextContent();
-                    if (!StringUtils.contains(filename, "/")) {
-                        separator = "\\";
-                    }
-                    filename = filename.substring(filename.lastIndexOf(separator) + 1);
-                    item.setTextContent(filename);
+                    handleFilename(item);
                     break;
                 }
             }
@@ -484,187 +510,18 @@ public class JmeterDocumentParser implements DocumentParser {
         }
     }
 
-    private void processSetupTestPlan(Element ele) {
-        Document document = ele.getOwnerDocument();
-        Node hashTree = ele.getNextSibling();
-        while (!(hashTree instanceof Element)) {
-            hashTree = hashTree.getNextSibling();
-        }
-
-        KafkaProperties kafkaProperties = CommonBeanFactory.getBean(KafkaProperties.class);
-        String bootstrapServers = kafkaProperties.getBootstrapServers();
-        String[] servers = StringUtils.split(bootstrapServers, ",");
-        for (String s : servers) {
-            String[] ipAndPort = StringUtils.split(s, ":");
-            Element setupElement = document.createElement("SetupThreadGroup");
-            setupElement.setAttribute("guiclass", "SetupThreadGroupGui");
-            setupElement.setAttribute("testclass", "SetupThreadGroup");
-            setupElement.setAttribute("testname", "setUp Thread Group");
-            setupElement.setAttribute("enabled", "true");
-            setupElement.appendChild(createStringProp(document, "ThreadGroup.on_sample_error", "stoptestnow"));
-            Element elementProp = document.createElement("elementProp");
-            elementProp.setAttribute("name", "ThreadGroup.main_controller");
-            elementProp.setAttribute("elementType", "LoopController");
-            elementProp.setAttribute("guiclass", "LoopControlPanel");
-            elementProp.setAttribute("testclass", "LoopController");
-            elementProp.setAttribute("testname", "Loop Controller");
-            elementProp.setAttribute("enabled", "true");
-            elementProp.appendChild(createBoolProp(document, "LoopController.continue_forever", false));
-            elementProp.appendChild(createIntProp(document, "LoopController.loops", 1));
-            setupElement.appendChild(elementProp);
-            setupElement.appendChild(createStringProp(document, "ThreadGroup.num_threads", "1"));
-            setupElement.appendChild(createStringProp(document, "ThreadGroup.ramp_time", "1"));
-            setupElement.appendChild(createStringProp(document, "ThreadGroup.duration", ""));
-            setupElement.appendChild(createStringProp(document, "ThreadGroup.delay", ""));
-            setupElement.appendChild(createBoolProp(document, "ThreadGroup.scheduler", false));
-            setupElement.appendChild(createBoolProp(document, "ThreadGroup.same_user_on_next_iteration", true));
-            hashTree.appendChild(setupElement);
-
-            Element setupHashTree = document.createElement(HASH_TREE_ELEMENT);
-
-            Element tcpSampler = document.createElement("TCPSampler");
-            tcpSampler.setAttribute("guiclass", "TCPSamplerGui");
-            tcpSampler.setAttribute("testclass", "TCPSampler");
-            tcpSampler.setAttribute("testname", "TCP Sampler");
-            tcpSampler.setAttribute("enabled", "true");
-            tcpSampler.appendChild(createStringProp(document, "TCPSampler.classname", "TCPClientImpl"));
-            tcpSampler.appendChild(createStringProp(document, "TCPSampler.server", ipAndPort[0]));
-            tcpSampler.appendChild(createBoolProp(document, "TCPSampler.reUseConnection", true));
-            tcpSampler.appendChild(createStringProp(document, "TCPSampler.port", ipAndPort[1]));
-            tcpSampler.appendChild(createBoolProp(document, "TCPSampler.nodelay", false));
-            tcpSampler.appendChild(createStringProp(document, "TCPSampler.timeout", "100"));
-            tcpSampler.appendChild(createStringProp(document, "TCPSampler.ctimeout", "100"));
-            tcpSampler.appendChild(createStringProp(document, "TCPSampler.request", "1010"));
-            tcpSampler.appendChild(createBoolProp(document, "TCPSampler.closeConnection", false));
-            tcpSampler.appendChild(createStringProp(document, "TCPSampler.EolByte", "0"));
-            tcpSampler.appendChild(createStringProp(document, "ConfigTestElement.username", ""));
-            tcpSampler.appendChild(createStringProp(document, "ConfigTestElement.password", ""));
-
-            Element tcpSamplerHashTree = document.createElement(HASH_TREE_ELEMENT);
-
-            Element responseAssertion = document.createElement("ResponseAssertion");
-            responseAssertion.setAttribute("guiclass", "AssertionGui");
-            responseAssertion.setAttribute("testclass", "ResponseAssertion");
-            responseAssertion.setAttribute("testname", "Response Assertion");
-            responseAssertion.setAttribute("enabled", "true");
-            Element collectionProp = document.createElement("collectionProp");
-            collectionProp.setAttribute("name", "Asserion.test_strings");
-            collectionProp.appendChild(createStringProp(document, "49586", "200"));
-            responseAssertion.appendChild(collectionProp);
-            responseAssertion.appendChild(createStringProp(document, "Assertion.custom_message", ""));
-            responseAssertion.appendChild(createStringProp(document, "Assertion.test_field", "Assertion.response_code"));
-            responseAssertion.appendChild(createBoolProp(document, "Assertion.assume_success", false));
-            responseAssertion.appendChild(createIntProp(document, "Assertion.test_type", 8));
-            tcpSamplerHashTree.appendChild(responseAssertion);
-            // 添加空的hashtree
-            tcpSamplerHashTree.appendChild(document.createElement(HASH_TREE_ELEMENT));
-
-            setupHashTree.appendChild(tcpSampler);
-            setupHashTree.appendChild(tcpSamplerHashTree);
-
-            hashTree.appendChild(setupHashTree);
-        }
-    }
-
-    private void processTearDownTestPlan(Element ele) {
-        /*<boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>*/
-        Document document = ele.getOwnerDocument();
-        Element tearDownSwitch = createBoolProp(document, "TestPlan.tearDown_on_shutdown", true);
-        ele.appendChild(tearDownSwitch);
-
-        Node hashTree = ele.getNextSibling();
-        while (!(hashTree instanceof Element)) {
-            hashTree = hashTree.getNextSibling();
-        }
-        /*
-        <PostThreadGroup guiclass="PostThreadGroupGui" testclass="PostThreadGroup" testname="tearDown Thread Group" enabled="true">
-        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
-          <boolProp name="LoopController.continue_forever">false</boolProp>
-          <stringProp name="LoopController.loops">1</stringProp>
-        </elementProp>
-        <stringProp name="ThreadGroup.num_threads">1</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
-      </PostThreadGroup>
-         */
-        Element tearDownElement = document.createElement("PostThreadGroup");
-        tearDownElement.setAttribute("guiclass", "PostThreadGroupGui");
-        tearDownElement.setAttribute("testclass", "PostThreadGroup");
-        tearDownElement.setAttribute("testname", "tearDown Thread Group");
-        tearDownElement.setAttribute("enabled", "true");
-        tearDownElement.appendChild(createStringProp(document, "ThreadGroup.on_sample_error", "continue"));
-        tearDownElement.appendChild(createStringProp(document, "ThreadGroup.num_threads", "1"));
-        tearDownElement.appendChild(createStringProp(document, "ThreadGroup.ramp_time", "1"));
-        tearDownElement.appendChild(createStringProp(document, "ThreadGroup.duration", ""));
-        tearDownElement.appendChild(createStringProp(document, "ThreadGroup.delay", ""));
-        tearDownElement.appendChild(createBoolProp(document, "ThreadGroup.scheduler", false));
-        tearDownElement.appendChild(createBoolProp(document, "ThreadGroup.same_user_on_next_iteration", true));
-        Element elementProp = document.createElement("elementProp");
-        elementProp.setAttribute("name", "ThreadGroup.main_controller");
-        elementProp.setAttribute("elementType", "LoopController");
-        elementProp.setAttribute("guiclass", "LoopControlPanel");
-        elementProp.setAttribute("testclass", "LoopController");
-        elementProp.setAttribute("testname", "Loop Controller");
-        elementProp.setAttribute("enabled", "true");
-        elementProp.appendChild(createBoolProp(document, "LoopController.continue_forever", false));
-        elementProp.appendChild(createStringProp(document, "LoopController.loops", "1"));
-        tearDownElement.appendChild(elementProp);
-        hashTree.appendChild(tearDownElement);
-
-        Element tearDownHashTree = document.createElement(HASH_TREE_ELEMENT);
-        /*
-        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Once Only Controller" enabled="true"/>
-         */
-        Element onceOnlyController = document.createElement("OnceOnlyController");
-        onceOnlyController.setAttribute("guiclass", "OnceOnlyControllerGui");
-        onceOnlyController.setAttribute("testclass", "OnceOnlyController");
-        onceOnlyController.setAttribute("testname", "Once Only Controller");
-        onceOnlyController.setAttribute("enabled", "true");
-        tearDownHashTree.appendChild(onceOnlyController);
-         /*
-                <hashTree>
-          <DebugSampler guiclass="TestBeanGUI" testclass="DebugSampler" testname="Debug Sampler" enabled="true">
-            <boolProp name="displayJMeterProperties">false</boolProp>
-            <boolProp name="displayJMeterVariables">true</boolProp>
-            <boolProp name="displaySystemProperties">false</boolProp>
-          </DebugSampler>
-          <hashTree/>
-        </hashTree>
-         */
-        Element onceOnlyHashTree = document.createElement(HASH_TREE_ELEMENT);
-        Element debugSampler = document.createElement("DebugSampler");
-        debugSampler.setAttribute("guiclass", "TestBeanGUI");
-        debugSampler.setAttribute("testclass", "DebugSampler");
-        debugSampler.setAttribute("testname", "Debug Sampler");
-        debugSampler.setAttribute("enabled", "true");
-        debugSampler.appendChild(createBoolProp(document, "displayJMeterProperties", false));
-        debugSampler.appendChild(createBoolProp(document, "displayJMeterVariables", true));
-        debugSampler.appendChild(createBoolProp(document, "displaySystemProperties", false));
-        onceOnlyHashTree.appendChild(debugSampler);
-        // 添加空的 hashTree
-        onceOnlyHashTree.appendChild(document.createElement(HASH_TREE_ELEMENT));
-        tearDownHashTree.appendChild(onceOnlyHashTree);
-        hashTree.appendChild(tearDownHashTree);
-        // 添加backend listener
-        processCheckoutBackendListener(tearDownElement);
-    }
-
     private Element createBoolProp(Document document, String name, boolean value) {
-        Element tearDownSwitch = document.createElement("boolProp");
-        tearDownSwitch.setAttribute("name", name);
-        tearDownSwitch.appendChild(document.createTextNode(String.valueOf(value)));
-        return tearDownSwitch;
+        Element boolProp = document.createElement("boolProp");
+        boolProp.setAttribute("name", name);
+        boolProp.appendChild(document.createTextNode(String.valueOf(value)));
+        return boolProp;
     }
 
     private Element createIntProp(Document document, String name, int value) {
-        Element tearDownSwitch = document.createElement("intProp");
-        tearDownSwitch.setAttribute("name", name);
-        tearDownSwitch.appendChild(document.createTextNode(String.valueOf(value)));
-        return tearDownSwitch;
+        Element intProp = document.createElement("intProp");
+        intProp.setAttribute("name", name);
+        intProp.appendChild(document.createTextNode(String.valueOf(value)));
+        return intProp;
     }
 
     private void processBackendListener(Element backendListener) {
@@ -764,6 +621,118 @@ public class JmeterDocumentParser implements DocumentParser {
         if (!hashTree.hasChildNodes()) {
             MSException.throwException(Translator.get("jmx_content_valid"));
         }
+        Object tgTypes = context.getProperty("tgType");
+        String tgType = "ThreadGroup";
+        if (tgTypes instanceof List) {
+            Object o = ((List<?>) tgTypes).get(0);
+            ((List<?>) tgTypes).remove(0);
+            tgType = o.toString();
+        }
+        if (StringUtils.equals(tgType, THREAD_GROUP)) {
+            processBaseThreadGroup(threadGroup);
+        }
+        if (StringUtils.equals(tgType, CONCURRENCY_THREAD_GROUP)) {
+            processConcurrencyThreadGroup(threadGroup);
+        }
+
+    }
+
+    private void processBaseThreadGroup(Element threadGroup) {
+        /*
+        <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="登录" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+         */
+        removeChildren(threadGroup);
+        Document document = threadGroup.getOwnerDocument();
+        Object targetLevels = context.getProperty("TargetLevel");
+        String threads = "10";
+        if (targetLevels instanceof List) {
+            Object o = ((List<?>) targetLevels).get(0);
+            ((List<?>) targetLevels).remove(0);
+            threads = o.toString();
+        }
+        Object rampUps = context.getProperty("RampUp");
+        String rampUp = "1";
+        if (rampUps instanceof List) {
+            Object o = ((List<?>) rampUps).get(0);
+            ((List<?>) rampUps).remove(0);
+            rampUp = o.toString();
+        }
+        Object durations = context.getProperty("duration");
+        String duration = "2";
+        if (durations instanceof List) {
+            Object o = ((List<?>) durations).get(0);
+            ((List<?>) durations).remove(0);
+            duration = o.toString();
+        }
+        Object units = context.getProperty("unit");
+        String unit = "S";
+        if (units instanceof List) {
+            Object o = ((List<?>) units).get(0);
+            ((List<?>) units).remove(0);
+            unit = o.toString();
+        }
+        Object deleteds = context.getProperty("deleted");
+        String deleted = "false";
+        if (deleteds instanceof List) {
+            Object o = ((List<?>) deleteds).get(0);
+            ((List<?>) deleteds).remove(0);
+            deleted = o.toString();
+        }
+        Object enableds = context.getProperty("enabled");
+        String enabled = "true";
+        if (enableds instanceof List) {
+            Object o = ((List<?>) enableds).get(0);
+            ((List<?>) enableds).remove(0);
+            enabled = o.toString();
+        }
+
+        switch (unit) {
+            case "M":
+                duration = String.valueOf(Long.parseLong(duration) * 60);
+                break;
+            case "H":
+                duration = String.valueOf(Long.parseLong(duration) * 60 * 60);
+                break;
+            default:
+                break;
+        }
+
+        threadGroup.setAttribute("enabled", enabled);
+        if (BooleanUtils.toBoolean(deleted)) {
+            threadGroup.setAttribute("enabled", "false");
+        }
+        Element elementProp = document.createElement("elementProp");
+        elementProp.setAttribute("name", "ThreadGroup.main_controller");
+        elementProp.setAttribute("elementType", "LoopController");
+        elementProp.setAttribute("guiclass", "LoopControlPanel");
+        elementProp.setAttribute("testclass", "LoopController");
+        elementProp.setAttribute("testname", "Loop Controller");
+        elementProp.setAttribute("enabled", "true");
+        elementProp.appendChild(createBoolProp(document, "LoopController.continue_forever", false));
+        elementProp.appendChild(createStringProp(document, "LoopController.loops", "-1"));
+        threadGroup.appendChild(elementProp);
+        threadGroup.appendChild(createStringProp(document, "ThreadGroup.on_sample_error", "continue"));
+        threadGroup.appendChild(createStringProp(document, "ThreadGroup.num_threads", threads));
+        threadGroup.appendChild(createStringProp(document, "ThreadGroup.ramp_time", rampUp));
+        threadGroup.appendChild(createStringProp(document, "ThreadGroup.duration", duration));
+        threadGroup.appendChild(createStringProp(document, "ThreadGroup.delay", "0"));
+        threadGroup.appendChild(createBoolProp(document, "ThreadGroup.scheduler", true));
+        threadGroup.appendChild(createBoolProp(document, "ThreadGroup.same_user_on_next_iteration", true));
+    }
+
+    private void processConcurrencyThreadGroup(Element threadGroup) {
         // 重命名 tagName
         Document document = threadGroup.getOwnerDocument();
         document.renameNode(threadGroup, threadGroup.getNamespaceURI(), CONCURRENCY_THREAD_GROUP);
@@ -809,6 +778,43 @@ public class JmeterDocumentParser implements DocumentParser {
             Object o = ((List<?>) holds).get(0);
             ((List<?>) holds).remove(0);
             hold = o.toString();
+        }
+        Object units = context.getProperty("unit");
+        String unit = "S";
+        if (units instanceof List) {
+            Object o = ((List<?>) units).get(0);
+            ((List<?>) units).remove(0);
+            unit = o.toString();
+        }
+        Object deleteds = context.getProperty("deleted");
+        String deleted = "false";
+        if (deleteds instanceof List) {
+            Object o = ((List<?>) deleteds).get(0);
+            ((List<?>) deleteds).remove(0);
+            deleted = o.toString();
+        }
+        Object enableds = context.getProperty("enabled");
+        String enabled = "true";
+        if (enableds instanceof List) {
+            Object o = ((List<?>) enableds).get(0);
+            ((List<?>) enableds).remove(0);
+            enabled = o.toString();
+        }
+
+        switch (unit) {
+            case "M":
+                hold = String.valueOf(Long.parseLong(hold) * 60);
+                break;
+            case "H":
+                hold = String.valueOf(Long.parseLong(hold) * 60 * 60);
+                break;
+            default:
+                break;
+        }
+
+        threadGroup.setAttribute("enabled", enabled);
+        if (BooleanUtils.toBoolean(deleted)) {
+            threadGroup.setAttribute("enabled", "false");
         }
         Element elementProp = document.createElement("elementProp");
         elementProp.setAttribute("name", "ThreadGroup.main_controller");
@@ -958,10 +964,10 @@ public class JmeterDocumentParser implements DocumentParser {
     }
 
     private Element createStringProp(Document document, String name, String value) {
-        Element unit = document.createElement(STRING_PROP);
-        unit.setAttribute("name", name);
-        unit.appendChild(document.createTextNode(value));
-        return unit;
+        Element element = document.createElement(STRING_PROP);
+        element.setAttribute("name", name);
+        element.appendChild(document.createTextNode(value));
+        return element;
     }
 
     private void processThreadGroupName(Element threadGroup) {

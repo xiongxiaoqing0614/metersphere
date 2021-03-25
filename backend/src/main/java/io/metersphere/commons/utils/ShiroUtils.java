@@ -13,9 +13,12 @@ public class ShiroUtils {
     public static void loadBaseFilterChain(Map<String, String> filterChainDefinitionMap){
 
         filterChainDefinitionMap.put("/resource/**", "anon");
+        filterChainDefinitionMap.put("/*.worker.js", "anon");
+        filterChainDefinitionMap.put("/login", "anon");
         filterChainDefinitionMap.put("/signin", "anon");
         filterChainDefinitionMap.put("/ldap/signin", "anon");
         filterChainDefinitionMap.put("/ldap/open", "anon");
+        filterChainDefinitionMap.put("/signout", "anon");
         filterChainDefinitionMap.put("/isLogin", "anon");
         filterChainDefinitionMap.put("/css/**", "anon");
         filterChainDefinitionMap.put("/js/**", "anon");
@@ -25,6 +28,7 @@ public class ShiroUtils {
         filterChainDefinitionMap.put("/favicon.ico", "anon");
         filterChainDefinitionMap.put("/display/file/**", "anon");
         filterChainDefinitionMap.put("/jmeter/download/**", "anon");
+        filterChainDefinitionMap.put("/jmeter/ping", "anon");
         filterChainDefinitionMap.put("/authsource/list/allenable", "anon");
         filterChainDefinitionMap.put("/sso/signin", "anon");
         filterChainDefinitionMap.put("/sso/callback", "anon");
@@ -37,6 +41,19 @@ public class ShiroUtils {
 
         filterChainDefinitionMap.put("/403", "anon");
         filterChainDefinitionMap.put("/anonymous/**", "anon");
+
+        //api-对外文档页面提供的查询接口
+        filterChainDefinitionMap.put("/api/document/**", "anon");
+        filterChainDefinitionMap.put("/document/**", "anon");
+        filterChainDefinitionMap.put("/system/theme", "anon");
+
+    }
+
+    public static void ignoreCsrfFilter(Map<String, String> filterChainDefinitionMap) {
+        filterChainDefinitionMap.put("/", "apikey, authc"); // 跳转到 / 不用校验 csrf
+        filterChainDefinitionMap.put("/language", "apikey, authc");// 跳转到 /language 不用校验 csrf
+        filterChainDefinitionMap.put("/document", "apikey, authc"); // 跳转到 /document 不用校验 csrf
+        filterChainDefinitionMap.put("/test/case/file/preview/**", "apikey, authc"); // 预览测试用例附件 不用校验 csrf
     }
 
     public static Cookie getSessionIdCookie(){

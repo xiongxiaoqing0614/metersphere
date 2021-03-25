@@ -21,6 +21,7 @@ import io.metersphere.commons.constants.ScheduleType;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.utils.*;
 import io.metersphere.controller.request.QueryScheduleRequest;
+import io.metersphere.controller.request.ScheduleRequest;
 import io.metersphere.dto.ScheduleDao;
 import io.metersphere.i18n.Translator;
 import io.metersphere.job.sechedule.ApiTestJob;
@@ -35,7 +36,6 @@ import org.aspectj.util.FileUtil;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
-import org.dom4j.QName;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -98,7 +98,7 @@ public class APITestService {
         checkQuota();
         request.setBodyUploadIds(null);
         ApiTest test = createTest(request);
-        saveFile(test.getId(), file);
+        saveFile(test, file);
         return test;
     }
 
@@ -112,7 +112,7 @@ public class APITestService {
         request.setBodyUploadIds(null);
         ApiTest test = updateTest(request);
         createBodyFiles(test, bodyUploadIds, bodyFiles);
-        saveFile(test.getId(), file);
+        saveFile(test, file);
     }
 
     private void createBodyFiles(ApiTest test, List<String> bodyUploadIds, List<MultipartFile> bodyFiles) {
@@ -292,10 +292,10 @@ public class APITestService {
         return test;
     }
 
-    private void saveFile(String testId, MultipartFile file) {
-        final FileMetadata fileMetadata = fileService.saveFile(file);
+    private void saveFile(ApiTest apiTest, MultipartFile file) {
+        final FileMetadata fileMetadata = fileService.saveFile(file, apiTest.getProjectId());
         ApiTestFile apiTestFile = new ApiTestFile();
-        apiTestFile.setTestId(testId);
+        apiTestFile.setTestId(apiTest.getId());
         apiTestFile.setFileId(fileMetadata.getId());
         apiTestFileMapper.insert(apiTestFile);
     }
@@ -329,16 +329,18 @@ public class APITestService {
         addOrUpdateApiTestCronJob(request);
     }
 
-    public void createSchedule(Schedule request) {
+    public void createSchedule(ScheduleRequest request) {
         scheduleService.addSchedule(buildApiTestSchedule(request));
         addOrUpdateApiTestCronJob(request);
     }
 
-    private Schedule buildApiTestSchedule(Schedule request) {
+    private Schedule buildApiTestSchedule(ScheduleRequest request) {
         Schedule schedule = scheduleService.buildApiTestSchedule(request);
         schedule.setJob(ApiTestJob.class.getName());
         schedule.setGroup(ScheduleGroup.API_TEST.name());
         schedule.setType(ScheduleType.CRON.name());
+        schedule.setProjectId(request.getProjectId());
+        schedule.setName(request.getName());
         return schedule;
     }
 
@@ -463,114 +465,201 @@ public class APITestService {
     }
 
     /**
+     * 更新jmx数据，处理jmx里的各种参数
+     * <p>
+     * 注： 与1.7分支合并时，如果该方法产生冲突，请以master为准
+     *
      * @param jmxString      原JMX文件
-     * @param testNameParam       某些节点要替换的testName
+     * @param testNameParam  某些节点要替换的testName
      * @param isFromScenario 是否来源于场景 （来源于场景的话，testName要进行处理）
      * @return
+     * @author song tianyang
      */
-    public String updateJmxString(String jmxString, String testNameParam, boolean isFromScenario) {
+    public JmxInfoDTO updateJmxString(String jmxString, String testNameParam, boolean isFromScenario) {
+        //注： 与1.7分支合并时，如果该方法产生冲突，请以master为准
+        String attribute_testName = "testname";
+        String[] requestElementNameArr = new String[]{"HTTPSamplerProxy", "TCPSampler", "JDBCSampler", "DubboSample"};
+
+        List<String> attachmentFilePathList = new ArrayList<>();
+
         try {
             //将ThreadGroup的testname改为接口名称
             Document doc = DocumentHelper.parseText(jmxString);// 获取可续保保单列表报文模板
             Element root = doc.getRootElement();
             Element rootHashTreeElement = root.element("hashTree");
-            Element innerHashTreeElement = rootHashTreeElement.elements("hashTree").get(0);
-            List<Element> thirdHashTreeElementList = innerHashTreeElement.elements("hashTree");
 
-            Element theadGroupElement = innerHashTreeElement.elements("ThreadGroup").get(0);
-            theadGroupElement.attribute("testname").setText(testNameParam);
-
-            for (Element element : thirdHashTreeElementList) {
-                String testName = testNameParam;
-                List<Element> sampleProxyElementList = element.elements("HTTPSamplerProxy");
-                for (Element itemElement : sampleProxyElementList) {
-                    if(isFromScenario){
-                        testName = itemElement.attributeValue("testname");
-                        String[] testNameArr = testName.split("<->");
-                        if (testNameArr.length > 0) {
-                            testName = testNameArr[0];
-                        }
-                    }
-                    itemElement.attribute("testname").setText(testName);
-                }
-                List<Element> tcpSamplerList = element.elements("TCPSampler");
-                for (Element itemElement : tcpSamplerList) {
-                    if(isFromScenario){
-                        testName = itemElement.attributeValue("testname");
-                        String[] testNameArr = testName.split("<->");
-                        if (testNameArr.length > 0) {
-                            testName = testNameArr[0];
-                        }
-                    }
-                    itemElement.attribute("testname").setText(testName);
-                }
-                List<Element> jdbcSamplerList = element.elements("JDBCSampler");
-                for (Element itemElement : jdbcSamplerList) {
-                    if(isFromScenario){
-                        testName = itemElement.attributeValue("testname");
-                        String[] testNameArr = testName.split("<->");
-                        if (testNameArr.length > 0) {
-                            testName = testNameArr[0];
-                        }
-                    }
-                    itemElement.attribute("testname").setText(testName);
-                }
-                List<Element> dubboSampleList = element.elements("DubboSample");
-                for (Element itemElement : dubboSampleList) {
-                    if(isFromScenario){
-                        testName = itemElement.attributeValue("testname");
-                        String[] testNameArr = testName.split("<->");
-                        if (testNameArr.length > 0) {
-                            testName = testNameArr[0];
-                        }
-                    }
-                    itemElement.attribute("testname").setText(testName);
-
-                    //dubbo节点要更新 标签、guiClass 和 testClass
-                    itemElement.setName("io.github.ningyu.jmeter.plugin.dubbo.sample.DubboSample");
-                    itemElement.attribute("testclass").setText("io.github.ningyu.jmeter.plugin.dubbo.sample.DubboSample");
-                    itemElement.attribute("guiclass").setText("io.github.ningyu.jmeter.plugin.dubbo.gui.DubboSampleGui");
-
+            List<Element> innerHashTreeElementList = rootHashTreeElement.elements("hashTree");
+            for (Element innerHashTreeElement : innerHashTreeElementList) {
+                //转换DubboDefaultConfigGui
+                List<Element> configTestElementList = innerHashTreeElement.elements("ConfigTestElement");
+                for (Element configTestElement : configTestElementList) {
+                    this.updateDubboDefaultConfigGuiElement(configTestElement);
                 }
 
-                //检查有没有自定义参数
-                List<Element> scriptHashTreeElementList = element.elements("hashTree");
-                for (Element scriptHashTreeElement : scriptHashTreeElementList) {
-                    boolean isRemove = false;
-                    List<Element> removeElement = new ArrayList<>();
-                    List<Element> scriptElementItemList = scriptHashTreeElement.elements();
-                    for (Element hashTreeItemElement : scriptElementItemList) {
-                        String className = hashTreeItemElement.attributeValue("testclass");
-                        String qname = hashTreeItemElement.getQName().getName();
-
-                        if (isRemove) {
-                            if (org.apache.commons.lang3.StringUtils.equals("hashTree", qname)) {
-                                removeElement.add(hashTreeItemElement);
-                            }
-                        }
-                        isRemove = false;
-                        if (org.apache.commons.lang3.StringUtils.equals(className, "JSR223PostProcessor")) {
-                            List<Element> scriptElements = hashTreeItemElement.elements("stringProp");
-                            for (Element scriptElement : scriptElements) {
-                                String scriptName = scriptElement.attributeValue("name");
-                                String contentValue = scriptElement.getStringValue();
-
-                                if ("script".equals(scriptName) && contentValue.startsWith("io.metersphere.api.jmeter.JMeterVars.addVars")) {
-                                    isRemove = true;
-                                    removeElement.add(hashTreeItemElement);
-                                }
-                            }
-                        }
+                List<Element> theadGroupElementList = innerHashTreeElement.elements("ThreadGroup");
+                for (Element theadGroupElement : theadGroupElementList) {
+                    if (StringUtils.isNotEmpty(testNameParam)) {
+                        theadGroupElement.attribute(attribute_testName).setText(testNameParam);
                     }
-                    for (Element itemElement : removeElement) {
-                        scriptHashTreeElement.remove(itemElement);
+                }
+                List<Element> thirdHashTreeElementList = innerHashTreeElement.elements("hashTree");
+                for (Element element : thirdHashTreeElementList) {
+                    String testName = testNameParam;
+
+                    //更新请求类节点的部份属性
+                    this.updateRequestElementInfo(element, testNameParam, requestElementNameArr, isFromScenario);
+                    //检查有无jmeter不是别的自定义参数
+                    this.checkPrivateFunctionNode(element);
+
+                    //转换DubboDefaultConfigGui
+                    List<Element> hashTreeConfigTestElementList = element.elements("ConfigTestElement");
+                    for (Element configTestElement : hashTreeConfigTestElementList) {
+                        this.updateDubboDefaultConfigGuiElement(configTestElement);
                     }
+
+                    //HTTPSamplerProxy， 进行附件转化： 1.elementProp里去掉路径； 2。elementProp->filePath获取路径并读出来
+                    attachmentFilePathList.addAll(this.parseAttachmentFileInfo(element));
                 }
             }
             jmxString = root.asXML();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return jmxString;
+
+        if (!jmxString.startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")) {
+            jmxString = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + jmxString;
+        }
+
+        //处理附件
+        Map<String, String> attachmentFiles = new HashMap<>();
+
+        for (String filePath: attachmentFilePathList) {
+            File file  = new File(filePath);
+            if(file.exists() && file.isFile()){
+                try{
+                    FileMetadata fileMetadata = fileService.saveFile(file,FileUtil.readAsByteArray(file));
+                    attachmentFiles.put(fileMetadata.getId(),fileMetadata.getName());
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        JmxInfoDTO returnDTO = new JmxInfoDTO("Demo.jmx",jmxString,attachmentFiles);
+
+        return returnDTO;
+    }
+
+    private List<String> parseAttachmentFileInfo(Element parentHashTreeElement) {
+        List<String> attachmentFilePathList = new ArrayList<>();
+        List<Element> parentElementList = parentHashTreeElement.elements();
+        for (Element parentElement: parentElementList) {
+            String qname = parentElement.getQName().getName();
+            if (StringUtils.equals(qname,"HTTPSamplerProxy")){
+                List<Element> elementPropElementList = parentElement.elements("elementProp");
+                for (Element element : elementPropElementList) {
+                    if(StringUtils.equals(element.attributeValue("name"),"HTTPsampler.Files")){
+                        String name = element.getName();
+                        List<Element> collectionPropList = element.elements("collectionProp");
+                        for (Element prop: collectionPropList) {
+                            List<Element> elementProps = prop.elements();
+                            for (Element elementProp: elementProps) {
+                                if(StringUtils.equals(elementProp.attributeValue("elementType"),"HTTPFileArg")){
+                                    try{
+                                        String filePath = elementProp.attributeValue("name");
+                                        File file = new File(filePath);
+                                        if(file.exists() && file.isFile()){
+                                            attachmentFilePathList.add(filePath);
+                                            String fileName = file.getName();
+                                            elementProp.attribute("name").setText(fileName);
+                                        }
+                                    }catch (Exception e){
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return attachmentFilePathList;
+    }
+
+    private void updateDubboDefaultConfigGuiElement(Element configTestElement) {
+        String dubboDefaultConfigGuiClassName = "io.github.ningyu.jmeter.plugin.dubbo.gui.DubboDefaultConfigGui";
+        if (configTestElement == null) {
+            return;
+        }
+        String guiClassValue = configTestElement.attributeValue("guiclass");
+        if (StringUtils.equals(guiClassValue, "DubboDefaultConfigGui")) {
+            configTestElement.attribute("guiclass").setText(dubboDefaultConfigGuiClassName);
+        }
+    }
+
+    private void checkPrivateFunctionNode(Element element) {
+        List<Element> scriptHashTreeElementList = element.elements("hashTree");
+        for (Element scriptHashTreeElement : scriptHashTreeElementList) {
+            boolean isRemove = false;
+            List<Element> removeElement = new ArrayList<>();
+            List<Element> scriptElementItemList = scriptHashTreeElement.elements();
+            for (Element hashTreeItemElement : scriptElementItemList) {
+                String className = hashTreeItemElement.attributeValue("testclass");
+                String qname = hashTreeItemElement.getQName().getName();
+
+                if (isRemove) {
+                    if (org.apache.commons.lang3.StringUtils.equals("hashTree", qname)) {
+                        removeElement.add(hashTreeItemElement);
+                    }
+                }
+
+                isRemove = false;
+                if (org.apache.commons.lang3.StringUtils.equals(className, "JSR223PostProcessor")) {
+                    List<Element> scriptElements = hashTreeItemElement.elements("stringProp");
+                    for (Element scriptElement : scriptElements) {
+                        String scriptName = scriptElement.attributeValue("name");
+                        String contentValue = scriptElement.getStringValue();
+
+                        if ("script".equals(scriptName) && contentValue.startsWith("io.metersphere.api.jmeter.JMeterVars.addVars")) {
+                            isRemove = true;
+                            removeElement.add(hashTreeItemElement);
+                        }
+                    }
+                }
+            }
+            for (Element itemElement : removeElement) {
+                scriptHashTreeElement.remove(itemElement);
+            }
+        }
+    }
+
+    private void updateRequestElementInfo(Element element, String testNameParam, String[] requestElementNameArr, boolean isFromScenario) {
+        String attribute_testName = "testname";
+        String scenarioCaseNameSplit = "<->";
+        String testName = testNameParam;
+
+        for (String requestElementName : requestElementNameArr) {
+            List<Element> sampleProxyElementList = element.elements(requestElementName);
+            for (Element itemElement : sampleProxyElementList) {
+                if (isFromScenario) {
+                    testName = itemElement.attributeValue(attribute_testName);
+                    if (StringUtils.isNotBlank(testName)) {
+                        String[] testNameArr = testName.split(scenarioCaseNameSplit);
+                        if (testNameArr.length > 0) {
+                            testName = testNameArr[0];
+                        }
+                    }
+                }
+                itemElement.attribute(attribute_testName).setText(testName);
+
+                //double的话有额外处理方式
+                if (StringUtils.equals(requestElementName, "DubboSample")) {
+                    //dubbo节点要更新 标签、guiClass 和 testClass
+                    itemElement.setName("io.github.ningyu.jmeter.plugin.dubbo.sample.DubboSample");
+                    itemElement.attribute("testclass").setText("io.github.ningyu.jmeter.plugin.dubbo.sample.DubboSample");
+                    itemElement.attribute("guiclass").setText("io.github.ningyu.jmeter.plugin.dubbo.gui.DubboSampleGui");
+                }
+
+            }
+        }
     }
 }

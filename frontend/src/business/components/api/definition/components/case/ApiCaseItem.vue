@@ -1,6 +1,6 @@
 <template>
   <el-card style="margin-top: 5px" @click.native="selectTestCase(apiCase,$event)">
-    <div @click="active(apiCase)">
+    <div @click="active(apiCase)" v-if="type!=='detail'">
       <el-row>
         <el-col :span="5">
           <el-row>
@@ -35,13 +35,13 @@
           </span>
 
           <div v-if="apiCase.id" style="color: #999999;font-size: 12px">
-          <span>
-            {{ apiCase.createTime | timestampFormatDate }}
-            {{ apiCase.createUser }} {{ $t('api_test.definition.request.create_info') }}
-          </span>
             <span>
-            {{ apiCase.updateTime | timestampFormatDate }}
-            {{ apiCase.updateUser }} {{ $t('api_test.definition.request.update_info') }}
+              {{ apiCase.createTime | timestampFormatDate }}
+              {{ apiCase.createUser }} {{ $t('api_test.definition.request.create_info') }}
+            </span>
+            <span style="margin-left: 10px">
+              {{ apiCase.updateTime | timestampFormatDate }}
+              {{ apiCase.updateUser }} {{ $t('api_test.definition.request.update_info') }}
           </span>
           </div>
         </el-col>
@@ -79,32 +79,37 @@
           </div>
         </el-col>
       </el-row>
+      <el-divider></el-divider>
     </div>
 
     <!-- 请求参数-->
     <el-collapse-transition>
-      <div v-if="apiCase.active">
-        <el-divider></el-divider>
-
+      <div v-if="apiCase.active||type==='detail'">
         <p class="tip">{{ $t('api_test.definition.request.req_param') }} </p>
-
         <ms-api-request-form :isShowEnable="true" :showScript="true" :is-read-only="isReadOnly" :headers="apiCase.request.headers " :request="apiCase.request" v-if="api.protocol==='HTTP'"/>
-        <ms-tcp-basis-parameters :showScript="true" :request="apiCase.request" v-if="api.protocol==='TCP'"/>
+        <ms-tcp-basis-parameters :showScript="true" :request="apiCase.request" v-if="api.method==='TCP' && apiCase.request.esbDataStruct == null"/>
+        <esb-definition v-xpack :request="apiCase.request" :showScript="true" v-if="showXpackCompnent&&api.method==='ESB'" ref="esbDefinition"/>
         <ms-sql-basis-parameters :showScript="true" :request="apiCase.request" v-if="api.protocol==='SQL'"/>
         <ms-dubbo-basis-parameters :showScript="true" :request="apiCase.request" v-if="api.protocol==='DUBBO'"/>
 
         <!-- HTTP 请求返回数据 -->
         <p class="tip">{{$t('api_test.definition.request.res_param')}}</p>
-        <api-response-component :currentProtocol="apiCase.request.protocol" :api-item="apiCase"/>
+        <div v-if="showXpackCompnent&&api.method==='ESB'">
+          <esb-definition-response :currentProtocol="apiCase.request.protocol" :request="apiCase.request" :is-api-component="false" :show-options-button="false" :show-header="true" :api-item="apiCase"/>
+        </div>
+        <div v-else>
+          <api-response-component :currentProtocol="apiCase.request.protocol" :api-item="apiCase"/>
+        </div>
 
         <ms-jmx-step :request="apiCase.request" :response="apiCase.responseData"/>
         <!-- 保存操作 -->
-        <el-button type="primary" size="small" style="margin: 20px; float: right" @click="saveTestCase(apiCase)" v-tester>
+        <el-button type="primary" size="small" style="margin: 20px; float: right" @click="saveTestCase(apiCase)" v-tester v-if="type!=='detail'">
           {{ $t('commons.save') }}
         </el-button>
       </div>
     </el-collapse-transition>
   </el-card>
+
 </template>
 
 <script>
@@ -125,6 +130,10 @@
   import ApiResponseComponent from "../../../automation/scenario/component/ApiResponseComponent";
   import ShowMoreBtn from "../../../../track/case/components/ShowMoreBtn";
 
+  const requireComponent = require.context('@/business/components/xpack/', true, /\.vue$/);
+  const esbDefinition = (requireComponent != null && requireComponent.keys().length) > 0 ? requireComponent("./apidefinition/EsbDefinition.vue") : {};
+  const esbDefinitionResponse = (requireComponent != null && requireComponent.keys().length) > 0 ? requireComponent("./apidefinition/EsbDefinitionResponse.vue") : {};
+
   export default {
     name: "ApiCaseItem",
     components: {
@@ -141,12 +150,15 @@
       MsApiExtendBtns,
       MsRequestResultTail,
       MsJmxStep,
-      ShowMoreBtn
+      ShowMoreBtn,
+      "esbDefinition": esbDefinition.default,
+      "esbDefinitionResponse": esbDefinitionResponse.default
     },
     data() {
       return {
         result: {},
         grades: [],
+        showXpackCompnent: false,
         isReadOnly: false,
         selectedEvent: Object,
         priorities: PRIORITY,
@@ -170,7 +182,7 @@
           return {}
         },
       },
-      environment: {},
+      environment: String,
       index: {
         type: Number,
         default() {
@@ -183,7 +195,13 @@
           return {}
         }
       },
+      type: String,
       isCaseEdit: Boolean,
+    },
+    created() {
+      if (requireComponent != null && JSON.stringify(esbDefinition) != '{}' && JSON.stringify(esbDefinitionResponse) != '{}') {
+        this.showXpackCompnent = true;
+      }
     },
     watch: {},
     methods: {
@@ -194,7 +212,7 @@
         this.$emit('batchEditCase');
       },
       deleteCase(index, row) {
-        this.$alert(this.$t('api_test.definition.request.delete_confirm') + ' ' + row.name + " ？", '', {
+        this.$alert(this.$t('api_test.definition.request.delete_case_confirm') + ' ' + row.name + " ？", '', {
           confirmButtonText: this.$t('commons.confirm'),
           callback: (action) => {
             if (action === 'confirm') {
@@ -207,8 +225,14 @@
         });
       },
       singleRun(data) {
+        if (this.api.protocol != "DUBBO" && this.api.protocol != "dubbo://" && !this.environment) {
+          this.$warning(this.$t('api_test.environment.select_environment'));
+          return;
+        }
         data.message = true;
-        this.saveTestCase(data);
+        data.request.useEnvironment = this.environment;
+        //this.saveTestCase(data);
+
         this.$emit('singleRun', data);
       },
       copyCase(data) {
@@ -254,6 +278,7 @@
         let url = '/api/module/getModuleByName/' + getCurrentProjectID() + "/" + this.api.protocol;
         this.$get(url, response => {
           if (response.data) {
+            this.$emit('refreshModule');
             this.saveApi(row, response.data);
           }
         });
@@ -292,6 +317,14 @@
             tmp.request.method = this.api.method;
           }
         }
+
+        if (tmp.request.esbDataStruct != null) {
+          tmp.esbDataStruct = JSON.stringify(tmp.request.esbDataStruct);
+        }
+        if (tmp.request.backEsbDataStruct != null) {
+          tmp.backEsbDataStruct = JSON.stringify(tmp.request.backEsbDataStruct);
+        }
+
         if (tmp.tags instanceof Array) {
           tmp.tags = JSON.stringify(tmp.tags);
         }
@@ -312,7 +345,6 @@
         } else {
           this.saveCase(row);
         }
-
       },
       showInput(row) {
         // row.type = "create";

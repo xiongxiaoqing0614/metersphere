@@ -33,7 +33,7 @@ public class MsDubboSampler extends MsTestElement {
     private String type = "DubboSampler";
 
     @JSONField(ordinal = 52)
-    private String protocol = "DUBBO";
+    private final String protocol = "dubbo://";
     @JsonProperty(value = "interface")
     @JSONField(ordinal = 53, name = "interface")
     private String _interface;
@@ -53,11 +53,15 @@ public class MsDubboSampler extends MsTestElement {
     private List<KeyValue> attachmentArgs;
 
     @JSONField(ordinal = 60)
-    private Object requestResult;
+    private String useEnvironment;
+
+//    @JSONField(ordinal = 60)
+//    private Object requestResult;
 
     @Override
     public void toHashTree(HashTree tree, List<MsTestElement> hashTree, ParameterConfig config) {
-        if (!this.isEnable()) {
+        // 非导出操作，且不是启用状态则跳过执行
+        if (!config.isOperating() && !this.isEnable()) {
             return;
         }
         if (this.getReferenced() != null && "Deleted".equals(this.getReferenced())) {
@@ -77,13 +81,15 @@ public class MsDubboSampler extends MsTestElement {
 
     private DubboSample dubboSample(ParameterConfig config) {
         DubboSample sampler = new DubboSample();
+        sampler.setEnabled(this.isEnable());
         sampler.setName(this.getName());
-        String name = this.getParentName(this.getParent(), config);
-        if (StringUtils.isNotEmpty(name)) {
+        String name = this.getParentName(this.getParent());
+        if (StringUtils.isNotEmpty(name) && !config.isOperating()) {
             sampler.setName(this.getName() + "<->" + name);
         }
         sampler.setProperty(TestElement.TEST_CLASS, DubboSample.class.getName());
         sampler.setProperty(TestElement.GUI_CLASS, SaveService.aliasToClass("DubboSampleGui"));
+        sampler.setProperty("MS-ID", this.getId());
 
         sampler.addTestElement(configCenter(this.getConfigCenter()));
         sampler.addTestElement(registryCenter(this.getRegistryCenter()));

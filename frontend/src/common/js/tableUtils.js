@@ -1,4 +1,5 @@
-import {humpToLine} from "@/common/js/utils";
+import {getCurrentProjectID, getCurrentUser, humpToLine} from "@/common/js/utils";
+import {TEST_CASE_LIST} from "@/common/js/constants";
 
 export function _handleSelectAll(component, selection, tableData, selectRows) {
   if (selection.length > 0) {
@@ -106,6 +107,33 @@ export function initCondition(condition) {
   condition.unSelectIds = [];
 }
 
+export function getLabel(vueObj, type) {
+  let param = {}
+  param.userId = getCurrentUser().id;
+  param.type = type;
+  vueObj.result = vueObj.$post('/system/header/info', param, response => {
+    if (response.data != null) {
+      vueObj.tableLabel = eval(response.data.props);
+    }
+  })
+}
+export function getSystemLabel(vueObj, type) {
+  let param = {}
+  param.type=type
+  vueObj.result = vueObj.$post('/system/system/header',param, response => {
+    if (response.data != null) {
+      vueObj.tableLabel = eval(response.data.props);
+    }
+  })
+}
 
+
+export function buildBatchParam(vueObj) {
+  let param = {};
+  param.ids = Array.from(vueObj.selectRows).map(row => row.id);
+  param.projectId = getCurrentProjectID();
+  param.condition = vueObj.condition;
+  return param;
+}
 
 

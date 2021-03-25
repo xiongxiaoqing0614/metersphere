@@ -1,5 +1,5 @@
 <template>
-  <relevance-dialog :title="$t('test_track.plan_view.relevance_test_case')"  ref="relevanceDialog">
+  <relevance-dialog :title="dialogTitle"  ref="relevanceDialog">
 
     <template v-slot:aside>
       <select-menu
@@ -14,11 +14,16 @@
     <slot></slot>
 
     <template v-slot:footer>
-      <ms-dialog-footer @cancel="close" @confirm="save"/>
-    </template>
 
-    <template v-slot:footer>
-      <ms-dialog-footer @cancel="close" @confirm="save"/>
+    <div v-if="$slots.footer">
+        <slot name="footer"></slot>
+      </div>
+      <div v-else>
+        <div style="margin-bottom: 15px" v-if="flag">
+          <el-checkbox v-model="checked">同步添加关联的接口和性能测试</el-checkbox>
+        </div>
+        <ms-dialog-footer @cancel="close" @confirm="save"/>
+      </div>
     </template>
 
   </relevance-dialog>
@@ -29,6 +34,7 @@
   import MsDialogFooter from '../../../../../common/components/MsDialogFooter'
   import SelectMenu from "../../../../common/SelectMenu";
   import RelevanceDialog from "./RelevanceDialog";
+  import {getCurrentProjectID} from "@/common/js/utils";
 
   export default {
     name: "TestCaseRelevanceBase",
@@ -39,6 +45,7 @@
     },
     data() {
       return {
+        checked:true,
         result: {},
         currentProject: {},
         projectId: '',
@@ -50,6 +57,15 @@
     props: {
       planId: {
         type: String
+      },
+      dialogTitle: {
+        type: String,
+        default() {
+          return this.$t('test_track.plan_view.relevance_test_case');
+        }
+      },
+      flag:{
+        type:Boolean,
       }
     },
     watch: {
@@ -62,7 +78,7 @@
       },
 
       save() {
-        this.$emit('save');
+        this.$emit('save',this.checked);
       },
 
       close() {
@@ -75,17 +91,22 @@
       },
 
       getProject() {
-        if (this.planId) {
-          this.result = this.$post("/test/plan/project/", {planId: this.planId}, res => {
-            let data = res.data;
-            if (data) {
-              this.projects = data;
+        this.result = this.$get("/project/listAll", res => {
+          let data = res.data;
+          if (data) {
+            const index = data.findIndex(d => d.id === this.$store.state.projectId);
+            this.projects = data;
+            if (index !== -1) {
+              this.projectId = data[index].id;
+              this.projectName = data[index].name;
+              this.changeProject(data[index]);
+            } else {
               this.projectId = data[0].id;
               this.projectName = data[0].name;
               this.changeProject(data[0]);
             }
-          })
-        }
+          }
+        })
       },
 
       changeProject(project) {

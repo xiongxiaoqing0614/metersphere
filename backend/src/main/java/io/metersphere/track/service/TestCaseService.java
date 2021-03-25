@@ -5,7 +5,6 @@ import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.github.pagehelper.PageHelper;
-import io.metersphere.api.dto.definition.ApiBatchRequest;
 import io.metersphere.base.domain.*;
 import io.metersphere.base.mapper.*;
 import io.metersphere.base.mapper.ext.ExtTestCaseMapper;
@@ -14,10 +13,7 @@ import io.metersphere.commons.constants.TestCaseConstants;
 import io.metersphere.commons.constants.TestCaseReviewStatus;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.user.SessionUser;
-import io.metersphere.commons.utils.BeanUtils;
-import io.metersphere.commons.utils.LogUtil;
-import io.metersphere.commons.utils.ServiceUtils;
-import io.metersphere.commons.utils.SessionUtils;
+import io.metersphere.commons.utils.*;
 import io.metersphere.controller.request.OrderRequest;
 import io.metersphere.excel.domain.ExcelErrData;
 import io.metersphere.excel.domain.ExcelResponse;
@@ -32,7 +28,9 @@ import io.metersphere.track.dto.TestCaseDTO;
 import io.metersphere.track.request.testcase.EditTestCaseRequest;
 import io.metersphere.track.request.testcase.QueryTestCaseRequest;
 import io.metersphere.track.request.testcase.TestCaseBatchRequest;
+import io.metersphere.track.request.testcase.TestCaseMinderEditRequest;
 import io.metersphere.xmind.XmindCaseParser;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.session.ExecutorType;
@@ -40,7 +38,6 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.apache.commons.collections.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
@@ -91,8 +88,10 @@ public class TestCaseService {
     FileService fileService;
     @Resource
     TestCaseFileMapper testCaseFileMapper;
+    @Resource
+    TestCaseTestMapper testCaseTestMapper;
 
-    private TestCaseWithBLOBs addTestCase(TestCaseWithBLOBs testCase) {
+    public TestCaseWithBLOBs addTestCase(TestCaseWithBLOBs testCase) {
         testCase.setName(testCase.getName());
         checkTestCaseExist(testCase);
         testCase.setId(UUID.randomUUID().toString());
@@ -100,6 +99,9 @@ public class TestCaseService {
         testCase.setUpdateTime(System.currentTimeMillis());
         testCase.setNum(getNextNum(testCase.getProjectId()));
         testCase.setReviewStatus(TestCaseReviewStatus.Prepare.name());
+        testCase.setDemandId(testCase.getDemandId());
+        testCase.setDemandName(testCase.getDemandName());
+
         testCaseMapper.insert(testCase);
         return testCase;
     }
@@ -131,8 +133,8 @@ public class TestCaseService {
                     .andNodePathEqualTo(testCase.getNodePath())
                     .andTypeEqualTo(testCase.getType())
                     .andMaintainerEqualTo(testCase.getMaintainer())
-                    .andPriorityEqualTo(testCase.getPriority())
-                    .andMethodEqualTo(testCase.getMethod());
+                    .andPriorityEqualTo(testCase.getPriority());
+//                    .andMethodEqualTo(testCase.getMethod());
 
 //            if (StringUtils.isNotBlank(testCase.getNodeId())) {
 //                criteria.andNodeIdEqualTo(testCase.getTestId());
@@ -154,12 +156,16 @@ public class TestCaseService {
 
             // 如果上边字段全部相同，去检查 steps 和 remark
             boolean isExt = false;
+            String caseRemark = testCase.getRemark();
+            if (StringUtils.isBlank(caseRemark)) {
+                caseRemark = "";
+            }
             if (!CollectionUtils.isEmpty(caseList)) {
                 for (TestCaseWithBLOBs tc : caseList) {
                     String steps = tc.getSteps();
                     String remark = tc.getRemark();
-                    if (StringUtils.equals(steps, testCase.getSteps()) && StringUtils.equals(remark, testCase.getRemark())) {
-                        // MSException.throwException(Translator.get("test_case_already_exists"));
+                    if (StringUtils.equals(steps, testCase.getSteps()) && StringUtils.equals(remark, caseRemark)) {
+                         MSException.throwException(Translator.get("test_case_already_exists"));
                         isExt = true;
                     }
                 }
@@ -177,10 +183,14 @@ public class TestCaseService {
         testPlanTestCaseMapper.deleteByExample(example);
         testCaseIssueService.delTestCaseIssues(testCaseId);
         testCaseCommentService.deleteCaseComment(testCaseId);
+        TestCaseTestExample examples = new TestCaseTestExample();
+        examples.createCriteria().andTestCaseIdEqualTo(testCaseId);
+        testCaseTestMapper.deleteByExample(examples);
         return testCaseMapper.deleteByPrimaryKey(testCaseId);
     }
 
     public List<TestCaseDTO> listTestCase(QueryTestCaseRequest request) {
+        this.initRequest(request, true);
         List<OrderRequest> orderList = ServiceUtils.getDefaultOrder(request.getOrders());
         OrderRequest order = new OrderRequest();
         // 对模板导入的测试用例排序
@@ -189,6 +199,31 @@ public class TestCaseService {
         orderList.add(order);
         request.setOrders(orderList);
         return extTestCaseMapper.list(request);
+    }
+
+    /**
+     * 初始化部分参数
+     *
+     * @param request
+     * @param checkThisWeekData
+     * @return
+     */
+    private void initRequest(QueryTestCaseRequest request, boolean checkThisWeekData) {
+        if (checkThisWeekData) {
+            Map<String, Date> weekFirstTimeAndLastTime = DateUtils.getWeedFirstTimeAndLastTime(new Date());
+            Date weekFirstTime = weekFirstTimeAndLastTime.get("firstTime");
+            if (request.isSelectThisWeedData()) {
+                if (weekFirstTime != null) {
+                    request.setCreateTime(weekFirstTime.getTime());
+                }
+            }
+            if (request.isSelectThisWeedRelevanceData()) {
+                if (weekFirstTime != null) {
+                    request.setRelevanceCreateTime(weekFirstTime.getTime());
+                }
+            }
+
+        }
     }
 
     public List<TestCaseDTO> listTestCaseMthod(QueryTestCaseRequest request) {
@@ -408,7 +443,7 @@ public class TestCaseService {
         List<TestCaseExcelData> list = new ArrayList<>();
         StringBuilder path = new StringBuilder("");
         List<String> types = TestCaseConstants.Type.getValues();
-        List<String> methods = TestCaseConstants.Method.getValues();
+//        List<String> methods = TestCaseConstants.Method.getValues();
         SessionUser user = SessionUtils.getUser();
         for (int i = 1; i <= 5; i++) {
             TestCaseExcelData data = new TestCaseExcelData();
@@ -418,11 +453,11 @@ public class TestCaseService {
             data.setPriority("P" + i % 4);
             String type = types.get(i % 3);
             data.setType(type);
-            if (StringUtils.equals(TestCaseConstants.Type.Functional.getValue(), type)) {
-                data.setMethod(TestCaseConstants.Method.Manual.getValue());
-            } else {
-                data.setMethod(methods.get(i % 2));
-            }
+//            if (StringUtils.equals(TestCaseConstants.Type.Functional.getValue(), type)) {
+//                data.setMethod(TestCaseConstants.Method.Manual.getValue());
+//            } else {
+//                data.setMethod(methods.get(i % 2));
+//            }
             data.setPrerequisite(Translator.get("preconditions_optional"));
             data.setStepDesc("1. " + Translator.get("step_tip_separate") +
                     "\n2. " + Translator.get("step_tip_order") + "\n3. " + Translator.get("step_tip_optional"));
@@ -437,7 +472,7 @@ public class TestCaseService {
         explain.setName(Translator.get("do_not_modify_header_order"));
         explain.setNodePath(Translator.get("module_created_automatically"));
         explain.setType(Translator.get("options") + "（functional、performance、api）");
-        explain.setMethod(Translator.get("options") + "（manual、auto）");
+//        explain.setMethod(Translator.get("options") + "（manual、auto）");
         explain.setPriority(Translator.get("options") + "（P0、P1、P2、P3）");
         explain.setMaintainer(Translator.get("please_input_workspace_member"));
 
@@ -457,7 +492,13 @@ public class TestCaseService {
     }
 
     private List<TestCaseExcelData> generateTestCaseExcel(TestCaseBatchRequest request) {
-        List<OrderRequest> orderList = ServiceUtils.getDefaultOrder(request.getOrders());
+        ServiceUtils.getSelectAllIds(request, request.getCondition(),
+                (query) -> extTestCaseMapper.selectIds(query));
+        QueryTestCaseRequest condition = request.getCondition();
+        List<OrderRequest> orderList = new ArrayList<>();
+        if (condition != null) {
+            orderList = ServiceUtils.getDefaultOrder(condition.getOrders());
+        }
         OrderRequest order = new OrderRequest();
         order.setName("sort");
         order.setType("desc");
@@ -473,9 +514,10 @@ public class TestCaseService {
             data.setNodePath(t.getNodePath());
             data.setPriority(t.getPriority());
             data.setType(t.getType());
-            data.setMethod(t.getMethod());
+//            data.setMethod(t.getMethod());
             data.setPrerequisite(t.getPrerequisite());
-            if (t.getMethod().equals("manual")) {
+            data.setTags(t.getTags());
+            if (StringUtils.equals(t.getMethod(), "manual") || StringUtils.isBlank(t.getMethod())) {
                 String steps = t.getSteps();
                 String setp = "";
                 setp = steps;
@@ -493,8 +535,8 @@ public class TestCaseService {
 
                 for (int j = 0; j < jsonArray.size(); j++) {
                     int num = j + 1;
-                    step.append(num + "." + jsonArray.getJSONObject(j).getString("desc") + "\n");
-                    result.append(num + "." + jsonArray.getJSONObject(j).getString("result") + "\n");
+                    step.append(num + "." + jsonArray.getJSONObject(j).getString("desc") + "\r\n");
+                    result.append(num + "." + jsonArray.getJSONObject(j).getString("result") + "\r\n");
 
                 }
                 data.setStepDesc(step.toString());
@@ -503,19 +545,19 @@ public class TestCaseService {
                 result.setLength(0);
                 data.setRemark(t.getRemark());
 
-            } else if (t.getMethod().equals("auto") && t.getType().equals("api")) {
+            } else if ("auto".equals(t.getMethod()) && "api".equals(t.getType())) {
                 data.setStepDesc("");
                 data.setStepResult("");
-                if (t.getTestId() != null && t.getTestId().equals("other")) {
+                if (t.getTestId() != null && "other".equals(t.getTestId())) {
                     data.setRemark(t.getOtherTestName());
                 } else {
                     data.setRemark("[" + t.getApiName() + "]" + "\n" + t.getRemark());
                 }
 
-            } else if (t.getMethod().equals("auto") && t.getType().equals("performance")) {
+            } else if ("auto".equals(t.getMethod()) && "performance".equals(t.getType())) {
                 data.setStepDesc("");
                 data.setStepResult("");
-                if (t.getTestId() != null && t.getTestId().equals("other")) {
+                if (t.getTestId() != null && "other".equals(t.getTestId())) {
                     data.setRemark(t.getOtherTestName());
                 } else {
                     data.setRemark(t.getPerformName());
@@ -621,7 +663,19 @@ public class TestCaseService {
         }
 
         final TestCaseWithBLOBs testCaseWithBLOBs = addTestCase(request);
-
+        //插入测试与用例关系表
+        if (!CollectionUtils.isEmpty(request.getSelected())) {
+            List<List<String>> selecteds = request.getSelected();
+            TestCaseTest test = new TestCaseTest();
+            selecteds.forEach(id -> {
+                test.setTestType(id.get(0));
+                test.setTestId(id.get(1));
+                test.setTestCaseId(request.getId());
+                test.setCreateTime(System.currentTimeMillis());
+                test.setUpdateTime(System.currentTimeMillis());
+                testCaseTestMapper.insert(test);
+            });
+        }
         // 复制用例时传入文件ID进行复制
         if (!CollectionUtils.isEmpty(request.getFileIds())) {
             List<String> fileIds = request.getFileIds();
@@ -634,8 +688,9 @@ public class TestCaseService {
             });
         }
 
+
         files.forEach(file -> {
-            final FileMetadata fileMetadata = fileService.saveFile(file);
+            final FileMetadata fileMetadata = fileService.saveFile(file, testCaseWithBLOBs.getProjectId());
             TestCaseFile testCaseFile = new TestCaseFile();
             testCaseFile.setCaseId(testCaseWithBLOBs.getId());
             testCaseFile.setFileId(fileMetadata.getId());
@@ -649,7 +704,22 @@ public class TestCaseService {
         if (testCaseWithBLOBs == null) {
             MSException.throwException(Translator.get("edit_load_test_not_found") + request.getId());
         }
-
+        //插入测试与用例关系表
+        if (!CollectionUtils.isEmpty(request.getSelected())) {
+            TestCaseTestExample example = new TestCaseTestExample();
+            example.createCriteria().andTestCaseIdEqualTo(request.getId());
+            testCaseTestMapper.deleteByExample(example);
+            List<List<String>> selecteds = request.getSelected();
+            TestCaseTest test = new TestCaseTest();
+            selecteds.forEach(id -> {
+                test.setTestType(id.get(0));
+                test.setTestId(id.get(1));
+                test.setCreateTime(System.currentTimeMillis());
+                test.setUpdateTime(System.currentTimeMillis());
+                test.setTestCaseId(request.getId());
+                testCaseTestMapper.insert(test);
+            });
+        }
         // 新选择了一个文件，删除原来的文件
         List<FileMetadata> updatedFiles = request.getUpdatedFileList();
         List<FileMetadata> originFiles = fileService.getFileMetadataByCaseId(request.getId());
@@ -668,7 +738,7 @@ public class TestCaseService {
 
         if (files != null) {
             files.forEach(file -> {
-                final FileMetadata fileMetadata = fileService.saveFile(file);
+                final FileMetadata fileMetadata = fileService.saveFile(file,testCaseWithBLOBs.getProjectId());
                 TestCaseFile testCaseFile = new TestCaseFile();
                 testCaseFile.setFileId(fileMetadata.getId());
                 testCaseFile.setCaseId(request.getId());
@@ -693,5 +763,40 @@ public class TestCaseService {
         selectFields.add("name");
         request.setSelectFields(selectFields);
         return extTestCaseMapper.list(request);
+    }
+
+    public List<TestCaseWithBLOBs> listTestCaseDetail(String projectId) {
+        TestCaseExample testCaseExample = new TestCaseExample();
+        testCaseExample.createCriteria().andProjectIdEqualTo(projectId);
+        return testCaseMapper.selectByExampleWithBLOBs(testCaseExample);
+    }
+
+    public void minderEdit(TestCaseMinderEditRequest request) {
+        List<TestCaseWithBLOBs> data = request.getData();
+        data.forEach(item -> {
+            if (StringUtils.isBlank(item.getNodeId()) || item.getNodeId().equals("root")) {
+                item.setNodeId("");
+            }
+            item.setProjectId(request.getProjectId());
+            if (StringUtils.isBlank(item.getId()) || item.getId().length() < 20) {
+                item.setId(UUID.randomUUID().toString());
+                item.setMaintainer(SessionUtils.getUserId());
+                addTestCase(item);
+            } else {
+                editTestCase(item);
+            }
+        });
+        List<String> ids = request.getIds();
+        if (CollectionUtils.isNotEmpty(ids)) {
+            TestCaseBatchRequest deleteRequest = new TestCaseBatchRequest();
+            deleteRequest.setIds(ids);
+            deleteTestCaseBath(deleteRequest);
+        }
+    }
+
+    public List<TestCase> getTestCaseByProjectId(String projectId) {
+        TestCaseExample example = new TestCaseExample();
+        example.createCriteria().andProjectIdEqualTo(projectId);
+        return testCaseMapper.selectByExample(example);
     }
 }

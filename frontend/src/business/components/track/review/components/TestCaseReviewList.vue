@@ -16,28 +16,28 @@
       @row-click="intoReview">
       <template v-for="(item, index) in tableLabel">
         <el-table-column
-          v-if="item.prop=='name'"
+          v-if="item.id=='name'"
           prop="name"
           :label="$t('test_track.review.review_name')"
           show-overflow-tooltip
           :key="index">
         </el-table-column>
         <el-table-column
-          v-if="item.prop=='reviewer'"
+          v-if="item.id=='reviewer'"
           prop="reviewer"
           :label="$t('test_track.review.reviewer')"
           show-overflow-tooltip
           :key="index">
         </el-table-column>
         <el-table-column
-          v-if="item.prop=='projectName'"
+          v-if="item.id=='projectName'"
           prop="projectName"
           :label="$t('test_track.review.review_project')"
           show-overflow-tooltip
           :key="index">
         </el-table-column>
         <el-table-column
-          v-if="item.prop=='creatorName'"
+          v-if="item.id=='creatorName'"
           prop="creatorName"
           :label="$t('test_track.review.review_creator')"
           show-overflow-tooltip
@@ -45,7 +45,7 @@
         >
         </el-table-column>
         <el-table-column
-          v-if="item.prop=='status'"
+          v-if="item.id=='status'"
           prop="status"
           column-key="status"
           :label="$t('test_track.review.review_status')"
@@ -58,8 +58,15 @@
           </span>
           </template>
         </el-table-column>
+        <el-table-column v-if="item.id == 'tags'" prop="tags"
+                         :label="$t('api_test.automation.tag')" :key="index">
+          <template v-slot:default="scope">
+            <ms-tag v-for="(itemName,index)  in scope.row.tags" :key="index" type="success" effect="plain"
+                    :content="itemName" style="margin-left: 0px; margin-right: 2px"></ms-tag>
+          </template>
+        </el-table-column>
         <el-table-column
-          v-if="item.prop=='createTime'"
+          v-if="item.id=='createTime'"
           prop="createTime"
           :label="$t('commons.create_time')"
           show-overflow-tooltip
@@ -70,7 +77,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          v-if="item.prop=='endTime'"
+          v-if="item.id=='endTime'"
           prop="endTime"
           :label="$t('test_track.review.end_time')"
           show-overflow-tooltip
@@ -84,9 +91,7 @@
         min-width="100"
         :label="$t('commons.operating')">
         <template slot="header">
-            <span>{{ $t('commons.operating') }}
-             <i class='el-icon-setting' style="color:#7834c1; margin-left:10px" @click="customHeader"> </i>
-            </span>
+          <header-label-operate @exec="customHeader"/>
         </template>
         <template v-slot:default="scope">
           <ms-table-operator :is-tester-permission="true" @editClick="handleEdit(scope.row)"
@@ -115,18 +120,21 @@ import MsCreateBox from "../../../settings/CreateBox";
 import MsTablePagination from "../../../common/pagination/TablePagination";
 import {
   checkoutTestManagerOrTestUser,
-  getCurrentProjectID, getCurrentUser,
   getCurrentWorkspaceId
 } from "../../../../../common/js/utils";
-import {_filter, _sort} from "@/common/js/tableUtils";
+import {_filter, _sort, getLabel, getSystemLabel} from "@/common/js/tableUtils";
 import PlanStatusTableItem from "../../common/tableItems/plan/PlanStatusTableItem";
 import {Test_Case_Review} from "@/business/components/common/model/JsonData";
 import {TEST_CASE_LIST, TEST_CASE_REVIEW_LIST} from "@/common/js/constants";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
+import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
+import MsTag from "@/business/components/common/components/MsTag";
 
 export default {
   name: "TestCaseReviewList",
   components: {
+    MsTag,
+    HeaderLabelOperate,
     HeaderCustom,
     MsDeleteConfirm,
     MsTableOperator,
@@ -141,7 +149,7 @@ export default {
     return {
       type: TEST_CASE_REVIEW_LIST,
       headerItems: Test_Case_Review,
-      tableLabel: Test_Case_Review,
+      tableLabel: [],
       result: {},
       condition: {},
       tableData: [],
@@ -165,25 +173,36 @@ export default {
   },
   created() {
     this.isTestManagerOrTestUser = checkoutTestManagerOrTestUser();
+    getSystemLabel(this, this.type)
     this.initTableData();
+  },
+  computed: {
+    projectId() {
+      return this.$store.state.projectId
+    },
   },
   methods: {
     customHeader() {
+      getLabel(this, TEST_CASE_REVIEW_LIST);
       this.$refs.headerCustom.open(this.tableLabel)
     },
 
     initTableData() {
-      this.getLabel()
       let lastWorkspaceId = getCurrentWorkspaceId();
       this.condition.workspaceId = lastWorkspaceId;
-      if (!getCurrentProjectID()) {
+      if (!this.projectId) {
         return;
       }
-      this.condition.projectId = getCurrentProjectID();
+      this.condition.projectId = this.projectId;
       this.result = this.$post("/test/case/review/list/" + this.currentPage + "/" + this.pageSize, this.condition, response => {
         let data = response.data;
         this.total = data.itemCount;
         this.tableData = data.listObject;
+        this.tableData.forEach(item => {
+          if (item.tags && item.tags.length > 0) {
+            item.tags = JSON.parse(item.tags);
+          }
+        })
         for (let i = 0; i < this.tableData.length; i++) {
           let path = "/test/case/review/project";
           this.$post(path, {id: this.tableData[i].id}, res => {
@@ -200,30 +219,13 @@ export default {
           })
         }
       });
-    },
-    getLabel() {
-      let param = {}
-      param.userId = getCurrentUser().id;
-      param.type = TEST_CASE_REVIEW_LIST
-      this.result = this.$post('/system/header/info', param, response => {
-        if (response.data != null) {
-          let arry = eval(response.data.props);
-          let obj = {};
-          for (let key in arry) {
-            obj[key] = arry[key];
-          }
-          let newObj = Object.keys(obj).map(val => ({
-            prop: obj[val]
-          }))
-          this.tableLabel = newObj
-        }
-      })
+      getLabel(this, TEST_CASE_REVIEW_LIST);
     },
     intoReview(row) {
       this.$router.push('/track/review/view/' + row.id);
     },
     testCaseReviewCreate() {
-      if (!getCurrentProjectID()) {
+      if (!this.projectId) {
         this.$warning(this.$t('commons.check_project_tip'));
         return;
       }

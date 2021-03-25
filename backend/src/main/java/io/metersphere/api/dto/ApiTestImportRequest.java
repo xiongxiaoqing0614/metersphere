@@ -14,9 +14,12 @@ public class ApiTestImportRequest {
     private String platform;
     private Boolean useEnvironment;
     private String swaggerUrl;
+    private String fileName;
     //导入策略
     private String modeId;
     private String userId;
     //调用类型
     private String type;
+
+    private String appId;
 }

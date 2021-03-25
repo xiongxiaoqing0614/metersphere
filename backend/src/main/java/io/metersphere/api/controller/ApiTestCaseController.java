@@ -7,6 +7,7 @@ import io.metersphere.api.dto.definition.*;
 import io.metersphere.api.service.ApiTestCaseService;
 import io.metersphere.base.domain.ApiTestCase;
 import io.metersphere.base.domain.ApiTestCaseWithBLOBs;
+import io.metersphere.commons.constants.ApiRunMode;
 import io.metersphere.commons.constants.RoleConstants;
 import io.metersphere.commons.utils.PageUtils;
 import io.metersphere.commons.utils.Pager;
@@ -44,7 +45,7 @@ public class ApiTestCaseController {
         if(!list.isEmpty()){
             return  list.get(0);
         }else {
-            return  null;
+            return null;
         }
     }
 
@@ -53,6 +54,14 @@ public class ApiTestCaseController {
         Page<Object> page = PageHelper.startPage(goPage, pageSize, true);
         request.setWorkspaceId(SessionUtils.getCurrentWorkspaceId());
         return PageUtils.setPageInfo(page, apiTestCaseService.listSimple(request));
+    }
+
+    @GetMapping("/list/{projectId}")
+    public List<ApiTestCaseDTO> list(@PathVariable String projectId) {
+        ApiTestCaseRequest request = new ApiTestCaseRequest();
+        request.setWorkspaceId(SessionUtils.getCurrentWorkspaceId());
+        request.setProjectId(projectId);
+        return apiTestCaseService.listSimple(request);
     }
 
     @PostMapping("/get/request")
@@ -111,6 +120,10 @@ public class ApiTestCaseController {
     @PostMapping("/relevance")
     public void testPlanRelevance(@RequestBody ApiCaseRelevanceRequest request) {
         apiTestCaseService.relevanceByCase(request);
+    }
+    @PostMapping("/relevance/review")
+    public void testCaseReviewRelevance(@RequestBody ApiCaseRelevanceRequest request){
+        apiTestCaseService.relevanceByApiByReview(request);
     }
 
     @PostMapping(value = "/jenkins/run")

@@ -26,6 +26,7 @@ import io.metersphere.dto.BaseSystemConfigDTO;
 import io.metersphere.i18n.Translator;
 import io.metersphere.notice.sender.NoticeModel;
 import io.metersphere.notice.service.NoticeSendService;
+import io.metersphere.performance.request.RunTestPlanRequest;
 import io.metersphere.performance.service.PerformanceTestService;
 import io.metersphere.service.ScheduleService;
 import io.metersphere.service.SystemParameterService;
@@ -36,7 +37,6 @@ import io.metersphere.track.request.testcase.PlanCaseRelevanceRequest;
 import io.metersphere.track.request.testcase.QueryTestPlanRequest;
 import io.metersphere.track.request.testplan.AddTestPlanRequest;
 import io.metersphere.track.request.testplan.LoadCaseRequest;
-import io.metersphere.track.request.testplan.RunTestPlanRequest;
 import io.metersphere.track.request.testplancase.QueryTestPlanCaseRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.session.ExecutorType;
@@ -57,6 +57,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class TestPlanService {
+    @Resource
+    ExtScheduleMapper extScheduleMapper;
     @Resource
     TestPlanMapper testPlanMapper;
     @Resource
@@ -112,8 +114,22 @@ public class TestPlanService {
     private ApiTestCaseService apiTestCaseService;
     @Resource
     private PerformanceTestService performanceTestService;
+    @Resource
+    private TestPlanLoadCaseMapper testPlanLoadCaseMapper;
+    @Resource
+    private ApiTestCaseMapper  apiTestCaseMapper;
+    @Resource
+    private ApiDefinitionMapper  apiDefinitionMapper;
+    @Resource
+    private TestPlanApiCaseMapper  testPlanApiCaseMapper;
+    @Resource
+    private TestPlanApiScenarioMapper testPlanApiScenarioMapper;
+    @Resource
+    private ApiScenarioMapper apiScenarioMapper;
+    @Resource
+    private TestCaseTestMapper testCaseTestMapper;
 
-    public synchronized void addTestPlan(AddTestPlanRequest testPlan) {
+    public synchronized String addTestPlan(AddTestPlanRequest testPlan) {
         if (getTestPlanByName(testPlan.getName()).size() > 0) {
             MSException.throwException(Translator.get("plan_name_already_exists"));
         }
@@ -142,6 +158,7 @@ public class TestPlanService {
                 .event(NoticeConstants.Event.CREATE)
                 .build();
         noticeSendService.send(NoticeConstants.TaskType.TEST_PLAN_TASK, noticeModel);
+        return testPlan.getId();
     }
 
     public List<TestPlan> getTestPlanByName(String name) {
@@ -159,8 +176,8 @@ public class TestPlanService {
     public int editTestPlan(TestPlanDTO testPlan) {
         checkTestPlanExist(testPlan);
         TestPlan res = testPlanMapper.selectByPrimaryKey(testPlan.getId()); //  先查一次库
+        testPlan.setUpdateTime(System.currentTimeMillis());
         if (!res.getStatus().equals(testPlan.getStatus())) {    //  若有改变才更新时间
-            testPlan.setUpdateTime(System.currentTimeMillis());
             if (TestPlanStatus.Underway.name().equals(testPlan.getStatus())) {
                 if (res.getStatus().equals(TestPlanStatus.Prepare.name())) {
                     testPlan.setActualStartTime(System.currentTimeMillis());
@@ -169,7 +186,7 @@ public class TestPlanService {
                     testPlan.setActualEndTime(null);
                 }   //  已完成->进行中，结束时间置空
             } else if (!res.getStatus().equals(TestPlanStatus.Prepare.name()) &&
-                    testPlan.getStatus().equals(TestPlanStatus.Prepare.name())) {
+                    TestPlanStatus.Prepare.name().equals(testPlan.getStatus())) {
                 testPlan.setActualStartTime(null);
                 testPlan.setActualEndTime(null);
             }   //  非未开始->未开始，时间都置空
@@ -177,13 +194,23 @@ public class TestPlanService {
                     !TestPlanStatus.Completed.name().equals(res.getStatus())) {
                 //已完成，写入实际完成时间
                 testPlan.setActualEndTime(System.currentTimeMillis());
-            }
+            } else if (!res.getStatus().equals(TestPlanStatus.Finished.name()) &&
+                    TestPlanStatus.Finished.name().equals(testPlan.getStatus())) {
+                testPlan.setActualEndTime(System.currentTimeMillis());
+            }   //  非已结束->已结束，更新结束时间
         }
 
         List<String> userIds = new ArrayList<>();
         userIds.add(testPlan.getPrincipal());
         AddTestPlanRequest testPlans = new AddTestPlanRequest();
-        int i = testPlanMapper.updateByPrimaryKey(testPlan); //  更新
+        int i;
+        if(testPlan.getName() == null) {//  若是点击该测试计划，则仅更新了updateTime，其它字段全为null，使用updateByPrimaryKeySelective
+            i = testPlanMapper.updateByPrimaryKeySelective(testPlan);
+        }
+        else {  //  有修改字段的调用，为保证将某些时间置null的情况，使用updateByPrimaryKey
+            extScheduleMapper.updateNameByResourceID(testPlan.getId(), testPlan.getName());//   同步更新该测试的定时任务的name
+            i = testPlanMapper.updateByPrimaryKeyWithBLOBs(testPlan); //  更新
+        }
         if (!StringUtils.isBlank(testPlan.getStatus())) {
             BeanUtils.copyBean(testPlans, getTestPlan(testPlan.getId()));
             String context = getTestPlanContext(testPlans, NoticeConstants.Event.UPDATE);
@@ -343,7 +370,7 @@ public class TestPlanService {
 
             testPlan.setTotal(apiExecResults.size() + scenarioExecResults.size() + functionalExecResults.size() + loadResults.size());
 
-            testPlan.setPassRate(MathUtils.getPercentWithDecimal(testPlan.getTested() == 0 ? 0 : testPlan.getPassed() * 1.0 / testPlan.getTested()));
+            testPlan.setPassRate(MathUtils.getPercentWithDecimal(testPlan.getTested() == 0 ? 0 : testPlan.getPassed() * 1.0 / testPlan.getTotal()));
             testPlan.setTestRate(MathUtils.getPercentWithDecimal(testPlan.getTotal() == 0 ? 0 : testPlan.getTested() * 1.0 / testPlan.getTotal()));
         });
     }
@@ -357,6 +384,44 @@ public class TestPlanService {
         List<TestPlanDTOWithMetric> testPlans = extTestPlanMapper.list(request);
         calcTestPlanRate(testPlans);
         return testPlans;
+    }
+
+    public void checkStatus(String testPlanId) { //  检查执行结果，自动更新计划状态
+        List<String> statusList = new ArrayList<>();
+        statusList.addAll(extTestPlanTestCaseMapper.getExecResultByPlanId(testPlanId));
+        statusList.addAll(testPlanApiCaseService.getExecResultByPlanId(testPlanId));
+        statusList.addAll(testPlanScenarioCaseService.getExecResultByPlanId(testPlanId));
+        statusList.addAll(testPlanLoadCaseService.getStatus(testPlanId));
+//        Prepare, Pass, Failure, Blocking, Skip, Underway
+        TestPlanDTO testPlanDTO = new TestPlanDTO();
+        testPlanDTO.setId(testPlanId);
+        if(statusList.size() == 0) { //  原先status不是prepare, 但删除所有关联用例的情况
+            testPlanDTO.setStatus(TestPlanStatus.Prepare.name());
+            editTestPlan(testPlanDTO);
+            return;
+        }
+        int passNum = 0, prepareNum = 0, failNum = 0;
+        for(String res : statusList) {
+            if(StringUtils.equals(res, TestPlanTestCaseStatus.Pass.name())
+                    || StringUtils.equals(res, "success")
+                    || StringUtils.equals(res, ScenarioStatus.Success.name())) {
+                passNum++;
+            } else if (res == null) {
+                prepareNum++;
+            } else {
+                failNum++;
+            }
+        }
+        if(passNum == statusList.size()) {   //  全部通过
+            testPlanDTO.setStatus(TestPlanStatus.Completed.name());
+            this.editTestPlan(testPlanDTO);
+        } else if(prepareNum == 0 && passNum + failNum == statusList.size()) {  //  已结束
+            testPlanDTO.setStatus(TestPlanStatus.Finished.name());
+            editTestPlan(testPlanDTO);
+        } else if(prepareNum != 0) {    //  进行中
+            testPlanDTO.setStatus(TestPlanStatus.Underway.name());
+            editTestPlan(testPlanDTO);
+        }
     }
 
     public List<TestPlanDTOWithMetric> listTestPlanByProject(QueryTestPlanRequest request) {
@@ -407,11 +472,79 @@ public class TestPlanService {
         }
 
         sqlSession.flushStatements();
+        //同步添加关联的接口和测试用例
+        if(request.getChecked()){
+            if (!testCaseIds.isEmpty()) {
+                testCaseIds.forEach(caseId -> {
+                    List<TestCaseTest> list=new ArrayList<>();
+                    TestCaseTestExample examp=new TestCaseTestExample();
+                    examp.createCriteria().andTestCaseIdEqualTo(caseId);
+                    if(testCaseTestMapper.countByExample(examp)>0){
+                        list=testCaseTestMapper.selectByExample(examp);
+                    }
+                    list.forEach(l->{
+                        if(StringUtils.equals(l.getTestType(),TestCaseStatus.performance.name())){
+                            TestPlanLoadCase t = new TestPlanLoadCase();
+                            t.setId(UUID.randomUUID().toString());
+                            t.setTestPlanId(request.getPlanId());
+                            t.setLoadCaseId(l.getTestId());
+                            t.setCreateTime(System.currentTimeMillis());
+                            t.setUpdateTime(System.currentTimeMillis());
+                            TestPlanLoadCaseExample testPlanLoadCaseExample=new TestPlanLoadCaseExample();
+                            testPlanLoadCaseExample.createCriteria().andTestPlanIdEqualTo(request.getPlanId()).andLoadCaseIdEqualTo(t.getLoadCaseId());
+                            if (testPlanLoadCaseMapper.countByExample(testPlanLoadCaseExample) <=0) {
+                                testPlanLoadCaseMapper.insert(t);
+                            }
 
+                        }
+                        if(StringUtils.equals(l.getTestType(),TestCaseStatus.testcase.name())){
+                            TestPlanApiCase t=new TestPlanApiCase();
+                            ApiTestCaseWithBLOBs apitest=apiTestCaseMapper.selectByPrimaryKey(l.getTestId());
+                            ApiDefinitionWithBLOBs apidefinition=apiDefinitionMapper.selectByPrimaryKey(apitest.getApiDefinitionId());
+                            t.setId(UUID.randomUUID().toString());
+                            t.setTestPlanId(request.getPlanId());
+                            t.setApiCaseId(l.getTestId());
+                            t.setEnvironmentId(apidefinition.getEnvironmentId());
+                            t.setCreateTime(System.currentTimeMillis());
+                            t.setUpdateTime(System.currentTimeMillis());
+                            TestPlanApiCaseExample example=new TestPlanApiCaseExample();
+                            example.createCriteria().andTestPlanIdEqualTo(request.getPlanId()).andApiCaseIdEqualTo(t.getApiCaseId());
+                            if(testPlanApiCaseMapper.countByExample(example)<=0){
+                                testPlanApiCaseMapper.insert(t);
+                            }
+
+                        }
+                        if(StringUtils.equals(l.getTestType(),TestCaseStatus.automation.name())){
+                            TestPlanApiScenario t=new TestPlanApiScenario();
+                            ApiScenarioWithBLOBs testPlanApiScenario=apiScenarioMapper.selectByPrimaryKey(l.getTestId());
+                            t.setId(UUID.randomUUID().toString());
+                            t.setTestPlanId(request.getPlanId());
+                            t.setApiScenarioId(l.getTestId());
+                            t.setLastResult(testPlanApiScenario.getLastResult());
+                            t.setPassRate(testPlanApiScenario.getPassRate());
+                            t.setReportId(testPlanApiScenario.getReportId());
+                            t.setStatus(testPlanApiScenario.getStatus());
+                            t.setCreateTime(System.currentTimeMillis());
+                            t.setUpdateTime(System.currentTimeMillis());
+                            TestPlanApiScenarioExample example=new TestPlanApiScenarioExample();
+                            example.createCriteria().andTestPlanIdEqualTo(request.getPlanId()).andApiScenarioIdEqualTo(t.getApiScenarioId());
+                            if(testPlanApiScenarioMapper.countByExample(example)<=0){
+                                testPlanApiScenarioMapper.insert(t);
+                            }
+
+                        }
+                    });
+
+
+                });
+            }
+        }
         TestPlan testPlan = testPlanMapper.selectByPrimaryKey(request.getPlanId());
         if (StringUtils.equals(testPlan.getStatus(), TestPlanStatus.Prepare.name())
                 || StringUtils.equals(testPlan.getStatus(), TestPlanStatus.Completed.name())) {
             testPlan.setStatus(TestPlanStatus.Underway.name());
+            testPlan.setActualStartTime(System.currentTimeMillis());  // 将状态更新为进行中时，开始时间也要更新
+            testPlan.setActualEndTime(null);
             testPlanMapper.updateByPrimaryKey(testPlan);
         }
     }
@@ -469,8 +602,8 @@ public class TestPlanService {
         queryTestPlanRequest.setId(planId);
 
         TestPlanDTO testPlan = extTestPlanMapper.list(queryTestPlanRequest).get(0);
-        String projectName = getProjectNameByPlanId(planId);
-        testPlan.setProjectName(projectName);
+        Project project = projectMapper.selectByPrimaryKey(testPlan.getProjectId());
+        testPlan.setProjectName(project.getName());
 
         TestCaseReport testCaseReport = testCaseReportMapper.selectByPrimaryKey(testPlan.getReportId());
         JSONObject content = JSONObject.parseObject(testCaseReport.getContent());
@@ -478,6 +611,9 @@ public class TestPlanService {
 
         List<ReportComponent> components = ReportComponentFactory.createComponents(componentIds.toJavaList(String.class), testPlan);
         List<Issues> issues = buildFunctionalCaseReport(planId, components);
+        buildApiCaseReport(planId, components);
+        buildScenarioCaseReport(planId, components);
+        buildLoadCaseReport(planId, components);
 
         TestCaseReportMetricDTO testCaseReportMetricDTO = new TestCaseReportMetricDTO();
         components.forEach(component -> {
@@ -626,8 +762,8 @@ public class TestPlanService {
         queryTestPlanRequest.setId(planId);
 
         TestPlanDTO testPlan = extTestPlanMapper.list(queryTestPlanRequest).get(0);
-        String projectName = getProjectNameByPlanId(planId);
-        testPlan.setProjectName(projectName);
+        Project project = projectMapper.selectByPrimaryKey(testPlan.getProjectId());
+        testPlan.setProjectName(project.getName());
 
         TestCaseReport testCaseReport = testCaseReportMapper.selectByPrimaryKey(testPlan.getReportId());
         JSONObject content = JSONObject.parseObject(testCaseReport.getContent());

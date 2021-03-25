@@ -19,11 +19,13 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public abstract class AbstractEngine implements Engine {
     protected String JMETER_IMAGE;
+    protected String HEAP;
+    protected String GC_ALGO;
     private Long startTime;
     private String reportId;
     protected LoadTestWithBLOBs loadTest;
@@ -38,6 +40,8 @@ public abstract class AbstractEngine implements Engine {
         testResourcePoolService = CommonBeanFactory.getBean(TestResourcePoolService.class);
         testResourceService = CommonBeanFactory.getBean(TestResourceService.class);
         JMETER_IMAGE = CommonBeanFactory.getBean(JmeterProperties.class).getImage();
+        HEAP = CommonBeanFactory.getBean(JmeterProperties.class).getHeap();
+        GC_ALGO = CommonBeanFactory.getBean(JmeterProperties.class).getGcAlgo();
         this.startTime = System.currentTimeMillis();
         this.reportId = UUID.randomUUID().toString();
     }
@@ -71,6 +75,16 @@ public abstract class AbstractEngine implements Engine {
         if (StringUtils.isNotEmpty(image)) {
             JMETER_IMAGE = image;
         }
+        // heap
+        String heap = resourcePool.getHeap();
+        if (StringUtils.isNotEmpty(heap)) {
+            HEAP = heap;
+        }
+        // gc_algo
+        String gcAlgo = resourcePool.getGcAlgo();
+        if (StringUtils.isNotEmpty(gcAlgo)) {
+            GC_ALGO = gcAlgo;
+        }
         this.resourceList = testResourceService.getResourcesByPoolId(resourcePool.getId());
         if (CollectionUtils.isEmpty(this.resourceList)) {
             MSException.throwException("Test Resource is empty");
@@ -92,17 +106,20 @@ public abstract class AbstractEngine implements Engine {
         String loadConfiguration = t.getLoadConfiguration();
         JSONArray jsonArray = JSON.parseArray(loadConfiguration);
         for (int i = 0; i < jsonArray.size(); i++) {
-            if (jsonArray.get(i) instanceof Map) {
-                JSONObject o = jsonArray.getJSONObject(i);
-                if (StringUtils.equals(o.getString("key"), "TargetLevel")) {
-                    s = o.getInteger("value");
-                    break;
-                }
-            }
             if (jsonArray.get(i) instanceof List) {
                 JSONArray o = jsonArray.getJSONArray(i);
-                for (int j = 0; j < o.size(); j++) {
-                    JSONObject b = o.getJSONObject(j);
+                List<JSONObject> enabledConfig = o.stream()
+                        .filter(b -> {
+                            JSONObject c = JSON.parseObject(b.toString());
+                            if (StringUtils.equals(c.getString("deleted"), "true")) {
+                                return false;
+                            }
+                            return !StringUtils.equals(c.getString("enabled"), "false");
+                        })
+                        .map(b -> JSON.parseObject(b.toString()))
+                        .collect(Collectors.toList());
+
+                for (JSONObject b : enabledConfig) {
                     if (StringUtils.equals(b.getString("key"), "TargetLevel")) {
                         s += b.getInteger("value");
                         break;

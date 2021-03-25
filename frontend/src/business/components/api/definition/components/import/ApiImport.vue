@@ -1,6 +1,7 @@
 <template>
-  <el-dialog :close-on-click-modal="false" :title="$t('api_test.api_import.title')" width="30%"
-             :visible.sync="visible" class="api-import" v-loading="result.loading" @close="close">
+  <el-dialog :close-on-click-modal="false" :title="$t('api_test.api_import.title')" width="90%"
+             :visible.sync="visible" class="api-import" v-loading="result.loading" @close="close"
+             :destroy-on-close="true">
 
     <div class="header-bar">
       <div>{{ $t('api_test.api_import.data_format') }}</div>
@@ -22,16 +23,22 @@
 
     <el-form :model="formData" :rules="rules" label-width="100px" v-loading="result.loading" ref="form">
       <el-row>
-        <el-col :span="11">
-          <el-form-item :label="$t('commons.import_module')">
+        <el-col :span="6">
+          <el-form-item :label="$t('commons.import_module')" prop="moduleId">
             <el-select size="small" v-model="formData.moduleId" class="project-select" clearable>
               <el-option v-for="item in moduleOptions" :key="item.id" :label="item.path" :value="item.id"/>
             </el-select>
           </el-form-item>
-          <el-form-item v-if="!isScenarioModel" :label="$t('commons.import_mode')">
+          <el-form-item v-if="!isScenarioModel&&showImportModel" :label="$t('commons.import_mode')" prop="modeId">
             <el-select size="small" v-model="formData.modeId" class="project-select" clearable>
               <el-option v-for="item in modeOptions" :key="item.id" :label="item.name" :value="item.id"/>
             </el-select>
+          </el-form-item>
+          <el-form-item v-if="showTemplate">
+            <el-link type="primary" class="download-template"
+                     @click="downloadTemplate"
+            >{{$t('test_track.case.import.download_template')}}
+            </el-link>
           </el-form-item>
           <el-form-item v-if="isSwagger2">
             <el-switch
@@ -39,7 +46,6 @@
               :active-text="$t('api_test.api_import.swagger_url_import')">
             </el-switch>
           </el-form-item>
-
         </el-col>
         <el-col :span="1">
           <el-divider direction="vertical"/>
@@ -57,8 +63,29 @@
             <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
           </el-form-item>
         </el-col>
+        <el-col :span="14" v-show="isForseti" style="margin-top: 40px;width:70%;">
+          <el-form-item :label="'Tuhu AppID'" prop="tuhuAppId" class="tuhu-appid">
+              <el-select size="medium" clearable filterable v-model="formData.appId" :placeholder="$t('api_test.api_import.forseti_select')" @visible-change="getAppIdList()" multiple style="width:100%;" >
+                <el-option
+                  v-for="item in formData.appIdList"
+                  :key="item"
+                  :label="item"
+                  :value="item">
+                </el-option>
+              </el-select>
+            <!--el-input size="small" v-model="formData.appId" clearable show-word-limit/-->
+          </el-form-item>
+          <!-- <el-form-item>
+            <el-switch
+              v-model="swaggerSynchronization"
+              @click.native="scheduleEdit"
+              >
+            </el-switch>
+            <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
+          </el-form-item> -->
+        </el-col>
         <el-col :span="12"
-                v-if="selectedPlatformValue != 'Swagger2' || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEnable)">
+                v-if="(selectedPlatformValue != 'Forseti' && selectedPlatformValue != 'Swagger2') || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEable)">
           <el-upload
             class="api-upload"
             drag
@@ -82,7 +109,7 @@
       <div>
         <span>{{ $t('api_test.api_import.tip') }}：{{ selectedPlatform.tip }}</span>
       </div>
-      <div>
+      <div v-if="selectedPlatformValue != 'Forseti'">
         <span>{{ $t('api_test.api_import.export_tip') }}：{{ selectedPlatform.exportTip }}</span>
       </div>
     </div>
@@ -93,7 +120,6 @@
 <script>
 import MsDialogFooter from "../../../../common/components/MsDialogFooter";
 import {listenGoBack, removeGoBackListener} from "@/common/js/utils";
-import {getCurrentProjectID} from "../../../../../../common/js/utils";
 import ScheduleImport from "@/business/components/api/definition/components/import/ImportScheduleEdit";
 
 export default {
@@ -105,6 +131,7 @@ export default {
       default: true,
     },
     moduleOptions: {},
+    propotal:String,
     model: {
       type: String,
       default: 'definition'
@@ -127,27 +154,47 @@ export default {
       protocol: "",
       platforms: [
         {
-          name: 'Metersphere',
+          name: 'MeterSphere',
           value: 'Metersphere',
           tip: this.$t('api_test.api_import.ms_tip'),
           exportTip: this.$t('api_test.api_import.ms_export_tip'),
           suffixes: new Set(['json'])
         },
-        {
-          name: 'Postman',
-          value: 'Postman',
-          tip: this.$t('api_test.api_import.postman_tip'),
-          exportTip: this.$t('api_test.api_import.post_export_tip'),
-          suffixes: new Set(['json'])
-        },
-        {
-          name: 'Swagger',
-          value: 'Swagger2',
-          tip: this.$t('api_test.api_import.swagger_tip'),
-          exportTip: this.$t('api_test.api_import.swagger_export_tip'),
-          suffixes: new Set(['json'])
-        }
       ],
+      forsetiPlanform:{
+          name: 'Forseti',
+          value: 'Forseti',
+          tip: this.$t('api_test.api_import.forseti_tip'),
+          suffixes: new Set(['json'])
+      },
+      postmanPlanform:{
+        name: 'Postman',
+        value: 'Postman',
+        tip: this.$t('api_test.api_import.postman_tip'),
+        exportTip: this.$t('api_test.api_import.post_export_tip'),
+        suffixes: new Set(['json'])
+      },
+      swaggerPlanform:{
+        name: 'Swagger',
+        value: 'Swagger2',
+        tip: this.$t('api_test.api_import.swagger_tip'),
+        exportTip: this.$t('api_test.api_import.swagger_export_tip'),
+        suffixes: new Set(['json'])
+      },
+      harPlanform:{
+        name: 'HAR',
+        value: 'Har',
+        tip: this.$t('api_test.api_import.har_tip'),
+        exportTip: this.$t('api_test.api_import.har_export_tip'),
+        suffixes: new Set(['har'])
+      },
+      esbPlanform : {
+        name: 'ESB',
+        value: 'ESB',
+        tip: this.$t('api_test.api_import.esb_tip'),
+        exportTip: this.$t('api_test.api_import.esb_export_tip'),
+        suffixes: new Set(['xlsx','xls'])
+      },
       selectedPlatform: {},
       selectedPlatformValue: 'Metersphere',
       result: {},
@@ -159,14 +206,28 @@ export default {
         swaggerUrl: '',
         modeId: this.$t('commons.not_cover'),
         moduleId: '',
+        appId: '',
       },
-      rules: {},
+      rules: {
+        modeId: [
+          {required: true, message: this.$t('commons.please_select_import_mode'), trigger: 'change'},
+        ],
+        moduleId: [
+          {required: true, message: this.$t('commons.please_select_import_module'), trigger: 'change'},
+        ],
+      },
       currentModule: {},
       fileList: []
     }
   },
   activated() {
     this.selectedPlatform = this.platforms[0];
+  },
+  created() {
+    this.platforms.push(this.postmanPlanform);
+    this.platforms.push(this.swaggerPlanform);
+    this.platforms.push(this.harPlanform);
+    this.platforms.push(this.forsetiPlanform);
   },
   watch: {
     selectedPlatformValue() {
@@ -177,14 +238,58 @@ export default {
         }
       }
     },
+    propotal(){
+      let postmanIndex = this.platforms.indexOf(this.postmanPlanform);
+      let swaggerPlanformIndex = this.platforms.indexOf(this.swaggerPlanform);
+      let harPlanformIndex = this.platforms.indexOf(this.harPlanform);
+      let esbPlanformIndex = this.platforms.indexOf(this.esbPlanform);
+      let forsetiPlanformIndex = this.platforms.indexOf(this.forsetiPlanform);
+      if(postmanIndex>=0){
+        this.platforms.splice(this.platforms.indexOf(this.postmanPlanform),1);
+      }
+      if(swaggerPlanformIndex>=0){
+        this.platforms.splice(this.platforms.indexOf(this.swaggerPlanform),1);
+      }
+      if(harPlanformIndex>=0){
+        this.platforms.splice(this.platforms.indexOf(this.harPlanform),1);
+      }
+      if(esbPlanformIndex>=0){
+        this.platforms.splice(this.platforms.indexOf(this.esbPlanform),1);
+      }
+      if(forsetiPlanformIndex>=0){
+        this.platforms.splice(this.platforms.indexOf(this.forsetiPlanform),1);
+      }
+      if(this.propotal === 'TCP'){
+        this.platforms.push(this.esbPlanform);
+        return true;
+      }else if(this.propotal === 'HTTP'){
+        this.platforms.push(this.postmanPlanform);
+        this.platforms.push(this.swaggerPlanform);
+        this.platforms.push(this.harPlanform);
+        this.platforms.push(this.forsetiPlanform);
+        return false;
+      }
+    }
   },
   computed: {
     isSwagger2() {
       return this.selectedPlatformValue === 'Swagger2';
     },
+    showImportModel() {
+      return this.selectedPlatformValue != 'Har' && this.selectedPlatformValue != 'ESB';
+    },
+    showTemplate() {
+      return this.selectedPlatformValue === 'ESB';
+    },
     isScenarioModel() {
       return this.model === 'scenario';
-    }
+    },
+    isForseti() {
+      return this.selectedPlatformValue === 'Forseti';
+    },
+    projectId() {
+      return this.$store.state.projectId
+    },
   },
   methods: {
     scheduleEdit() {
@@ -215,6 +320,11 @@ export default {
     handleRemove(file, fileList) {
       this.formData.file = undefined;
     },
+    downloadTemplate(){
+      if(this.selectedPlatformValue == "ESB"){
+        this.$fileDownload('/api/definition/export/esbExcelTemplate');
+      }
+    },
     uploadValidate(file, fileList) {
       let suffix = file.name.substring(file.name.lastIndexOf('.') + 1);
       if (this.selectedPlatform.suffixes && !this.selectedPlatform.suffixes.has(suffix)) {
@@ -230,7 +340,7 @@ export default {
     save() {
       this.$refs.form.validate(valid => {
         if (valid) {
-          if ((this.selectedPlatformValue != 'Swagger2' || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEnable)) && !this.formData.file) {
+          if (((this.selectedPlatformValue != 'Forseti' && this.selectedPlatformValue != 'Swagger2') || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEable)) && !this.formData.file) {
             this.$warning(this.$t('commons.please_upload'));
             return;
           }
@@ -265,11 +375,26 @@ export default {
         })
         param.modeId = this.formData.modeId
       }
-      param.projectId = getCurrentProjectID();
+      param.projectId = this.projectId;
       if (!this.swaggerUrlEnable) {
         param.swaggerUrl = undefined;
       }
+      //多选框数据处理
+      if(this.selectedPlatformValue === 'Forseti') {
+					let s = [];
+					for(var i = 0; i < this.formData.appId.length; i++) {
+						s.push(this.formData.appId[i].split(":")[0]);
+					}
+					param.appId = s.join(",");
+      }else{
+        param.appId = "";
+      }
       return param;
+    },
+    getAppIdList() {
+      this.$get("https://shop-gateway-inner.tuhu.work/int-spring-arch-forseti-server/service/apps", response => {
+        this.$set(this.formData, "appIdList", response.data);
+      })
     },
     close() {
       this.formData = {
@@ -287,7 +412,7 @@ export default {
 <style scoped>
 
 .api-import >>> .el-dialog {
-  min-width: 700px;
+  min-width: 750px;
 }
 
 .format-tip {

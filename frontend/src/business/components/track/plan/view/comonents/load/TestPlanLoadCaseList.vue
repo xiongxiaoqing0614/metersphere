@@ -24,30 +24,30 @@
           </template>
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
-          <el-table-column v-if="item.prop == 'num'" prop="num" label="ID" show-overflow-tooltip :key="index"/>
+          <el-table-column v-if="item.id == 'num'" prop="num" label="ID" show-overflow-tooltip :key="index"/>
           <el-table-column
-              v-if="item.prop == 'caseName'"
+              v-if="item.id == 'caseName'"
               prop="caseName"
               :label="$t('commons.name')"
               show-overflow-tooltip
               :key="index">
           </el-table-column>
           <el-table-column
-              v-if="item.prop == 'projectName'"
+              v-if="item.id == 'projectName'"
               prop="projectName"
               :label="$t('load_test.project_name')"
               show-overflow-tooltip
               :key="index">
           </el-table-column>
           <el-table-column
-              v-if="item.prop == 'userName'"
+              v-if="item.id == 'userName'"
               prop="userName"
               :label="$t('load_test.user_name')"
               show-overflow-tooltip
               :key="index">
           </el-table-column>
           <el-table-column
-              v-if="item.prop == 'createTime'"
+              v-if="item.id == 'createTime'"
               sortable
               prop="createTime"
               :label="$t('commons.create_time')"
@@ -57,7 +57,7 @@
             </template>
           </el-table-column>
           <el-table-column
-              v-if="item.prop == 'status'"
+              v-if="item.id == 'status'"
               prop="status"
               column-key="status"
               :filters="statusFilters"
@@ -68,7 +68,7 @@
             </template>
           </el-table-column>
           <el-table-column
-              v-if="item.prop == 'caseStatus'"
+              v-if="item.id == 'caseStatus'"
               prop="caseStatus"
               :label="$t('test_track.plan.load_case.execution_status')"
               :key="index">
@@ -86,7 +86,7 @@
             </template>
           </el-table-column>
           <el-table-column
-              v-if="item.prop == 'loadReportId'"
+              v-if="item.id == 'loadReportId'"
               :label="$t('test_track.plan.load_case.report')"
               show-overflow-tooltip
               :key="index">
@@ -102,9 +102,7 @@
         </template>
         <el-table-column v-if="!isReadOnly" :label="$t('commons.operating')" align="center">
           <template slot="header">
-            <span>{{ $t('commons.operating') }}
-             <i class='el-icon-setting' style="color:#7834c1; margin-left:10px" @click="customHeader"> </i>
-            </span>
+            <header-label-operate @exec="customHeader"/>
           </template>
           <template v-slot:default="scope">
             <ms-table-operator-button class="run-button" :is-tester-permission="true" :tip="$t('api_test.run')"
@@ -133,15 +131,17 @@ import MsTablePagination from "@/business/components/common/pagination/TablePagi
 import MsPerformanceTestStatus from "@/business/components/performance/test/PerformanceTestStatus";
 import MsTableOperatorButton from "@/business/components/common/components/MsTableOperatorButton";
 import LoadCaseReport from "@/business/components/track/plan/view/comonents/load/LoadCaseReport";
-import {_filter, _sort} from "@/common/js/tableUtils";
+import {_filter, _sort, getLabel, getSystemLabel} from "@/common/js/tableUtils";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import {TEST_CASE_LIST, TEST_PLAN_LOAD_CASE} from "@/common/js/constants";
 import {Test_Plan_Load_Case, Track_Test_Case} from "@/business/components/common/model/JsonData";
 import {getCurrentUser} from "@/common/js/utils";
+import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 
 export default {
   name: "TestPlanLoadCaseList",
   components: {
+    HeaderLabelOperate,
     HeaderCustom,
     LoadCaseReport,
     TestPlanLoadCaseListHeader,
@@ -154,7 +154,7 @@ export default {
     return {
       type: TEST_PLAN_LOAD_CASE,
       headerItems: Test_Plan_Load_Case,
-      tableLabel: Test_Plan_Load_Case,
+      tableLabel: [],
       condition: {},
       result: {},
       tableData: [],
@@ -192,11 +192,14 @@ export default {
       default: false
     },
     planId: String,
+    reviewId: String,
     clickType: String,
   },
   created() {
     this.initTable();
     this.refreshStatus();
+    getSystemLabel(this, this.type)
+
   },
   watch: {
     selectProjectId() {
@@ -208,10 +211,11 @@ export default {
   },
   methods: {
     customHeader() {
+      getLabel(this, TEST_PLAN_LOAD_CASE);
       this.$refs.headerCustom.open(this.tableLabel)
     },
     initTable() {
-      this.getLabel()
+      this.autoCheckStatus();
       this.selectRows = new Set();
       this.condition.testPlanId = this.planId;
       if (this.selectProjectId && this.selectProjectId !== 'root') {
@@ -225,30 +229,30 @@ export default {
         }
         this.status = 'all';
       }
-      this.$post("/test/plan/load/case/list/" + this.currentPage + "/" + this.pageSize, this.condition, response => {
-        let data = response.data;
-        let {itemCount, listObject} = data;
-        this.total = itemCount;
-        this.tableData = listObject;
-      })
+      if (this.planId) {
+        this.condition.testPlanId = this.planId;
+        this.$post("/test/plan/load/case/list/" + this.currentPage + "/" + this.pageSize, this.condition, response => {
+          let data = response.data;
+          let {itemCount, listObject} = data;
+          this.total = itemCount;
+          this.tableData = listObject;
+        })
+      }
+      if (this.reviewId) {
+        this.condition.testCaseReviewId = this.reviewId;
+        this.$post("/test/review/load/case/list/" + this.currentPage + "/" + this.pageSize, this.condition, response => {
+          let data = response.data;
+          let {itemCount, listObject} = data;
+          this.total = itemCount;
+          this.tableData = listObject;
+        })
+      }
+      getLabel(this, TEST_PLAN_LOAD_CASE);
+
     },
-    getLabel() {
-      let param = {}
-      param.userId = getCurrentUser().id;
-      param.type = TEST_PLAN_LOAD_CASE
-      this.result = this.$post('/system/header/info', param, response => {
-        if (response.data != null) {
-          let arry = eval(response.data.props);
-          let obj = {};
-          for (let key in arry) {
-            obj[key] = arry[key];
-          }
-          let newObj = Object.keys(obj).map(val => ({
-            prop: obj[val]
-          }))
-          this.tableLabel = newObj
-        }
-      })
+    autoCheckStatus() {
+      this.$post('/test/plan/autoCheck/' + this.planId, (response) => {
+      });
     },
     refreshStatus() {
       this.refreshScheduler = setInterval(() => {
@@ -285,11 +289,20 @@ export default {
         callback: (action) => {
           if (action === 'confirm') {
             let ids = Array.from(this.selectRows).map(row => row.id);
-            this.result = this.$post('/test/plan/load/case/batch/delete', ids, () => {
-              this.selectRows.clear();
-              this.initTable();
-              this.$success(this.$t('test_track.cancel_relevance_success'));
-            });
+            if (this.planId) {
+              this.result = this.$post('/test/plan/load/case/batch/delete', ids, () => {
+                this.selectRows.clear();
+                this.initTable();
+                this.$success(this.$t('test_track.cancel_relevance_success'));
+              });
+            }
+            if (this.reviewId) {
+              this.result = this.$post('/test/review/load/case/batch/delete', ids, () => {
+                this.selectRows.clear();
+                this.initTable();
+                this.$success(this.$t('test_track.cancel_relevance_success'));
+              });
+            }
           }
         }
       })

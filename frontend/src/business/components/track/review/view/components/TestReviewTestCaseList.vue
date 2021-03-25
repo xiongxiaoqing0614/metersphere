@@ -1,13 +1,7 @@
 <template>
   <div class="card-container">
-    <el-card class="card-content" v-loading="result.loading">
-      <template v-slot:header>
-        <ms-table-header :is-tester-permission="true" :condition.sync="condition" @search="initTableData"
+        <ms-table-header :tester-permission="true" :condition.sync="condition" @search="initTableData"
                          :show-create="false" :tip="$t('commons.search_by_name_or_id')">
-          <template v-slot:title>
-            <node-breadcrumb class="table-title" :nodes="selectParentNodes" @refresh="refresh"
-                             :title="$t('test_track.review_view.all_case')"/>
-          </template>
           <template v-slot:button>
             <ms-table-button :is-tester-permission="true" icon="el-icon-video-play"
                              :content="$t('test_track.review_view.start_review')" @click="startReview"/>
@@ -16,7 +10,6 @@
                              @click="$emit('openTestReviewRelevanceDialog')"/>
           </template>
         </ms-table-header>
-      </template>
 
       <executor-edit ref="executorEdit" :select-ids="new Set(Array.from(this.selectRows).map(row => row.id))"
                      @refresh="initTableData"/>
@@ -43,7 +36,7 @@
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
           <el-table-column
-            v-if="item.prop == 'num'"
+            v-if="item.id == 'num'"
             prop="num"
             sortable="custom"
             :label="$t('commons.id')"
@@ -52,7 +45,7 @@
           >
           </el-table-column>
           <el-table-column
-            v-if="item.prop == 'name'"
+            v-if="item.id == 'name'"
             prop="name"
             :label="$t('commons.name')"
             show-overflow-tooltip
@@ -60,7 +53,7 @@
           >
           </el-table-column>
           <el-table-column
-            v-if="item.prop == 'priority'"
+            v-if="item.id == 'priority'"
             prop="priority"
             :filters="priorityFilters"
             column-key="priority"
@@ -72,7 +65,7 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop == 'type'"
+            v-if="item.id == 'type'"
             prop="type"
             :filters="typeFilters"
             column-key="type"
@@ -84,8 +77,8 @@
             </template>
           </el-table-column>
 
-          <el-table-column
-            v-if="item.prop=='method'"
+<!--          <el-table-column
+            v-if="item.id=='method'"
             prop="method"
             :filters="methodFilters"
             column-key="method"
@@ -95,10 +88,10 @@
             <template v-slot:default="scope">
               <method-table-item :value="scope.row.method"/>
             </template>
-          </el-table-column>
+          </el-table-column>-->
 
           <el-table-column
-            v-if="item.prop=='nodePath'"
+            v-if="item.id=='nodePath'"
             prop="nodePath"
             :label="$t('test_track.case.module')"
             show-overflow-tooltip
@@ -107,7 +100,7 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop=='projectName'"
+            v-if="item.id=='projectName'"
             prop="projectName"
             :label="$t('test_track.review.review_project')"
             show-overflow-tooltip
@@ -115,7 +108,7 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop=='reviewerName'"
+            v-if="item.id=='reviewerName'"
             prop="reviewerName"
             :label="$t('test_track.review.reviewer')"
             show-overflow-tooltip
@@ -124,7 +117,7 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop=='reviewStatus'"
+            v-if="item.id=='reviewStatus'"
             :filters="statusFilters"
             column-key="status"
             :label="$t('test_track.review_view.execute_result')"
@@ -137,7 +130,7 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop=='updateTime'"
+            v-if="item.id=='updateTime'"
             sortable
             prop="updateTime"
             :label="$t('commons.update_time')"
@@ -153,9 +146,7 @@
           :label="$t('commons.operating')"
         >
           <template slot="header">
-            <span>{{ $t('commons.operating') }}
-             <i class='el-icon-setting' style="color:#7834c1; margin-left:10px" @click="customHeader"> </i>
-            </span>
+            <header-label-operate @exec="customHeader"/>
           </template>
           <template v-slot:default="scope">
             <ms-table-operator-button :is-tester-permission="true" :tip="$t('commons.edit')" icon="el-icon-edit"
@@ -178,7 +169,6 @@
         :is-read-only="isReadOnly"
         @refreshTable="search"/>
 
-    </el-card>
 
     <batch-edit ref="batchEdit" @batchEdit="batchEdit"
                 :type-arr="typeArr" :value-arr="valueArr" :dialog-title="$t('test_track.case.batch_edit_case')"/>
@@ -212,13 +202,15 @@ import {
 } from "../../../../../../common/js/constants";
 import TestReviewTestCaseEdit from "./TestReviewTestCaseEdit";
 import ReviewStatus from "@/business/components/track/case/components/ReviewStatus";
-import {_filter, _sort} from "@/common/js/tableUtils";
+import {_filter, _sort, getLabel, getSystemLabel} from "@/common/js/tableUtils";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import {Test_Case_Review_Case_List, Track_Test_Case} from "@/business/components/common/model/JsonData";
+import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 
 export default {
   name: "TestReviewTestCaseList",
   components: {
+    HeaderLabelOperate,
     HeaderCustom,
     MsTableOperatorButton, MsTableOperator, MethodTableItem, TypeTableItem,
     StatusTableItem, PriorityTableItem, StatusEdit,
@@ -229,7 +221,7 @@ export default {
     return {
       type: TEST_CASE_REVIEW_CASE_LIST,
       headerItems: Test_Case_Review_Case_List,
-      tableLabel: Test_Case_Review_Case_List,
+      tableLabel: [],
       result: {},
       condition: {},
       tableData: [],
@@ -304,14 +296,25 @@ export default {
     this.refreshTableAndReview();
     this.isTestManagerOrTestUser = checkoutTestManagerOrTestUser();
   },
+  created() {
+    getSystemLabel(this, this.type)
+  },
   methods: {
     customHeader() {
+      getLabel(this, TEST_CASE_REVIEW_CASE_LIST);
       this.$refs.headerCustom.open(this.tableLabel)
     },
     initTableData() {
-      this.getLabel()
       if (this.reviewId) {
         this.condition.reviewId = this.reviewId;
+      }
+      if (this.clickType) {
+        if (this.status == 'default') {
+          this.condition.status = this.clickType;
+        } else {
+          this.condition.status = null;
+        }
+        this.status = 'all';
       }
       this.condition.nodeIds = this.selectNodeIds;
       if (this.reviewId) {
@@ -322,24 +325,8 @@ export default {
           this.selectRows.clear();
         });
       }
-    },
-    getLabel() {
-      let param = {}
-      param.userId = getCurrentUser().id;
-      param.type = TEST_CASE_REVIEW_CASE_LIST
-      this.result = this.$post('/system/header/info', param, response => {
-        if (response.data != null) {
-          let arry = eval(response.data.props);
-          let obj = {};
-          for (let key in arry) {
-            obj[key] = arry[key];
-          }
-          let newObj = Object.keys(obj).map(val => ({
-            prop: obj[val]
-          }))
-          this.tableLabel = newObj
-        }
-      })
+      getLabel(this, TEST_CASE_REVIEW_CASE_LIST);
+
     },
     showDetail(row, event, column) {
       this.isReadOnly = true;
@@ -482,6 +469,14 @@ export default {
 </script>
 
 <style scoped>
+.ms-table-header {
+  margin: 20px;
+}
 
+/deep/ .table-title {
+  height: 0px;
+  font-weight: bold;
+  font-size: 0px;
+}
 </style>
 

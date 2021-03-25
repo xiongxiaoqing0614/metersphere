@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-card class="table-card" v-loading="loading">
+    <el-card class="table-card" v-loading="result.loading">
       <template v-slot:header>
         <ms-table-header :condition.sync="condition" @search="selectByParam" title=""
                          :show-create="false" :tip="$t('commons.search_by_id_name_tag')"/>
@@ -12,8 +12,7 @@
                 @select-all="handleSelectAll"
                 @select="handleSelect"
                 @header-dragend="headerDragend"
-                :height="screenHeight"
-                v-loading="loading">
+                :height="screenHeight">
 
         <el-table-column type="selection" width="50"/>
 
@@ -25,28 +24,29 @@
 
         <el-table-column v-if="!referenced" width="30" min-width="30" :resizable="false" align="center">
           <template v-slot:default="scope">
-            <show-more-btn :is-show="scope.row.showMore" :buttons="buttons" :size="selectDataCounts"/>
+            <show-more-btn :is-show="scope.row.showMore" :buttons="trashEnable ? trashButtons: buttons" :size="selectDataCounts" v-tester/>
           </template>
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
-          <el-table-column v-if="item.prop == 'num'" prop="num" label="ID"
+          <el-table-column v-if="item.id == 'num'" prop="num" label="ID"
                            sortable="custom"
                            min-width="120px"
                            show-overflow-tooltip :key="index">
             <template slot-scope="scope">
-              <el-tooltip content="编辑">
+              <span style="cursor:pointer" v-if="isReadOnly"> {{ scope.row.num }} </span>
+              <el-tooltip v-else content="编辑">
                 <a style="cursor:pointer" @click="edit(scope.row)"> {{ scope.row.num }} </a>
               </el-tooltip>
             </template>
           </el-table-column>
-          <el-table-column v-if="item.prop == 'name'" prop="name"
+          <el-table-column v-if="item.id == 'name'" prop="name"
                            sortable="custom"
                            :label="$t('api_test.automation.scenario_name')"
                            show-overflow-tooltip
                            min-width="120px"
                            :key="index"
           />
-          <el-table-column v-if="item.prop == 'level'" prop="level"
+          <el-table-column v-if="item.id == 'level'" prop="level"
                            sortable="custom"
                            column-key="level"
                            :filters="levelFilters"
@@ -57,7 +57,7 @@
               <priority-table-item :value="scope.row.level"/>
             </template>
           </el-table-column>
-          <el-table-column v-if="item.prop == 'status'" prop="status" :label="$t('test_track.plan.plan_status')"
+          <el-table-column v-if="item.id == 'status'" prop="status" :label="$t('test_track.plan.plan_status')"
                            sortable="custom"
                            column-key="status"
                            :filters="statusFilters"
@@ -66,32 +66,30 @@
               <plan-status-table-item :value="scope.row.status"/>
             </template>
           </el-table-column>
-          <el-table-column v-if="item.prop == 'tags'" prop="tags" min-width="120px"
+          <el-table-column v-if="item.id == 'tags'" prop="tags" min-width="120px"
                            :label="$t('api_test.automation.tag')" :key="index">
             <template v-slot:default="scope">
-              <div v-for="(itemName,index)  in scope.row.tags" :key="index">
-                <ms-tag type="success" effect="plain" :content="itemName"/>
-              </div>
+              <ms-tag v-for="(itemName,index)  in scope.row.tags" :key="index" type="success" effect="plain" :content="itemName" :show-tooltip="true" tooltip style="margin-left: 0px; margin-right: 2px"/>
             </template>
           </el-table-column>
-          <el-table-column v-if="item.prop == 'userId'" prop="userId" min-width="120px"
+          <el-table-column v-if="item.id == 'userId'" prop="userId" min-width="120px"
                            :label="$t('api_test.automation.creator')"
                            :filters="userFilters"
                            column-key="user_id"
                            sortable="custom"
                            show-overflow-tooltip
                            :key="index"/>
-          <el-table-column v-if="item.prop == 'updateTime'" prop="updateTime"
+          <el-table-column v-if="item.id == 'updateTime'" prop="updateTime"
                            :label="$t('api_test.automation.update_time')" sortable="custom" min-width="180px"
                            :key="index">
             <template v-slot:default="scope">
               <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
             </template>
           </el-table-column>
-          <el-table-column v-if="item.prop == 'stepTotal'" prop="stepTotal" :label="$t('api_test.automation.step')"
+          <el-table-column v-if="item.id == 'stepTotal'" prop="stepTotal" :label="$t('api_test.automation.step')"
                            min-width="80px"
                            show-overflow-tooltip :key="index"/>
-          <el-table-column v-if="item.prop == 'lastResult'" prop="lastResult"
+          <el-table-column v-if="item.id == 'lastResult'" prop="lastResult"
                            :label="$t('api_test.automation.last_result')"
                            :filters="resultFilters"
 
@@ -105,16 +103,14 @@
               </el-link>
             </template>
           </el-table-column>
-          <el-table-column v-if="item.prop == 'passRate'" prop="passRate"
+          <el-table-column v-if="item.id == 'passRate'" prop="passRate"
                            :label="$t('api_test.automation.passing_rate')"
                            min-width="120px"
                            show-overflow-tooltip :key="index"/>
         </template>
-        <el-table-column fixed="right" :label="$t('commons.operating')" width="190px" v-if="!referenced">
+        <el-table-column fixed="right" :label="$t('commons.operating')" width="190px" v-if="!referenced && !isReadOnly">
           <template slot="header">
-            <span>{{ $t('commons.operating') }}
-             <i class='el-icon-setting' style="color:#7834c1; margin-left:10px" @click="customHeader"> </i>
-            </span>
+            <header-label-operate @exec="customHeader"/>
           </template>
           <template v-slot:default="{row}">
             <div v-if="trashEnable">
@@ -150,15 +146,12 @@
         <!--测试计划-->
         <el-drawer :visible.sync="planVisible" :destroy-on-close="true" direction="ltr" :withHeader="false"
                    :title="$t('test_track.plan_view.test_result')" :modal="false" size="90%">
-          <ms-test-plan-list @addTestPlan="addTestPlan" @cancel="cancel"/>
+          <ms-test-plan-list @addTestPlan="addTestPlan(arguments)" @cancel="cancel" ref="testPlanList" :row="selectRows"/>
         </el-drawer>
       </div>
     </el-card>
 
     <batch-edit ref="batchEdit" @batchEdit="batchEdit" :typeArr="typeArr" :value-arr="valueArr" :dialog-title="$t('test_track.case.batch_edit_case')">
-      <template v-slot:value>
-        <environment-select :current-data="{}" :project-id="projectId"/>
-      </template>
     </batch-edit>
 
     <batch-move @refresh="search" @moveSave="moveSave" ref="testBatchMove"/>
@@ -171,7 +164,7 @@
   import MsTablePagination from "@/business/components/common/pagination/TablePagination";
   import ShowMoreBtn from "@/business/components/track/case/components/ShowMoreBtn";
   import MsTag from "../../../common/components/MsTag";
-  import {downloadFile, getCurrentProjectID, getCurrentUser, getUUID} from "@/common/js/utils";
+  import {downloadFile, getUUID, strMapToObj} from "@/common/js/utils";
   import MsApiReportDetail from "../report/ApiReportDetail";
   import MsTableMoreBtn from "./TableMoreBtn";
   import MsScenarioExtendButtons from "@/business/components/api/automation/scenario/ScenarioExtendBtns";
@@ -186,7 +179,7 @@
   import {PROJECT_NAME} from "../../../../../common/js/constants";
   import EnvironmentSelect from "../../definition/components/environment/EnvironmentSelect";
   import BatchMove from "../../../track/case/components/BatchMove";
-  import {_sort} from "@/common/js/tableUtils";
+  import {_sort, getLabel, getSystemLabel} from "@/common/js/tableUtils";
   import {Api_Scenario_List} from "@/business/components/common/model/JsonData";
   import HeaderCustom from "@/business/components/common/head/HeaderCustom";
   import {
@@ -196,10 +189,12 @@
     getSelectDataCounts,
     setUnSelectIds, toggleAllSelection
   } from "@/common/js/tableUtils";
+  import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 
   export default {
     name: "MsApiScenarioList",
     components: {
+      HeaderLabelOperate,
       HeaderCustom,
       BatchMove,
       EnvironmentSelect,
@@ -223,6 +218,10 @@
         default: false,
       },
       selectNodeIds: Array,
+      selectProjectId: {
+        type: String,
+        default: ""
+      },
       trashEnable: {
         type: Boolean,
         default: false,
@@ -238,14 +237,19 @@
         default() {
           return []
         },
+      },
+      //用于判断是否是只读用户
+      isReadOnly: {
+        type: Boolean,
+        default: false,
       }
     },
     data() {
       return {
+        result: {},
         type: API_SCENARIO_LIST,
         headerItems: Api_Scenario_List,
-        tableLabel: Api_Scenario_List,
-        loading: false,
+        tableLabel: [],
         screenHeight: document.documentElement.clientHeight - 280,//屏幕高度,
         condition: {
           components: API_SCENARIO_CONFIGS
@@ -264,7 +268,6 @@
         infoDb: false,
         runVisible: false,
         planVisible: false,
-        projectId: "",
         runData: [],
         report: {},
         selectDataSize: 0,
@@ -282,7 +285,15 @@
           },
           {
             name: this.$t('test_track.case.batch_move_case'), handleClick: this.handleBatchMove
-          }
+          },
+          {name: this.$t('api_test.definition.request.batch_delete'), handleClick: this.handleDeleteBatch},
+
+        ],
+        trashButtons: [
+          {name: this.$t('api_test.definition.request.batch_delete'), handleClick: this.handleDeleteBatch},
+          {
+            name: "批量恢复", handleClick: this.handleBatchRestore
+          },
         ],
         isSelectAllDate: false,
         selectRows: new Set(),
@@ -291,7 +302,8 @@
           {id: 'level', name: this.$t('test_track.case.priority')},
           {id: 'status', name: this.$t('test_track.plan.plan_status')},
           {id: 'principal', name: this.$t('api_test.definition.request.responsible'), optionMethod: this.getPrincipalOptions},
-          {id: 'environmentId', name: this.$t('api_test.definition.request.run_env'), optionMethod: this.getEnvsOptions},
+          // {id: 'environmentId', name: this.$t('api_test.definition.request.run_env'), optionMethod: this.getEnvsOptions},
+          {id: 'projectEnv', name: this.$t('api_test.definition.request.run_env')},
         ],
         statusFilters: [
           {text: this.$t('test_track.plan.plan_status_prepare'), value: 'Prepare'},
@@ -322,19 +334,21 @@
             {name: this.$t('test_track.plan.plan_status_completed'), id: 'Completed'}
           ],
           principal: [],
-          environmentId: []
+          environmentId: [],
+          projectEnv: [],
         },
       }
     },
     created() {
       this.condition.filters = {status: ["Prepare", "Underway", "Completed"]};
-      this.projectId = getCurrentProjectID();
       this.search();
       this.getPrincipalOptions([]);
+      getSystemLabel(this, this.type)
+
     },
     watch: {
       selectNodeIds() {
-        this.search();
+        this.selectProjectId ? this.search(this.selectProjectId) : this.search();
       },
       trashEnable() {
         if (this.trashEnable) {
@@ -346,33 +360,39 @@
         this.search();
       },
       batchReportId() {
-        this.loading = true;
+        this.result.loading = true;
         this.getReport();
       }
     },
     computed: {
       isNotRunning() {
         return "Running" !== this.report.status;
-      }
+      },
+      projectId() {
+        return this.$store.state.projectId
+      },
     },
     methods: {
       customHeader() {
+        getLabel(this, API_SCENARIO_LIST);
         this.$refs.headerCustom.open(this.tableLabel)
       },
       selectByParam() {
         this.changeSelectDataRangeAll();
         this.search();
       },
-      search() {
+      search(projectId) {
         this.selectRows = new Set();
-        this.getLabel()
         this.condition.moduleIds = this.selectNodeIds;
         if (this.trashEnable) {
           this.condition.filters = {status: ["Trash"]};
           this.condition.moduleIds = [];
         }
 
-        if (this.projectId != null) {
+        // todo
+        if (projectId != null && typeof projectId === 'string') {
+          this.condition.projectId = projectId;
+        } else if (this.projectId != null) {
           this.condition.projectId = this.projectId;
         }
 
@@ -400,7 +420,7 @@
         this.selectDataCounts = 0;
         let url = "/api/automation/list/" + this.currentPage + "/" + this.pageSize;
         if (this.condition.projectId) {
-          this.loading = true;
+          this.result.loading = true;
           this.$post(url, this.condition, response => {
             let data = response.data;
             this.total = data.itemCount;
@@ -410,28 +430,14 @@
                 item.tags = JSON.parse(item.tags);
               }
             });
-            this.loading = false;
+            this.result.loading = false;
             this.unSelection = data.listObject.map(s => s.id);
+            if (this.$refs.scenarioTable) {
+              this.$refs.scenarioTable.doLayout()
+            }
           });
         }
-      },
-      getLabel() {
-        let param = {}
-        param.userId = getCurrentUser().id;
-        param.type = API_SCENARIO_LIST
-        this.result = this.$post('/system/header/info', param, response => {
-          if (response.data != null) {
-            let arry = eval(response.data.props);
-            let obj = {};
-            for (let key in arry) {
-              obj[key] = arry[key];
-            }
-            let newObj = Object.keys(obj).map(val => ({
-              prop: obj[val]
-            }))
-            this.tableLabel = newObj
-          }
-        })
+        getLabel(this, API_SCENARIO_LIST);
       },
       handleCommand(cmd) {
         let table = this.$refs.scenarioTable;
@@ -450,6 +456,7 @@
       },
       handleBatchEdit() {
         this.$refs.batchEdit.open(this.selectDataCounts);
+        this.$refs.batchEdit.setScenarioSelectRows(this.selectRows, "scenario");
       },
       handleBatchMove() {
         this.$refs.testBatchMove.open(this.moduleTree, [], this.moduleOptions);
@@ -464,13 +471,27 @@
         });
       },
       batchEdit(form) {
-        let param = {};
-        param[form.type] = form.value;
-        this.buildBatchParam(param);
-        this.$post('/api/automation/batch/edit', param, () => {
-          this.$success(this.$t('commons.save_success'));
-          this.search();
-        });
+        // 批量修改环境
+        if (form.type === 'projectEnv') {
+          let param = {};
+          param.mapping = strMapToObj(form.map);
+          param.envMap = strMapToObj(form.projectEnvMap);
+          this.$post('/api/automation/batch/update/env', param, () => {
+            this.$success(this.$t('commons.save_success'));
+            this.search();
+          })
+        } else {
+          // 批量修改其它
+          let param = {};
+          param[form.type] = form.value;
+          this.buildBatchParam(param);
+          this.$post('/api/automation/batch/edit', param, () => {
+            this.$success(this.$t('commons.save_success'));
+            this.search();
+          });
+        }
+
+
       },
       getPrincipalOptions(option) {
         let workspaceId = localStorage.getItem(WORKSPACE_ID);
@@ -496,17 +517,27 @@
       cancel() {
         this.planVisible = false;
       },
-      addTestPlan(plans) {
-        let obj = {planIds: plans, scenarioIds: this.selection};
+      addTestPlan(params) {
+        let obj = {planIds: params[0], scenarioIds: this.selection};
 
-        obj.projectId = getCurrentProjectID();
-        obj.selectAllDate = this.isSelectAllDate;
-        obj.unSelectIds = this.unSelection;
-        obj = Object.assign(obj, this.condition);
+        // obj.projectId = getCurrentProjectID();
+        // obj.selectAllDate = this.isSelectAllDate;
+        // obj.unSelectIds = this.unSelection;
+        // obj = Object.assign(obj, this.condition);
+
+        // todo 选取全部数据
+        if (this.isSelectAllDate) {
+          this.$warning("暂不支持批量添加所有场景到测试计划！");
+        }
 
         this.planVisible = false;
+
+        obj.mapping = strMapToObj(params[2]);
+        obj.envMap = strMapToObj(params[1]);
+
         this.$post("/api/automation/scenario/plan", obj, response => {
           this.$success(this.$t("commons.save_success"));
+          this.search();
         });
       },
       getReport() {
@@ -521,13 +552,13 @@
                 } catch (e) {
                   throw e;
                 }
-                this.loading = false;
+                this.result.loading = false;
                 this.$success("批量执行成功，请到报告页面查看详情！");
               } else {
                 setTimeout(this.getReport, 2000)
               }
             } else {
-              this.loading = false;
+              this.result.loading = false;
               this.$error(this.$t('api_report.not_exist'));
             }
           });
@@ -535,7 +566,7 @@
       },
       buildBatchParam(param) {
         param.ids = Array.from(this.selectRows).map(row => row.id);
-        param.projectId = getCurrentProjectID();
+        param.projectId = this.projectId;
         param.condition = this.condition;
       },
       handleBatchExecute() {
@@ -574,14 +605,41 @@
         this.$emit('edit', data);
       },
       reductionApi(row) {
-        row.scenarioDefinition = null;
-        row.tags = null;
-        let rows = [row];
-        this.$post("/api/automation/reduction", rows, response => {
+        this.$post("/api/automation/reduction", [row.id], response => {
           this.$success(this.$t('commons.save_success'));
           this.search();
         })
       },
+      handleBatchRestore() {
+        let ids = Array.from(this.selectRows).map(row => row.id);
+        this.$post("/api/automation/reduction", ids, response => {
+          this.$success(this.$t('commons.save_success'));
+          this.search();
+        })
+      },
+      handleDeleteBatch(row) {
+        if (this.trashEnable) {
+          let ids = Array.from(this.selectRows).map(row => row.id);
+          this.$post('/api/automation/deleteBatch/', ids, () => {
+            this.$success(this.$t('commons.delete_success'));
+            this.search();
+          });
+          return;
+        }
+        this.$alert(this.$t('api_test.definition.request.delete_confirm') + " ？", '', {
+          confirmButtonText: this.$t('commons.confirm'),
+          callback: (action) => {
+            if (action === 'confirm') {
+              let ids = Array.from(this.selectRows).map(row => row.id);
+              this.$post('/api/automation/removeToGc/', ids, () => {
+                this.$success(this.$t('commons.delete_success'));
+                this.search();
+              });
+            }
+          }
+        });
+      },
+
       execute(row) {
         this.infoDb = false;
         let url = "/api/automation/run";
@@ -589,8 +647,8 @@
         let scenarioIds = [];
         scenarioIds.push(row.id);
         run.id = getUUID();
-        run.projectId = getCurrentProjectID();
-        run.scenarioIds = scenarioIds;
+        run.projectId = this.projectId;
+        run.ids = scenarioIds;
         this.$post(url, run, response => {
           let data = response.data;
           this.runVisible = true;
@@ -667,9 +725,9 @@
           this.$warning(this.$t("api_test.automation.scenario.check_case"));
           return;
         }
-        this.loading = true;
+        this.result.loading = true;
         this.result = this.$post("/api/automation/export", param, response => {
-          this.loading = false;
+          this.result.loading = false;
           let obj = response.data;
           this.buildApiPath(obj.data);
           downloadFile("Metersphere_Scenario_" + localStorage.getItem(PROJECT_NAME) + ".json", JSON.stringify(obj));
@@ -682,11 +740,10 @@
           this.$warning(this.$t("api_test.automation.scenario.check_case"));
           return;
         }
-        this.loading = true;
+        this.result.loading = true;
         this.result = this.$post("/api/automation/export/jmx", param, response => {
-          this.loading = false;
+          this.result.loading = false;
           let obj = response.data;
-          console.log(obj)
           if (obj && obj.length > 0) {
             obj.forEach(item => {
               downloadFile(item.name + ".jmx", item.jmx);
@@ -719,10 +776,6 @@
 
   /deep/ .el-table__fixed-body-wrapper {
     z-index: auto !important;
-  }
-
-  /deep/ el-table__fixed-right {
-
   }
 
   /deep/ .el-table__fixed-right {

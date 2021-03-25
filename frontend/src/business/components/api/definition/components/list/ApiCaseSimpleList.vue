@@ -1,10 +1,6 @@
 <template>
   <div>
-    <api-list-container-with-doc
-      :is-api-list-enable="isApiListEnable"
-      :active-dom="activeDom"
-      @activeDomChange="activeDomChange"
-      @isApiListEnableChange="isApiListEnableChange">
+    <div>
       <el-link type="primary" style="float:right;margin-top: 5px" @click="open">{{$t('commons.adv_search.title')}}</el-link>
 
       <el-input :placeholder="$t('commons.search_by_id_name_tag')" @blur="search" @keyup.enter.native="search" class="search-input" size="small"
@@ -30,24 +26,27 @@
 
         <el-table-column width="30" :resizable="false" min-width="30px" align="center">
           <template v-slot:default="scope">
-            <show-more-btn :is-show="scope.row.showMore" :buttons="buttons" :size="selectDataCounts"/>
+            <!-- 选中后浮现提供批量操作的按钮-->
+            <show-more-btn :is-show="scope.row.showMore" :buttons="buttons" :size="selectDataCounts" v-tester/>
           </template>
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
-          <el-table-column v-if="item.prop == 'num'" prop="num" label="ID" min-width="120px" show-overflow-tooltip
+          <el-table-column v-if="item.id == 'num'" prop="num" label="ID" min-width="120px" show-overflow-tooltip
                            :key="index">
             <template slot-scope="scope">
-              <el-tooltip content="编辑">
+              <!-- 为只读用户的话不能编辑 -->
+              <span style="cursor:pointer" v-if="isReadOnly"> {{ scope.row.num }} </span>
+              <el-tooltip content="编辑" v-else>
                 <a style="cursor:pointer" @click="handleTestCase(scope.row)"> {{ scope.row.num }} </a>
               </el-tooltip>
             </template>
           </el-table-column>
 
-          <el-table-column v-if="item.prop == 'name'" prop="name" min-width="160px" :label="$t('test_track.case.name')"
+          <el-table-column v-if="item.id == 'name'" prop="name" min-width="160px" :label="$t('test_track.case.name')"
                            show-overflow-tooltip :key="index"/>
 
           <el-table-column
-            v-if="item.prop == 'priority'"
+            v-if="item.id == 'priority'"
             prop="priority"
             :filters="priorityFilters"
             column-key="priority"
@@ -61,37 +60,35 @@
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop == 'custom'"
-            sortable="custom"
-            prop="path"
-            min-width="180px"
-            :label="$t('api_test.definition.api_path')"
-            show-overflow-tooltip
-            :key="index"/>
+              v-if="item.id == 'path'"
+              sortable="custom"
+              prop="path"
+              min-width="180px"
+              :label="$t('api_test.definition.api_path')"
+              show-overflow-tooltip
+              :key="index"/>
 
-          <el-table-column v-if="item.prop=='tags'" prop="tags" min-width="120px" :label="$t('commons.tag')"
+          <el-table-column v-if="item.id=='tags'" prop="tags" min-width="120px" :label="$t('commons.tag')"
                            :key="index">
             <template v-slot:default="scope">
-              <div v-for="(itemName,index)  in scope.row.tags" :key="index">
-                <ms-tag type="success" effect="plain" :content="itemName"/>
-              </div>
+                <ms-tag  v-for="(itemName,index)  in scope.row.tags" :key="index" type="success" effect="plain" :content="itemName" style="margin-left: 0px; margin-right: 2px"/>
             </template>
           </el-table-column>
 
           <el-table-column
-            v-if="item.prop=='createUser'"
+            v-if="item.id=='createUser'"
             prop="createUser"
             :label="'创建人'"
             show-overflow-tooltip
             :key="index"/>
 
           <el-table-column
-            v-if="item.prop=='custom'"
-            sortable="custom"
-            min-width="160"
-            :label="$t('api_test.definition.api_last_time')"
-            prop="updateTime"
-            :key="index">
+              v-if="item.id=='updateTime'"
+              sortable="updateTime"
+              min-width="160"
+              :label="$t('api_test.definition.api_last_time')"
+              prop="updateTime"
+              :key="index">
             <template v-slot:default="scope">
               <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
             </template>
@@ -100,9 +97,7 @@
         <el-table-column fixed="right" v-if="!isReadOnly" :label="$t('commons.operating')" min-width="130"
                          align="center">
           <template slot="header">
-            <span>{{ $t('commons.operating') }}
-             <i class='el-icon-setting' style="color:#7834c1; margin-left:10px" @click="customHeader"> </i>
-            </span>
+            <header-label-operate @exec="customHeader"/>
           </template>
           <template v-slot:default="scope">
             <ms-table-operator-button :tip="$t('commons.edit')" icon="el-icon-edit" @exec="handleTestCase(scope.row)"
@@ -118,7 +113,7 @@
                      :type=type></header-custom>
       <ms-table-pagination :change="initTable" :current-page.sync="currentPage" :page-size.sync="pageSize"
                            :total="total"/>
-    </api-list-container-with-doc>
+    </div>
 
     <api-case-list @showExecResult="showExecResult" @refresh="initTable" :currentApi="selectCase" ref="caseList"/>
     <!--批量编辑-->
@@ -148,10 +143,7 @@ import ShowMoreBtn from "../../../../track/case/components/ShowMoreBtn";
 import MsBatchEdit from "../basis/BatchEdit";
 import {API_METHOD_COLOUR, CASE_PRIORITY, DUBBO_METHOD, REQ_METHOD, SQL_METHOD, TCP_METHOD} from "../../model/JsonData";
 
-import {getBodyUploadFiles, getCurrentProjectID, getCurrentUser} from "@/common/js/utils";
-import ApiListContainer from "./ApiListContainer";
-// import ApiListContainer from "./ApiListContainer";
-import ApiListContainerWithDoc from "@/business/components/api/definition/components/list/ApiListContainerWithDoc";
+import {getBodyUploadFiles} from "@/common/js/utils";
 import PriorityTableItem from "../../../../track/common/tableItems/planview/PriorityTableItem";
 import MsApiCaseTableExtendBtns from "../reference/ApiCaseTableExtendBtns";
 import MsReferenceView from "../reference/ReferenceView";
@@ -162,21 +154,21 @@ import {parseEnvironment} from "@/business/components/api/test/model/Environment
 import MsTableHeaderSelectPopover from "@/business/components/common/components/table/MsTableHeaderSelectPopover";
 import MsTableAdvSearchBar from "@/business/components/common/components/search/MsTableAdvSearchBar";
 import {API_CASE_CONFIGS} from "@/business/components/common/components/search/search-components";
-import {_filter, _handleSelect, _handleSelectAll, _sort,} from "@/common/js/tableUtils";
-import {API_CASE_LIST, API_LIST, API_SCENARIO_LIST, TEST_CASE_LIST} from "@/common/js/constants";
-import {Api_Case_List, Api_List, Track_Test_Case} from "@/business/components/common/model/JsonData";
+import {_filter, _handleSelect, _handleSelectAll, _sort, getLabel, getSystemLabel,} from "@/common/js/tableUtils";
+import {API_CASE_LIST} from "@/common/js/constants";
+import {Api_Case_List} from "@/business/components/common/model/JsonData";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
+import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 
 export default {
   name: "ApiCaseSimpleList",
   components: {
-    ApiListContainerWithDoc,
+    HeaderLabelOperate,
     HeaderCustom,
     MsTableHeaderSelectPopover,
     MsSetEnvironment,
     ApiCaseList,
     PriorityTableItem,
-    ApiListContainer,
     MsTableOperatorButton,
     MsTableOperator,
     MsTablePagination,
@@ -194,7 +186,7 @@ export default {
       return {
         type: API_CASE_LIST,
         headerItems: Api_Case_List,
-        tableLabel: Api_Case_List,
+        tableLabel: [],
         condition: {
           components: API_CASE_CONFIGS
         },
@@ -249,10 +241,6 @@ export default {
         type: Boolean,
         default: false,
       },
-      isApiListEnable: {
-        type: Boolean,
-        default: false,
-      },
       isReadOnly: {
         type: Boolean,
         default: false
@@ -272,9 +260,15 @@ export default {
     },
     created: function () {
       this.initTable();
+      getSystemLabel(this, this.type)
+      this.$nextTick(() => {
+        this.$refs.caseTable.bodyWrapper.scrollTop = 5
+      })
+      getLabel(this, API_CASE_LIST);
     },
     watch: {
       selectNodeIds() {
+        getLabel(this, API_CASE_LIST);
         this.initTable();
       },
       currentProtocol() {
@@ -289,36 +283,33 @@ export default {
         this.initTable();
       }
     },
-    computed: {
-
-      // 接口定义用例列表
-      isApiModel() {
-        return this.model === 'api'
-      },
+  computed: {
+    // 接口定义用例列表
+    isApiModel() {
+      return this.model === 'api'
     },
-    methods: {
-      customHeader() {
-        this.$refs.headerCustom.open(this.tableLabel)
-      },
-      isApiListEnableChange(data) {
-        this.$emit('isApiListEnableChange', data);
-      },
-      activeDomChange(tabType) {
-        this.$emit("activeDomChange", tabType);
-      },
-      initTable() {
-        this.getLabel()
-        this.selectRows = new Set();
-        this.condition.status = "";
-        this.condition.moduleIds = this.selectNodeIds;
-        if (this.trashEnable) {
+    projectId() {
+      return this.$store.state.projectId
+    },
+  },
+  methods: {
+    customHeader() {
+      getLabel(this, API_CASE_LIST);
+      this.$refs.headerCustom.open(this.tableLabel)
+    },
+    initTable() {
+      getLabel(this, API_CASE_LIST);
+      this.selectRows = new Set();
+      this.condition.status = "";
+      this.condition.moduleIds = this.selectNodeIds;
+      if (this.trashEnable) {
           this.condition.status = "Trash";
           this.condition.moduleIds = [];
         }
         this.selectAll = false;
         this.unSelection = [];
         this.selectDataCounts = 0;
-        this.condition.projectId = getCurrentProjectID();
+        this.condition.projectId = this.projectId;
 
         if (this.currentProtocol != null) {
           this.condition.protocol = this.currentProtocol;
@@ -348,26 +339,13 @@ export default {
                 item.tags = JSON.parse(item.tags);
               }
             })
+            if (this.$refs.caseTable) {
+              this.$refs.caseTable.doLayout()
+            }
           });
         }
-      },
-      getLabel() {
-        let param = {}
-        param.userId = getCurrentUser().id;
-        param.type = API_CASE_LIST
-        this.result = this.$post('/system/header/info', param, response => {
-          if (response.data != null) {
-            let arry = eval(response.data.props);
-            let obj = {};
-            for (let key in arry) {
-              obj[key] = arry[key];
-            }
-            let newObj = Object.keys(obj).map(val => ({
-              prop: obj[val]
-            }))
-            this.tableLabel = newObj
-          }
-        })
+        getLabel(this, API_CASE_LIST);
+
       },
       open() {
         this.$refs.searchBar.open();
@@ -435,7 +413,7 @@ export default {
           callback: (action) => {
             if (action === 'confirm') {
               let obj = {};
-              obj.projectId = getCurrentProjectID();
+              obj.projectId = this.projectId;
               obj.selectAllDate = this.isSelectAllDate;
               obj.unSelectIds = this.unSelection;
               obj.ids = Array.from(this.selectRows).map(row => row.id);
@@ -482,7 +460,7 @@ export default {
         let param = {};
         param[form.type] = form.value;
         param.ids = ids;
-        param.projectId = getCurrentProjectID();
+        param.projectId = this.projectId;
         param.selectAllDate = this.isSelectAllDate;
         param.unSelectIds = this.unSelection;
         param = Object.assign(param, this.condition);
@@ -493,9 +471,16 @@ export default {
       },
       handleDelete(apiCase) {
         // if (this.trashEnable) {
-        this.$get('/api/testcase/delete/' + apiCase.id, () => {
-          this.$success(this.$t('commons.delete_success'));
-          this.initTable();
+        this.$alert(this.$t('api_test.definition.request.delete_confirm') + ' ' + apiCase.name + " ？", '', {
+          confirmButtonText: this.$t('commons.confirm'),
+          callback: (action) => {
+            if (action === 'confirm') {
+              this.$get('/api/testcase/delete/' + apiCase.id, () => {
+                this.$success(this.$t('commons.delete_success'));
+                this.initTable();
+              });
+            }
+          }
         });
         return;
       },
@@ -547,7 +532,7 @@ export default {
       },
       showEnvironment(row) {
 
-        let projectID = getCurrentProjectID();
+        let projectID = this.projectId;
         if (this.projectId) {
           this.$get('/api/environment/list/' + this.projectId, response => {
             this.environments = response.data;
@@ -599,7 +584,7 @@ export default {
           id: row.id,
           testElement: testPlan,
           name: row.name,
-          projectId: getCurrentProjectID(),
+          projectId: this.projectId,
         };
         let bodyFiles = getBodyUploadFiles(reqObj, runData);
         reqObj.reportId = "run";
@@ -610,6 +595,9 @@ export default {
           let jmxObj = {};
           jmxObj.name = response.data.name;
           jmxObj.xml = response.data.xml;
+          jmxObj.attachFiles = response.data.attachFiles;
+          jmxObj.attachByteFiles = response.data.attachByteFiles;
+          jmxObj.caseId = reqObj.id;
           this.$store.commit('setTest', {
             name: row.name,
             jmx: jmxObj
@@ -661,4 +649,7 @@ export default {
     top: -2px;
   }
 
+  /deep/ .el-table__fixed {
+    height: 100% !important;
+  }
 </style>

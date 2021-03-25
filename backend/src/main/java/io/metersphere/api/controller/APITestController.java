@@ -15,27 +15,28 @@ import io.metersphere.api.service.*;
 import io.metersphere.base.domain.ApiTest;
 import io.metersphere.base.domain.Schedule;
 import io.metersphere.commons.constants.RoleConstants;
+import io.metersphere.commons.constants.ScheduleGroup;
 import io.metersphere.commons.utils.CronUtils;
 import io.metersphere.commons.utils.PageUtils;
 import io.metersphere.commons.utils.Pager;
 import io.metersphere.commons.utils.SessionUtils;
 import io.metersphere.controller.request.QueryScheduleRequest;
+import io.metersphere.controller.request.ScheduleRequest;
 import io.metersphere.dto.ScheduleDao;
 import io.metersphere.performance.service.PerformanceTestService;
 import io.metersphere.service.CheckPermissionService;
 import io.metersphere.service.ScheduleService;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jorphan.collections.HashTree;
 import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresRoles;
+import org.python.core.AstList;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static io.metersphere.commons.utils.JsonPathUtils.getListJson;
 
@@ -104,7 +105,7 @@ public class APITestController {
     }
 
     @PostMapping(value = "/schedule/create")
-    public void createSchedule(@RequestBody Schedule request) {
+    public void createSchedule(@RequestBody ScheduleRequest request) {
         apiTestService.createSchedule(request);
     }
 
@@ -342,10 +343,17 @@ public class APITestController {
         return returnList;
     }
 
-    @GetMapping("/runningTask/{projectID}")
-    public List<TaskInfoResult> runningTask(@PathVariable String projectID) {
-
-        List<TaskInfoResult> resultList = scheduleService.findRunningTaskInfoByProjectID(projectID);
+    @GetMapping("/runningTask/{projectID}/{callFrom}")
+    public List<TaskInfoResult> runningTask(@PathVariable String projectID, @PathVariable String callFrom) {
+        List<String> typeFilter = new ArrayList<>();
+        if(StringUtils.equals(callFrom, "api_test")) {   //  接口测试首页显示的运行中定时任务，只要这3种，不需要 性能测试、api_test(旧版)
+            typeFilter.add(ScheduleGroup.API_SCENARIO_TEST.name());
+            typeFilter.add(ScheduleGroup.SWAGGER_IMPORT.name());
+            typeFilter.add(ScheduleGroup.TEST_PLAN_TEST.name());
+        } else if(StringUtils.equals(callFrom, "track_home")) { //  测试跟踪首页只显示测试计划的定时任务
+            typeFilter.add(ScheduleGroup.TEST_PLAN_TEST.name());
+        }
+        List<TaskInfoResult> resultList = scheduleService.findRunningTaskInfoByProjectID(projectID, typeFilter);
         int dataIndex = 1;
         for (TaskInfoResult taskInfo :
                 resultList) {
@@ -378,11 +386,8 @@ public class APITestController {
         String testName = runRequest.getName();
 
         //将jmx处理封装为通用方法
-        jmxString = apiTestService.updateJmxString(jmxString,testName,false);
-
-        JmxInfoDTO dto = new JmxInfoDTO();
+        JmxInfoDTO dto = apiTestService.updateJmxString(jmxString,testName,false);
         dto.setName(runRequest.getName() + ".jmx");
-        dto.setXml(jmxString);
         return dto;
     }
 

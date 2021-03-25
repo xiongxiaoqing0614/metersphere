@@ -51,6 +51,15 @@ public class WorkspaceService {
     @Resource
     private UserService userService;
 
+    public Workspace getWorkspaceByName(String wsName) {
+        List<Workspace> listWS = getWorkspaceList(new WorkspaceRequest());
+        for(Workspace ws : listWS){
+            if(ws.getName().equalsIgnoreCase(wsName))
+                return ws;
+        }
+        return null;
+    }
+
     public Workspace saveWorkspace(Workspace workspace) {
         if (StringUtils.isBlank(workspace.getName())) {
             MSException.throwException(Translator.get("workspace_name_is_null"));
@@ -283,5 +292,13 @@ public class WorkspaceService {
         ProjectExample projectExample = new ProjectExample();
         projectExample.createCriteria().andWorkspaceIdEqualTo(workspaceId);
         return projectMapper.selectByExample(projectExample);
+    }
+
+    public String getOrganizationIdById(String resourceID) {
+        return extWorkspaceMapper.getOrganizationIdById(resourceID);
+    }
+
+    public List<WorkspaceDTO> findIdAndNameByOrganizationId(String organizationId) {
+        return extWorkspaceMapper.findIdAndNameByOrganizationId(organizationId);
     }
 }

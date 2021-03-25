@@ -12,6 +12,7 @@ import org.apache.jmeter.modifiers.JSR223PreProcessor;
 import org.apache.jmeter.save.SaveService;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jorphan.collections.HashTree;
+import org.graalvm.polyglot.Context;
 
 import java.util.List;
 
@@ -29,7 +30,8 @@ public class MsJSR223PreProcessor extends MsTestElement {
 
     @Override
     public void toHashTree(HashTree tree, List<MsTestElement> hashTree, ParameterConfig config) {
-        if (!this.isEnable()) {
+        // 非导出操作，且不是启用状态则跳过执行
+        if (!config.isOperating() && !this.isEnable()) {
             return;
         }
         final HashTree jsr223PreTree = tree.add(getJSR223PreProcessor());
@@ -41,8 +43,10 @@ public class MsJSR223PreProcessor extends MsTestElement {
     }
 
     public JSR223PreProcessor getJSR223PreProcessor() {
+        Context.newBuilder().allowNativeAccess(true).build();
+
         JSR223PreProcessor processor = new JSR223PreProcessor();
-        processor.setEnabled(true);
+        processor.setEnabled(this.isEnable());
         if (StringUtils.isNotEmpty(this.getName())) {
             processor.setName(this.getName());
         } else {
@@ -50,8 +54,15 @@ public class MsJSR223PreProcessor extends MsTestElement {
         }
         processor.setProperty(TestElement.TEST_CLASS, JSR223PreProcessor.class.getName());
         processor.setProperty(TestElement.GUI_CLASS, SaveService.aliasToClass("TestBeanGUI"));
-        processor.setProperty("cacheKey", "true");
+        /*processor.setProperty("cacheKey", "true");*/
         processor.setProperty("scriptLanguage", this.getScriptLanguage());
+        if (StringUtils.isNotEmpty(this.getScriptLanguage()) && this.getScriptLanguage().equals("nashornScript")) {
+            processor.setProperty("scriptLanguage", "nashorn");
+        }
+        if (StringUtils.isNotEmpty(this.getScriptLanguage()) && this.getScriptLanguage().equals("graalVMScript")) {
+            processor.setProperty("scriptLanguage", "javascript");
+        }
+
         processor.setProperty("script", this.getScript());
         return processor;
     }

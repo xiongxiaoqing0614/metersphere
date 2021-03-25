@@ -2,6 +2,8 @@ package io.metersphere.track.service;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import io.metersphere.api.dto.definition.ApiTestCaseDTO;
 import io.metersphere.api.dto.definition.ApiTestCaseRequest;
 import io.metersphere.api.dto.definition.RunDefinitionRequest;
@@ -12,12 +14,16 @@ import io.metersphere.api.dto.definition.request.MsThreadGroup;
 import io.metersphere.api.service.ApiDefinitionExecResultService;
 import io.metersphere.api.service.ApiDefinitionService;
 import io.metersphere.api.service.ApiTestCaseService;
+import io.metersphere.base.domain.ApiTestCaseExample;
 import io.metersphere.base.domain.ApiTestCaseWithBLOBs;
 import io.metersphere.base.domain.TestPlanApiCase;
 import io.metersphere.base.domain.TestPlanApiCaseExample;
 import io.metersphere.base.mapper.TestPlanApiCaseMapper;
 import io.metersphere.base.mapper.ext.ExtTestPlanApiCaseMapper;
+import io.metersphere.commons.utils.PageUtils;
+import io.metersphere.commons.utils.Pager;
 import io.metersphere.commons.utils.ServiceUtils;
+import io.metersphere.commons.utils.SessionUtils;
 import io.metersphere.track.request.testcase.TestPlanApiCaseBatchRequest;
 import org.apache.jmeter.testelement.TestElement;
 import org.springframework.context.annotation.Lazy;
@@ -27,9 +33,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -62,13 +66,15 @@ public class TestPlanApiCaseService {
         return extTestPlanApiCaseMapper.getExecResultByPlanId(plan);
     }
 
-    public List<ApiTestCaseDTO> relevanceList(ApiTestCaseRequest request) {
+    public Pager<List<ApiTestCaseDTO>> relevanceList(int goPage, int pageSize, ApiTestCaseRequest request) {
         List<String> ids = apiTestCaseService.selectIdsNotExistsInPlan(request.getProjectId(), request.getPlanId());
+        Page<Object> page = PageHelper.startPage(goPage, pageSize, true);
         if (CollectionUtils.isEmpty(ids)) {
-            return new ArrayList<>();
+            return PageUtils.setPageInfo(page, new ArrayList<>());
         }
         request.setIds(ids);
-        return apiTestCaseService.listSimple(request);
+        request.setWorkspaceId(SessionUtils.getCurrentWorkspaceId());
+        return PageUtils.setPageInfo(page, apiTestCaseService.listSimple(request));
     }
 
     public int delete(String id) {
@@ -128,5 +134,20 @@ public class TestPlanApiCaseService {
         request.setPlanId(planId);
         request.setIds(extTestPlanApiCaseMapper.getNotRelevanceCaseIds(planId, relevanceProjectIds));
         deleteApiCaseBath(request);
+    }
+
+    public void batchUpdateEnv(TestPlanApiCaseBatchRequest request) {
+        // 批量修改用例环境
+        Map<String, String> rows = request.getSelectRows();
+        Set<String> ids = rows.keySet();
+        Map<String, String> env = request.getProjectEnvMap();
+        if (env != null && !env.isEmpty()) {
+            ids.forEach(id -> {
+                TestPlanApiCase apiCase = new TestPlanApiCase();
+                apiCase.setId(id);
+                apiCase.setEnvironmentId(env.get(rows.get(id)));
+                testPlanApiCaseMapper.updateByPrimaryKeySelective(apiCase);
+            });
+        }
     }
 }

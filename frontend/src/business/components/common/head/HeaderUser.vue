@@ -9,10 +9,11 @@
         <el-dropdown-item command="about">{{ $t('commons.about_us') }} <i class="el-icon-info"/></el-dropdown-item>
         <el-dropdown-item command="help">{{ $t('commons.help_documentation') }}</el-dropdown-item>
         <el-dropdown-item command="ApiHelp">{{ $t('commons.api_help_documentation') }}</el-dropdown-item>
-        <el-dropdown-item command="old" v-show=isReadOnly @click.native="changeBar('old')">
+        <el-dropdown-item command="WikiHelp">{{ $t('commons.tuhu_wiki_documentation') }}</el-dropdown-item>
+        <el-dropdown-item command="old" v-show=isNewVersion @click.native="changeBar('old')">
           {{ $t('commons.cut_back_old_version') }}
         </el-dropdown-item>
-        <el-dropdown-item command="new" v-show=!isReadOnly @click.native="changeBar('new')">
+        <el-dropdown-item command="new" v-show=isOldVersion @click.native="changeBar('new')">
           {{ $t('commons.cut_back_new_version') }}
         </el-dropdown-item>
         <el-dropdown-item command="logout">{{ $t('commons.exit_system') }}</el-dropdown-item>
@@ -27,6 +28,7 @@
 import {getCurrentUser} from "@/common/js/utils";
 import AboutUs from "./AboutUs";
 import axios from "axios";
+import {mapGetters} from "vuex";
 
 const requireComponent = require.context('@/business/components/xpack/', true, /\.vue$/);
 const auth = requireComponent.keys().length > 0 ? requireComponent("./auth/Auth.vue") : {};
@@ -36,13 +38,16 @@ export default {
   components: {AboutUs},
   data() {
     return {
-      isReadOnly: this.$store.state.isReadOnly.flag
     }
   },
   computed: {
     currentUser: () => {
       return getCurrentUser();
-    }
+    },
+    ...mapGetters([
+      'isNewVersion',
+      'isOldVersion',
+    ])
   },
   methods: {
     logout: function () {
@@ -74,14 +79,15 @@ export default {
         case "ApiHelp":
           window.open('/swagger-ui/index.html?configUrl=/v3/api-docs/swagger-config', "_blank");
           break;
+        case "WikiHelp":
+          window.location.href = "https://wiki.tuhu.cn/pages/viewpage.action?pageId=99285997";
+          break;
         default:
           break;
       }
     },
     changeBar(item) {
-      this.isReadOnly = !this.isReadOnly
-      this.$store.commit('setFlag', this.isReadOnly);
-      this.$store.commit('setValue', item);
+      this.$store.commit('setVersionSwitch', item);
       if (item == "old") {
         window.location.href = "/#/api/home_obsolete";
       } else {

@@ -4,7 +4,9 @@
       <ms-table-header :is-tester-permission="true" :condition.sync="condition"
                        @search="initTableData" @create="testPlanCreate"
                        :create-tip="$t('test_track.plan.create_plan')"
-                       :title="$t('test_track.plan.test_plan')"/>
+                       :title="$t('test_track.plan.test_plan')"
+      />
+
     </template>
 
     <el-table
@@ -16,21 +18,21 @@
       @row-click="intoPlan">
       <template v-for="(item, index) in tableLabel">
         <el-table-column
-          v-if="item.prop == 'name'"
+          v-if="item.id == 'name'"
           prop="name"
           :label="$t('commons.name')"
           show-overflow-tooltip
           :key="index">
         </el-table-column>
         <el-table-column
-          v-if="item.prop == 'userName'"
+          v-if="item.id == 'userName'"
           prop="userName"
           :label="$t('test_track.plan.plan_principal')"
           show-overflow-tooltip
           :key="index">
         </el-table-column>
         <el-table-column
-          v-if="item.prop == 'status'"
+          v-if="item.id == 'status'"
           prop="status"
           column-key="status"
           :filters="statusFilters"
@@ -52,6 +54,10 @@
                   {{ $t('test_track.plan.plan_status_running') }}
                 </el-dropdown-item>
                 <el-dropdown-item :disabled="!isTestManagerOrTestUser"
+                                  :command="{item: scope.row, status: 'Finished'}">
+                  {{ $t('test_track.plan.plan_status_finished') }}
+                </el-dropdown-item>
+                <el-dropdown-item :disabled="!isTestManagerOrTestUser"
                                   :command="{item: scope.row, status: 'Completed'}">
                   {{ $t('test_track.plan.plan_status_completed') }}
                 </el-dropdown-item>
@@ -61,7 +67,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          v-if="item.prop == 'stage'"
+          v-if="item.id == 'stage'"
           prop="stage"
           column-key="stage"
           :filters="stageFilters"
@@ -73,25 +79,46 @@
           </template>
         </el-table-column>
         <el-table-column
-          v-if="item.prop == 'testRate'"
+          v-if="item.id == 'testRate'"
           prop="testRate"
           :label="$t('test_track.home.test_rate')"
           min-width="100"
           show-overflow-tooltip
           :key="index">
           <template v-slot:default="scope">
-            <el-progress :percentage="scope.row.testRate"></el-progress>
+            <el-progress :percentage="calPassRate(scope)"></el-progress>
           </template>
         </el-table-column>
-        <el-table-colum
-          v-if="item.prop == 'projectName'"
+        <el-table-column
+          v-if="item.id == 'projectName'"
           prop="projectName"
           :label="$t('test_track.plan.plan_project')"
           show-overflow-tooltip
           :key="index">
-        </el-table-colum>
+        </el-table-column>
+        <el-table-column  v-if="item.id == 'tags'" prop="tags"
+                         :label="$t('api_test.automation.tag')" :key="index">
+          <template v-slot:default="scope">
+            <ms-tag v-for="(itemName,index)  in scope.row.tags" :key="index" type="success" effect="plain"
+                    :content="itemName" style="margin-left: 0px; margin-right: 2px"></ms-tag>
+          </template>
+        </el-table-column>
         <el-table-column
-          v-if="item.prop == 'plannedStartTime'"
+          v-if="item.id == 'executionTimes'"
+          prop="executionTimes"
+          :label="$t('commons.execution_times')"
+          show-overflow-tooltip
+          :key="index">
+        </el-table-column>
+        <el-table-column
+          v-if="item.id == 'passRate'"
+          prop="passRate"
+          :label="$t('commons.pass_rate')"
+          show-overflow-tooltip
+          :key="index">
+        </el-table-column>
+        <el-table-column
+          v-if="item.id == 'plannedStartTime'"
           sortable
           prop="plannedStartTime"
           :label="$t('test_track.plan.planned_start_time')"
@@ -102,7 +129,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          v-if="item.prop == 'plannedEndTime'"
+          v-if="item.id == 'plannedEndTime'"
           sortable
           prop="plannedEndTime"
           :label="$t('test_track.plan.planned_end_time')"
@@ -113,7 +140,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          v-if="item.prop == 'actualStartTime'"
+          v-if="item.id == 'actualStartTime'"
           sortable
           prop="actualStartTime"
           :label="$t('test_track.plan.actual_start_time')"
@@ -124,7 +151,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          v-if="item.prop == 'actualEndTime'"
+          v-if="item.id == 'actualEndTime'"
           sortable
           prop="actualEndTime"
           :label="$t('test_track.plan.actual_end_time')"
@@ -139,9 +166,7 @@
         min-width="150"
         :label="$t('commons.operating')">
         <template slot="header">
-            <span>{{ $t('commons.operating') }}
-             <i class='el-icon-setting' style="color:#7834c1; margin-left:10px" @click="customHeader"> </i>
-            </span>
+          <header-label-operate @exec="customHeader"/>
         </template>
         <template v-slot:default="scope">
           <ms-table-operator :is-tester-permission="true" @editClick="handleEdit(scope.row)"
@@ -168,7 +193,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <header-custom ref="headerCustom" :initTableData="initTableData" :optionalFields=headerItems
+    <header-custom ref="headerCustom" :initTableData="inite" :optionalFields=headerItems
                    :type=type></header-custom>
 
 
@@ -199,17 +224,20 @@ import TestCaseReportView from "../view/comonents/report/TestCaseReportView";
 import MsDeleteConfirm from "../../../common/components/MsDeleteConfirm";
 import {TEST_PLAN_CONFIGS} from "../../../common/components/search/search-components";
 import {LIST_CHANGE, TrackEvent} from "@/business/components/common/head/ListEvent";
-import {getCurrentProjectID} from "../../../../../common/js/utils";
 import MsScheduleMaintain from "@/business/components/api/automation/schedule/ScheduleMaintain"
-import {_filter, _sort} from "@/common/js/tableUtils";
-import {TEST_CASE_LIST, TEST_PLAN_LIST} from "@/common/js/constants";
-import {Test_Plan_List, Track_Test_Case} from "@/business/components/common/model/JsonData";
+import {_filter, _sort, getLabel, getSystemLabel} from "@/common/js/tableUtils";
+import {TEST_PLAN_LIST} from "@/common/js/constants";
+import {Test_Plan_List} from "@/business/components/common/model/JsonData";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
+import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
+import MsTag from "@/business/components/common/components/MsTag";
 
 
 export default {
   name: "TestPlanList",
   components: {
+    MsTag,
+    HeaderLabelOperate,
     HeaderCustom,
     MsDeleteConfirm,
     TestCaseReportView,
@@ -223,7 +251,7 @@ export default {
     return {
       type: TEST_PLAN_LIST,
       headerItems: Test_Plan_List,
-      tableLabel: Test_Plan_List,
+      tableLabel: [],
       result: {},
       enableDeleteTip: false,
       queryPath: "/test/plan/list",
@@ -239,6 +267,7 @@ export default {
       statusFilters: [
         {text: this.$t('test_track.plan.plan_status_prepare'), value: 'Prepare'},
         {text: this.$t('test_track.plan.plan_status_running'), value: 'Underway'},
+        {text: this.$t('test_track.plan.plan_status_finished'), value: 'Finished'},
         {text: this.$t('test_track.plan.plan_status_completed'), value: 'Completed'}
       ],
       stageFilters: [
@@ -257,61 +286,58 @@ export default {
   },
   created() {
     this.projectId = this.$route.params.projectId;
+    if (!this.projectId) {
+      this.projectId = this.$store.state.projectId;
+    }
     this.isTestManagerOrTestUser = checkoutTestManagerOrTestUser();
     this.initTableData();
+    getSystemLabel(this, this.type)
   },
   methods: {
+    inite() {
+      getLabel(this, TEST_PLAN_LIST);
+      this.initTableData()
+    },
+    calPassRate(scope) {
+      let passRate = scope.row.passRate.substring(0, scope.row.passRate.length - 1);
+      return Number.parseInt(passRate, 10);
+    },
     customHeader() {
+      getLabel(this, TEST_PLAN_LIST);
       this.$refs.headerCustom.open(this.tableLabel)
     },
     initTableData() {
-      this.getLabel()
       if (this.planId) {
         this.condition.planId = this.planId;
       }
       if (this.selectNodeIds && this.selectNodeIds.length > 0) {
         this.condition.nodeIds = this.selectNodeIds;
       }
-      if (!getCurrentProjectID()) {
+      if (!this.projectId) {
         return;
       }
       this.result = this.$post(this.buildPagePath(this.queryPath), this.condition, response => {
         let data = response.data;
         this.total = data.itemCount;
         this.tableData = data.listObject;
-        for (let i = 0; i < this.tableData.length; i++) {
-          let path = "/test/plan/project";
-          this.$post(path, {planId: this.tableData[i].id}, res => {
-            let arr = res.data;
-            let projectIds = arr.filter(d => d.id !== this.tableData[i].projectId).map(data => data.id);
-            this.$set(this.tableData[i], "projectIds", projectIds);
-          })
-        }
-      });
-    },
-    getLabel() {
-      let param = {}
-      param.userId = getCurrentUser().id;
-      param.type = TEST_PLAN_LIST
-      this.result = this.$post('/system/header/info', param, response => {
-        if (response.data != null) {
-          let arry = eval(response.data.props);
-          let obj = {};
-          for (let key in arry) {
-            obj[key] = arry[key];
+        this.tableData.forEach(item => {
+          if (item.tags && item.tags.length > 0) {
+            item.tags = JSON.parse(item.tags);
           }
-          let newObj = Object.keys(obj).map(val => ({
-            prop: obj[val]
-          }))
-          this.tableLabel = newObj
-        }
-      })
+          item.passRate = item.passRate + '%'
+        })
+      });
+      getLabel(this, TEST_PLAN_LIST);
+
+    },
+    copyData(status) {
+      return JSON.parse(JSON.stringify(this.dataMap.get(status)))
     },
     buildPagePath(path) {
       return path + "/" + this.currentPage + "/" + this.pageSize;
     },
     testPlanCreate() {
-      if (!getCurrentProjectID()) {
+      if (!this.projectId) {
         this.$warning(this.$t('commons.check_project_tip'));
         return;
       }

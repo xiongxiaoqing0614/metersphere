@@ -11,10 +11,7 @@ import io.metersphere.base.mapper.ext.ExtTestPlanApiCaseMapper;
 import io.metersphere.base.mapper.ext.ExtTestPlanMapper;
 import io.metersphere.base.mapper.ext.ExtTestPlanReportMapper;
 import io.metersphere.commons.constants.*;
-import io.metersphere.commons.utils.CommonBeanFactory;
-import io.metersphere.commons.utils.DateUtils;
-import io.metersphere.commons.utils.ServiceUtils;
-import io.metersphere.commons.utils.SessionUtils;
+import io.metersphere.commons.utils.*;
 import io.metersphere.dto.BaseSystemConfigDTO;
 import io.metersphere.i18n.Translator;
 import io.metersphere.notice.sender.NoticeModel;
@@ -91,7 +88,9 @@ public class TestPlanReportService {
      */
     public TestPlanReport genTestPlanReport(String planId, String userId,String triggerMode) {
         TestPlan testPlan = testPlanMapper.selectByPrimaryKey(planId);
-
+        testPlan.setExecutionTimes(1);
+        testPlan.setExecutionTimes(testPlan.getExecutionTimes() + 1);
+        testPlanMapper.updateByPrimaryKey(testPlan);
         TestPlanApiCaseExample apiExample = new TestPlanApiCaseExample();
         apiExample.createCriteria().andTestPlanIdEqualTo(planId);
         List<String> apiCaseIdList = testPlanApiCaseMapper.selectByExample(apiExample)
@@ -207,6 +206,15 @@ public class TestPlanReportService {
     public synchronized void updateReport(List<String> testPlanReportIdList, String runMode,String triggerMode) {
         for (String planReportId : testPlanReportIdList) {
             this.countReportByTestPlanReportId(planReportId,runMode,triggerMode);
+        }
+    }
+
+    public void checkTestPlanStatus(String planReportId) {
+        try {
+            TestPlanReport testPlanReport = testPlanReportMapper.selectByPrimaryKey(planReportId);
+            testPlanService.checkStatus(testPlanReport.getTestPlanId());
+        } catch (Exception e) {
+            LogUtil.error(e.getMessage(), e);
         }
     }
 
