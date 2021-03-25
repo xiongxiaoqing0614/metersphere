@@ -145,6 +145,7 @@ export default {
     check_project_tip: "Create or select the project first",
     auth_redirect_tip: 'Jump to the authentication source page for authentication',
     tag_tip: "Enter Enter to Add Label",
+    node_name_tip: "The name cannot contain'\\'",
     table: {
       select_tip: "Item {0} data is selected"
     },
@@ -603,6 +604,7 @@ export default {
         update_time_order_desc: "from back to front by update time",
         run_env: "Operating environment",
         select_case: "Search use cases",
+        select_api: "Search api",
         case: "Case",
         title: "Create api",
         path_info: "Please enter the URL of the interface, such as /api/demo/#{id}, where id is the path parameter",
@@ -1170,6 +1172,7 @@ export default {
       input_type: "Please select type",
       input_method: "Please select method",
       input_prerequisite: "Please select prerequisite",
+      input_demand_name: "Please input demand id or name",
       delete_confirm: "Confirm delete test case",
       delete: "Delete case",
       save_create_continue: "Save and create continue",
@@ -1247,6 +1250,7 @@ export default {
       input_plan_stage: "Please select stage",
       plan_status_prepare: "Not started",
       plan_status_running: "Starting",
+      plan_status_finished: "Finished",
       plan_status_completed: "Completed",
       plan_status_trash: "Trashed",
       planned_start_time: "Scheduled Start Time",

@@ -127,7 +127,7 @@
 
       <!-- 执行组件 -->
       <ms-run :debug="false" :type="'API_PLAN'" :reportId="reportId" :run-data="runData"
-              @runRefresh="runRefresh" ref="runTest"/>
+              @runRefresh="runRefresh" ref="runTest" @autoCheckStatus="autoCheckStatus"/>
 
       <!-- 批量编辑 -->
       <batch-edit :dialog-title="$t('test_track.case.batch_edit_case')" :type-arr="typeArr" :value-arr="valueArr"
@@ -161,7 +161,7 @@ import TestPlanApiCaseResult from "./TestPlanApiCaseResult";
 import TestPlan from "../../../../../api/definition/components/jmeter/components/test-plan";
 import ThreadGroup from "../../../../../api/definition/components/jmeter/components/thread-group";
 import {TEST_PLAN_API_CASE, WORKSPACE_ID} from "@/common/js/constants";
-import {_filter, _sort, getLabel} from "@/common/js/tableUtils";
+import {_filter, _sort, getLabel, getSystemLabel} from "@/common/js/tableUtils";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import {Test_Plan_Api_Case} from "@/business/components/common/model/JsonData";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
@@ -192,7 +192,7 @@ export default {
     return {
       type: TEST_PLAN_API_CASE,
       headerItems: Test_Plan_Api_Case,
-      tableLabel: Test_Plan_Api_Case,
+      tableLabel: [],
       condition: {},
       selectCase: {},
       result: {},
@@ -268,6 +268,8 @@ export default {
   created: function () {
     this.getMaintainerOptions();
     this.initTable();
+    getSystemLabel(this, this.type)
+
   },
   activated() {
     this.status = 'default'
@@ -319,6 +321,7 @@ export default {
       this.$emit('isApiListEnableChange', data);
     },
     initTable() {
+      this.autoCheckStatus();
       this.selectRows = new Set();
       this.condition.status = "";
       this.condition.moduleIds = this.selectNodeIds;
@@ -518,6 +521,10 @@ export default {
       let reqObj = {id: reportId, testElement: testPlan, type: 'API_PLAN', reportId: "run"};
       let bodyFiles = getBodyUploadFiles(reqObj, runData);
       this.$fileUpload("/api/definition/run", null, bodyFiles, reqObj, response => {
+      });
+    },
+    autoCheckStatus() { //  检查执行结果，自动更新计划状态
+      this.$post('/test/plan/autoCheck/' + this.planId, (response) => {
       });
     },
     handleDelete(apiCase) {

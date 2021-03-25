@@ -141,7 +141,13 @@ export default {
         this.existFiles = data.listObject;
       })
     },
-    handleImport() {
+    handleImport(file) {
+      if (file) { // 接口测试创建的性能测试
+        console.log(file);
+        this.selectIds.add(file.id);
+        this.getJmxContents();
+        return;
+      }
       if (this.selectIds.size === 0) {
         this.loadFileVisible = false;
         return;
@@ -163,7 +169,7 @@ export default {
           this.tableData.push({
             name: row.name,
             size: (row.size / 1024).toFixed(2) + ' KB',
-            type: 'JMX',
+            type: row.type.toUpperCase(),
             updateTime: row.lastModified,
           });
         })
@@ -173,6 +179,9 @@ export default {
         return;
       }
 
+      this.getJmxContents();
+    },
+    getJmxContents() {
       this.projectLoadingResult = this.$post('/performance/export/jmx', [...this.selectIds], (response) => {
         let data = response.data;
         if (!data) {
@@ -199,7 +208,6 @@ export default {
         this.loadFileVisible = false;
         this.selectIds.clear();
       });
-
     },
     beforeUploadFile(file) {
       if (!this.fileValidator(file)) {
@@ -221,41 +229,36 @@ export default {
       f().then(res => {
         let response = res.data;
         if (response.data.length === 0) {
-          let type = file.name.substring(file.name.lastIndexOf(".") + 1);
-
-          this.tableData.push({
-            name: file.name,
-            size: (file.size / 1024).toFixed(2) + ' KB',
-            type: type.toUpperCase(),
-            updateTime: file.lastModified,
-          });
-
           callback();
         } else {
-          this.$error(this.$t('load_test.project_file_exist'));
+          this.$error(this.$t('load_test.project_file_exist') + ', name: ' + file.name);
         }
       });
     },
-    handleUpload(uploadResources) {
+    handleUpload(uploadResources, apiImport) {
       let self = this;
 
       let file = uploadResources.file;
       this.checkFileExist(file, () => {
-        self.uploadList.push(file);
-        let type = file.name.substring(file.name.lastIndexOf(".") + 1);
-        if (type.toLowerCase() !== 'jmx') {
-          return;
+        let formData = new FormData();
+        let url = '/project/upload/files/' + getCurrentProjectID()
+        formData.append("file", file);
+        let options = {
+          method: 'POST',
+          url: url,
+          data: formData,
+          headers: {
+            'Content-Type': undefined
+          }
         }
-        let jmxReader = new FileReader();
-        jmxReader.onload = (event) => {
-          let threadGroups = findThreadGroup(event.target.result, file.name);
-          threadGroups.forEach(tg => {
-            tg.options = {};
-            self.scenarios.push(tg);
-          });
-          self.$emit('fileChange', self.scenarios);
-        };
-        jmxReader.readAsText(file);
+        self.$request(options, (response) => {
+          self.$success(this.$t('commons.save_success'));
+          self.getProjectFiles();
+          if (apiImport) {
+            let row = response.data[0];
+            self.handleImport(row);
+          }
+        });
       })
     },
     handleExceed() {

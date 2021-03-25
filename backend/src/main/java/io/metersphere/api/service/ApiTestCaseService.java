@@ -80,12 +80,18 @@ public class ApiTestCaseService {
 
     private static final String BODY_FILE_DIR = FileUtils.BODY_FILE_DIR;
 
+    public List<String> listPorjectAllCaseName(String projectId) {
+        return extApiTestCaseMapper.listPorjectAllCaseName(projectId);
+    }
+
     public List<ApiTestCaseResult> list(ApiTestCaseRequest request) {
         request.setOrders(ServiceUtils.getDefaultOrder(request.getOrders()));
         List<ApiTestCaseResult> returnList = extApiTestCaseMapper.list(request);
 
         for (ApiTestCaseResult res : returnList) {
-            esbApiParamService.handleApiEsbParams(res);
+            if(StringUtils.equalsIgnoreCase(res.getApiMethod(),"esb")){
+                esbApiParamService.handleApiEsbParams(res);
+            }
         }
         return returnList;
     }
@@ -145,9 +151,14 @@ public class ApiTestCaseService {
     }
 
     public ApiTestCaseWithBLOBs get(String id) {
-        ApiTestCaseWithBLOBs returnBlobs = apiTestCaseMapper.selectByPrimaryKey(id);
-        esbApiParamService.handleApiEsbParams(returnBlobs);
-        return returnBlobs;
+//        ApiTestCaseWithBLOBs returnBlobs = apiTestCaseMapper.selectByPrimaryKey(id);
+        ApiTestCaseInfo model = extApiTestCaseMapper.selectApiCaseInfoByPrimaryKey(id);
+        if(model != null ){
+            if(StringUtils.equalsIgnoreCase(model.getApiMethod(),"esb")){
+                esbApiParamService.handleApiEsbParams(model);
+            }
+        }
+        return model;
     }
 
     public ApiTestCase create(SaveApiTestCaseRequest request, List<MultipartFile> bodyFiles) {
@@ -440,9 +451,11 @@ public class ApiTestCaseService {
     }
 
     public Map<String, String> getRequest(ApiTestCaseRequest request) {
-        List<ApiTestCaseWithBLOBs> list = extApiTestCaseMapper.getRequest(request);
-        for (ApiTestCaseWithBLOBs model : list) {
-            esbApiParamService.handleApiEsbParams(model);
+        List<ApiTestCaseInfo> list = extApiTestCaseMapper.getRequest(request);
+        for (ApiTestCaseInfo model : list) {
+            if(StringUtils.equalsIgnoreCase(model.getApiMethod(),"esb")){
+                esbApiParamService.handleApiEsbParams(model);
+            }
         }
         return list.stream().collect(Collectors.toMap(ApiTestCaseWithBLOBs::getId, ApiTestCaseWithBLOBs::getRequest));
     }

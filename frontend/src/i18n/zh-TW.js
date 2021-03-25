@@ -146,6 +146,7 @@ export default {
     check_project_tip: "請先創建或選擇項目",
     auth_redirect_tip: '即將跳轉到認證源頁面進行認證',
     tag_tip: "輸入回車添加標簽",
+    node_name_tip: "名稱不能包含'\\'",
     table: {
       select_tip: "已选中 {0} 条数据"
     },
@@ -602,6 +603,7 @@ export default {
         update_time_order_desc: "按更新時間從後到前",
         run_env: "運行環境",
         select_case: "搜索用例",
+        select_api: "搜索接口",
         case: "用例",
         responsible: "責任人",
         title: "創建接口",
@@ -1172,6 +1174,7 @@ export default {
       input_type: "請選擇用例類型",
       input_method: "請選擇測試方式",
       input_prerequisite: "請輸入前置條件",
+      input_demand_name: "請輸入請求ID或名稱",
       delete_confirm: "確認刪除測試用例",
       delete: "刪除用例",
       save_create_continue: "保存並繼續創建",
@@ -1249,6 +1252,7 @@ export default {
       input_plan_stage: "請選擇測試階段",
       plan_status_prepare: "未開始",
       plan_status_running: "進行中",
+      plan_status_finished: "已結束",
       plan_status_completed: "已完成",
       plan_status_trash: "廢棄",
       planned_start_time: "計劃開始",
