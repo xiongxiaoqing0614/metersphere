@@ -1,12 +1,10 @@
 package io.metersphere.api.jmeter;
 
-import io.metersphere.api.dto.definition.ApiTestCaseInfo;
 import io.metersphere.api.dto.scenario.request.RequestType;
 import io.metersphere.api.service.*;
 import io.metersphere.base.domain.ApiDefinitionExecResult;
 import io.metersphere.base.domain.ApiScenarioReport;
 import io.metersphere.base.domain.ApiTestReport;
-import io.metersphere.base.domain.TestPlanReport;
 import io.metersphere.commons.constants.*;
 import io.metersphere.commons.utils.CommonBeanFactory;
 import io.metersphere.commons.utils.LogUtil;
@@ -16,7 +14,6 @@ import io.metersphere.notice.sender.NoticeModel;
 import io.metersphere.notice.service.NoticeSendService;
 import io.metersphere.service.SystemParameterService;
 import io.metersphere.track.service.TestPlanReportService;
-import io.metersphere.track.service.TestPlanService;
 import io.metersphere.track.service.TestPlanTestCaseService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -185,10 +182,7 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
             }
         } else if (StringUtils.equals(this.runMode, ApiRunMode.JENKINS.name())) {
             apiDefinitionService.addResult(testResult);
-            apiDefinitionExecResultService.saveApiResult(testResult, ApiRunMode.API.name());
-            ApiDefinitionExecResult api=apiTestCaseService.getInfo(testId);
-            report.setStatus(api.getStatus());
-
+            apiDefinitionExecResultService.saveApiResult(testResult, ApiRunMode.DEFINITION.name());
 
         } else if (StringUtils.equals(this.runMode, ApiRunMode.JENKINS_API_PLAN.name())) {
             apiDefinitionService.addResult(testResult);
@@ -253,10 +247,16 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
 
             }
         }
-        sendTask(report, reportUrl, testResult);
+        if (StringUtils.equals(ReportTriggerMode.API.name(), report.getTriggerMode())||StringUtils.equals(ReportTriggerMode.SCHEDULE.name(), report.getTriggerMode())) {
+            sendTask(report, reportUrl, testResult);
+        }
+
     }
 
     private static void sendTask(ApiTestReport report, String reportUrl, TestResult testResult) {
+        if (report == null) {
+            return;
+        }
         SystemParameterService systemParameterService = CommonBeanFactory.getBean(SystemParameterService.class);
         NoticeSendService noticeSendService = CommonBeanFactory.getBean(NoticeSendService.class);
         assert systemParameterService != null;
