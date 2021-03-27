@@ -340,7 +340,7 @@ export default {
     save() {
       this.$refs.form.validate(valid => {
         if (valid) {
-          if (((this.selectedPlatformValue != 'Forseti' && this.selectedPlatformValue != 'Swagger2') || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEable)) && !this.formData.file) {
+          if (((this.selectedPlatformValue != 'Forseti' && this.selectedPlatformValue != 'Swagger2') || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEnable)) && !this.formData.file) {
             this.$warning(this.$t('commons.please_upload'));
             return;
           }
