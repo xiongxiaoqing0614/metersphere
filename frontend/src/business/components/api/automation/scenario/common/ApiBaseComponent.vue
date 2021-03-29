@@ -76,16 +76,17 @@
 </template>
 
 <script>
-import {getCurrentProjectID, getUUID} from "@/common/js/utils";
   import StepExtendBtns from "../component/StepExtendBtns";
   import {ELEMENTS} from "../Setting";
+  import {parseEnvironment} from "@/business/components/api/test/model/EnvironmentModel";
 
   export default {
     name: "ApiBaseComponent",
     components: {StepExtendBtns},
     data() {
       return {
-        isShowInput: false
+        isShowInput: false,
+        environments:{}
       }
     },
     props: {
@@ -129,14 +130,9 @@ import {getCurrentProjectID, getUUID} from "@/common/js/utils";
         }
       },
       title: String,
-      environments: {
-        type: Array,
-        default: () => []
-      },
       apiImport: Boolean,
     },
     created() {
-      this.projectId = getCurrentProjectID();
       if (!this.data.name) {
         this.isShowInput = true;
       }
@@ -150,6 +146,12 @@ import {getCurrentProjectID, getUUID} from "@/common/js/utils";
           this.data.method = this.data.protocol;
         }
       }
+      this.$get('/api/environment/list/' + this.data.projectId, res => {
+        this.environments = res.data;
+        this.environments.forEach(environment => {
+          parseEnvironment(environment);
+        });
+      })
     },
     methods: {
       active() {

@@ -13,7 +13,6 @@
       :is-max="isMax"
       :show-btn="showBtn"
       :title="displayTitle"
-      :environments="environments"
       :apiImport="apiImport()">
 
       <template v-slot:behindHeaderLeft>
@@ -122,10 +121,6 @@
       currentEnvironmentId: String,
       projectList: Array,
       envMap: Map,
-      environments: {
-        type: Array,
-        default: () => []
-      },
     },
     components: {
       CustomizeReqInfo,
