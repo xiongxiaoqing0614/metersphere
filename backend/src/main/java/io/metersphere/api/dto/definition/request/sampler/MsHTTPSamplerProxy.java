@@ -120,11 +120,22 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         sampler.setFollowRedirects(this.isFollowRedirects());
         sampler.setUseKeepAlive(true);
         sampler.setDoMultipart(this.isDoMultipartPost());
+
         if (config.getConfig() == null) {
             // 单独接口执行
             this.setProjectId(config.getProjectId());
             config.setConfig(getEnvironmentConfig(useEnvironment));
         }
+        else{
+            if (config != null && config.getConfig() != null) {
+                if (useEnvironment != null) {
+                    config.setConfig(getEnvironmentConfig(useEnvironment));
+                } else {
+                    config.setConfig(config.getConfig());
+                }
+            }
+        }
+
 
         // 添加环境中的公共变量
         Arguments arguments = this.addArguments(config);
