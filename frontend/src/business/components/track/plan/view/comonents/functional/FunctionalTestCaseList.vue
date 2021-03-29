@@ -429,7 +429,6 @@ export default {
   },
   methods: {
     customHeader() {
-      getLabel(this, TEST_PLAN_FUNCTION_TEST_CASE);
       this.$refs.headerCustom.open(this.tableLabel)
     },
 
@@ -477,7 +476,10 @@ export default {
           }
           this.selectRows.clear();
           if (this.$refs.table) {
-            setTimeout(this.$refs.table.doLayout, 200)
+            setTimeout(() => {
+              this.$refs.table.doLayout();
+              this.result.loading = false;
+            }, 500)
           }
         });
       }
