@@ -94,6 +94,8 @@ public class ApiDefinitionService {
     private ApiTestEnvironmentService environmentService;
     @Resource
     private EsbApiParamService esbApiParamService;
+    @Resource
+    ApiModuleMapper apiModuleMapper;
 
     private static Cache cache = Cache.newHardMemoryCache(0, 3600 * 24);
 
@@ -262,10 +264,7 @@ public class ApiDefinitionService {
         test.setEnvironmentId(request.getEnvironmentId());
         test.setUserId(request.getUserId());
         test.setTags(request.getTags());
-        if (StringUtils.isEmpty(request.getModulePath()) || StringUtils.isEmpty(request.getModuleId())) {
-            test.setModulePath("/默认模块");
-            test.setModuleId("root");
-        }
+        this.setModule(test);
         apiDefinitionMapper.updateByPrimaryKeySelective(test);
         return test;
     }
@@ -290,9 +289,14 @@ public class ApiDefinitionService {
         test.setStatus(APITestStatus.Underway.name());
         test.setModulePath(request.getModulePath());
         test.setModuleId(request.getModuleId());
-        if (StringUtils.isEmpty(request.getModulePath()) || StringUtils.isEmpty(request.getModuleId())) {
-            test.setModulePath("/默认模块");
-            test.setModuleId("root");
+        if (StringUtils.isEmpty(request.getModuleId()) || "default-module".equals(request.getModuleId())) {
+            ApiModuleExample example = new ApiModuleExample();
+            example.createCriteria().andProjectIdEqualTo(test.getProjectId()).andProtocolEqualTo(test.getProtocol()).andNameEqualTo("默认模块");
+            List<ApiModule> modules = apiModuleMapper.selectByExample(example);
+            if (CollectionUtils.isNotEmpty(modules)) {
+                test.setModuleId(modules.get(0).getId());
+                test.setModulePath("/默认模块");
+            }
         }
         test.setResponse(JSONObject.toJSONString(request.getResponse()));
         test.setEnvironmentId(request.getEnvironmentId());
@@ -517,7 +521,7 @@ public class ApiDefinitionService {
     }
 
     public void addResult(TestResult res) {
-        if (!res.getScenarios().isEmpty() && !res.getScenarios().get(0).getRequestResults().isEmpty()) {
+        if (res != null && CollectionUtils.isNotEmpty(res.getScenarios()) && res.getScenarios().get(0) != null && CollectionUtils.isNotEmpty(res.getScenarios().get(0).getRequestResults())) {
             RequestResult result = res.getScenarios().get(0).getRequestResults().get(0);
             if (result.getName().indexOf("<->") != -1) {
                 result.setName(result.getName().substring(0, result.getName().indexOf("<->")));
@@ -579,6 +583,17 @@ public class ApiDefinitionService {
         return apiTestCaseMapper.selectByPrimaryKey(apiCaseId);
     }
 
+    private void setModule(ApiDefinitionWithBLOBs item) {
+        if (item != null && StringUtils.isEmpty(item.getModuleId()) || "default-module".equals(item.getModuleId())) {
+            ApiModuleExample example = new ApiModuleExample();
+            example.createCriteria().andProjectIdEqualTo(item.getProjectId()).andProtocolEqualTo(item.getProtocol()).andNameEqualTo("默认模块");
+            List<ApiModule> modules = apiModuleMapper.selectByExample(example);
+            if (CollectionUtils.isNotEmpty(modules)) {
+                item.setModuleId(modules.get(0).getId());
+                item.setModulePath(modules.get(0).getName());
+            }
+        }
+    }
 
     public ApiDefinitionImport apiTestImport(MultipartFile file, ApiTestImportRequest request) {
         ApiImportParser apiImportParser = ApiDefinitionImportParserFactory.getApiImportParser(request.getPlatform());
@@ -604,10 +619,7 @@ public class ApiDefinitionService {
         }
         for (int i = 0; i < data.size(); i++) {
             ApiDefinitionWithBLOBs item = data.get(i);
-            if (StringUtils.isEmpty(item.getModuleId()) || StringUtils.isEmpty(item.getModulePath())) {
-                item.setModuleId("root");
-                item.setModulePath("/默认模块");
-            }
+            this.setModule(item);
             if (item.getName().length() > 255) {
                 item.setName(item.getName().substring(0, 255));
             }
