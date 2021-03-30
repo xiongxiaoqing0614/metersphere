@@ -12,7 +12,8 @@
       :background-color="displayColor.backgroundColor"
       :is-max="isMax"
       :show-btn="showBtn"
-      :title="displayTitle">
+      :title="displayTitle"
+      :apiImport="apiImport()">
 
       <template v-slot:behindHeaderLeft>
         <el-tag size="mini" class="ms-tag" v-if="request.referenced==='Deleted'" type="danger">{{$t('api_test.automation.reference_deleted')}}</el-tag>
@@ -23,7 +24,7 @@
 
       <template v-slot:button>
         <el-tooltip :content="$t('api_test.run')" placement="top">
-          <el-button @click="run" icon="el-icon-video-play" style="padding: 5px" class="ms-btn" size="mini" circle/>
+          <el-button @click="run" icon="el-icon-video-play" class="ms-btn" size="mini" circle/>
         </el-tooltip>
       </template>
 
@@ -94,6 +95,7 @@
   import ApiResponseComponent from "./ApiResponseComponent";
   import CustomizeReqInfo from "@/business/components/api/automation/scenario/common/CustomizeReqInfo";
 
+
   const requireComponent = require.context('@/business/components/xpack/', true, /\.vue$/);
   const esbDefinition = (requireComponent != null && requireComponent.keys().length) > 0 ? requireComponent("./apidefinition/EsbDefinition.vue") : {};
   const esbDefinitionResponse = (requireComponent != null && requireComponent.keys().length) > 0 ? requireComponent("./apidefinition/EsbDefinitionResponse.vue") : {};
@@ -118,7 +120,7 @@
       },
       currentEnvironmentId: String,
       projectList: Array,
-      envMap: Map
+      envMap: Map,
     },
     components: {
       CustomizeReqInfo,
@@ -289,9 +291,6 @@
       },
       active(item) {
         this.request.active = !this.request.active;
-        if (this.node) {
-          this.node.expanded = this.request.active;
-        }
         this.reload();
       },
       run() {
@@ -311,7 +310,7 @@
         this.loading = true;
         this.runData = [];
         this.runData.projectId = this.request.projectId;
-        this.request.useEnvironment = this.currentEnvironmentId;
+        // this.request.useEnvironment = this.currentEnvironmentId;
         this.request.customizeReq = this.isCustomizeReq;
         let debugData = {
           id: this.currentScenario.id, name: this.currentScenario.name, type: "scenario",
@@ -333,6 +332,12 @@
         this.$nextTick(() => {
           this.loading = false
         })
+      },
+      apiImport() {
+        if (this.request.referenced != undefined && this.request.referenced === 'Deleted' || this.request.referenced == 'REF' || this.request.referenced === 'Copy') {
+          return true
+        }
+        return false;
       },
       getProjectName(id) {
         const project = this.projectList.find(p => p.id === id);
