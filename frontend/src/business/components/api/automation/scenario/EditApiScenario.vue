@@ -938,8 +938,10 @@
                   if(hashTree[i].type == "HTTPSamplerProxy"){
                     for(var keyName in hashTree[i]){
                       if(keyName == "useEnvironment"){
-                        hasEnv = true;
-                        break;
+                        if(hashTree[i].useEnvironment){
+                          hasEnv = true;
+                          break;
+                        }
                       }
                     }
                     if (!hasEnv){
