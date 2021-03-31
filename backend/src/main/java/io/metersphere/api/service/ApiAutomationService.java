@@ -21,10 +21,7 @@ import io.metersphere.api.dto.scenario.environment.EnvironmentConfig;
 import io.metersphere.api.jmeter.JMeterService;
 import io.metersphere.api.parse.ApiImportParser;
 import io.metersphere.base.domain.*;
-import io.metersphere.base.mapper.ApiScenarioMapper;
-import io.metersphere.base.mapper.ApiScenarioReportMapper;
-import io.metersphere.base.mapper.TestCaseReviewScenarioMapper;
-import io.metersphere.base.mapper.TestPlanApiScenarioMapper;
+import io.metersphere.base.mapper.*;
 import io.metersphere.base.mapper.ext.*;
 import io.metersphere.commons.constants.*;
 import io.metersphere.commons.exception.MSException;
@@ -62,6 +59,8 @@ import java.util.stream.Collectors;
 @Transactional(rollbackFor = Exception.class)
 public class ApiAutomationService {
     @Resource
+    ApiScenarioModuleMapper apiScenarioModuleMapper;
+    @Resource
     private ExtScheduleMapper extScheduleMapper;
     @Resource
     private ApiScenarioMapper apiScenarioMapper;
@@ -90,6 +89,8 @@ public class ApiAutomationService {
     @Resource
     @Lazy
     private TestPlanScenarioCaseService testPlanScenarioCaseService;
+    @Resource
+    private EsbApiParamService esbApiParamService;
 
     public List<ApiScenarioDTO> list(ApiScenarioRequest request) {
         request = this.initRequest(request, true, true);
@@ -184,6 +185,9 @@ public class ApiAutomationService {
         scenario.setCreateTime(System.currentTimeMillis());
         scenario.setNum(getNextNum(request.getProjectId()));
 
+        //检查场景的请求步骤。如果含有ESB请求步骤的话，要做参数计算处理。
+        esbApiParamService.checkScenarioRequests(request);
+
         apiScenarioMapper.insert(scenario);
 
         List<String> bodyUploadIds = request.getBodyUploadIds();
@@ -204,6 +208,9 @@ public class ApiAutomationService {
         checkNameExist(request);
         List<String> bodyUploadIds = request.getBodyUploadIds();
         FileUtils.createBodyFiles(bodyUploadIds, bodyFiles);
+
+        //检查场景的请求步骤。如果含有ESB请求步骤的话，要做参数计算处理。
+        esbApiParamService.checkScenarioRequests(request);
 
         final ApiScenarioWithBLOBs scenario = buildSaveScenario(request);
         apiScenarioMapper.updateByPrimaryKeySelective(scenario);
@@ -233,6 +240,15 @@ public class ApiAutomationService {
             scenario.setUserId(SessionUtils.getUserId());
         } else {
             scenario.setUserId(request.getUserId());
+        }
+        if (StringUtils.isEmpty(request.getApiScenarioModuleId()) || "default-module".equals(request.getApiScenarioModuleId())) {
+            ApiScenarioModuleExample example = new ApiScenarioModuleExample();
+            example.createCriteria().andProjectIdEqualTo(request.getProjectId()).andNameEqualTo("默认模块");
+            List<ApiScenarioModule> modules = apiScenarioModuleMapper.selectByExample(example);
+            if (CollectionUtils.isNotEmpty(modules)) {
+                scenario.setApiScenarioModuleId(modules.get(0).getId());
+                scenario.setModulePath(modules.get(0).getName());
+            }
         }
         return scenario;
     }
@@ -269,7 +285,7 @@ public class ApiAutomationService {
     }
 
     private void deleteApiScenarioReport(List<String> scenarioIds) {
-        if(scenarioIds == null || scenarioIds.isEmpty()){
+        if (scenarioIds == null || scenarioIds.isEmpty()) {
             return;
         }
         ApiScenarioReportExample scenarioReportExample = new ApiScenarioReportExample();
@@ -371,6 +387,9 @@ public class ApiAutomationService {
 
     public APIScenarioReportResult createScenarioReport(String id, String scenarioId, String scenarioName, String triggerMode, String execType, String projectId, String userID) {
         APIScenarioReportResult report = new APIScenarioReportResult();
+        if (triggerMode.equals(ApiRunMode.SCENARIO.name()) || triggerMode.equals(ApiRunMode.DEFINITION.name())) {
+            triggerMode = ReportTriggerMode.MANUAL.name();
+        }
         report.setId(id);
         report.setTestId(id);
         if (StringUtils.isNotEmpty(scenarioName)) {
@@ -997,5 +1016,19 @@ public class ApiAutomationService {
                 apiScenarioMapper.updateByPrimaryKeySelective(scenario);
             }
         });
+    }
+
+    public void removeToGcByBatch(ApiScenarioBatchRequest request) {
+        ServiceUtils.getSelectAllIds(request, request.getCondition(),
+                (query) -> extApiScenarioMapper.selectIdsByQuery((ApiScenarioRequest) query));
+
+        this.removeToGc(request.getIds());
+    }
+
+    public void deleteBatchByCondition(ApiScenarioBatchRequest request) {
+        ServiceUtils.getSelectAllIds(request, request.getCondition(),
+                (query) -> extApiScenarioMapper.selectIdsByQuery((ApiScenarioRequest) query));
+
+        this.deleteBatch(request.getIds());
     }
 }
