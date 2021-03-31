@@ -310,6 +310,7 @@
         this.loading = true;
         this.runData = [];
         this.runData.projectId = this.request.projectId;
+        //最新版currentEnvironmentId值为undefined
         // this.request.useEnvironment = this.currentEnvironmentId;
         this.request.customizeReq = this.isCustomizeReq;
         let debugData = {
