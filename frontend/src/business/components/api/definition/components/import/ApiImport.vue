@@ -44,6 +44,7 @@
               :active-text="$t('api_test.api_import.swagger_url_import')">
             </el-switch>
           </el-form-item>
+
         </el-col>
         <el-col :span="1">
           <el-divider direction="vertical"/>
@@ -61,7 +62,7 @@
             <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
           </el-form-item>
         </el-col>
-        <el-col :span="14" v-show="isForseti" style="margin-top: 40px;width:70%;">
+                <el-col :span="14" v-show="isForseti" style="margin-top: 40px;width:70%;">
           <el-form-item :label="'Tuhu AppID'" prop="tuhuAppId" class="tuhu-appid">
               <el-select size="medium" clearable filterable v-model="formData.appId" :placeholder="$t('api_test.api_import.forseti_select')" @visible-change="getAppIdList()" multiple style="width:100%;" >
                 <el-option
@@ -83,7 +84,7 @@
           </el-form-item> -->
         </el-col>
         <el-col :span="12"
-                v-if="(selectedPlatformValue != 'Forseti' && selectedPlatformValue != 'Swagger2') || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEable)">
+                v-if="(selectedPlatformValue != 'Forseti' && selectedPlatformValue != 'Swagger2') || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEnable)">
           <el-upload
             class="api-upload"
             drag
@@ -121,152 +122,104 @@
   import ScheduleImport from "@/business/components/api/definition/components/import/ImportScheduleEdit";
   import MsSelectTree from "../../../../common/select-tree/SelectTree";
 
-export default {
-  name: "ApiImport",
-  components: {ScheduleImport, MsDialogFooter},
-  props: {
-    saved: {
-      type: Boolean,
-      default: true,
-    },
-    moduleOptions: {},
-    propotal:String,
-    model: {
-      type: String,
-      default: 'definition'
-    }
-  },
-  data() {
-    return {
-      visible: false,
-      swaggerUrlEnable: false,
-      swaggerSynchronization: false,
-      showEnvironmentSelect: true,
-      modeOptions: [{
-        id: 'fullCoverage',
-        name: this.$t('commons.cover')
+  export default {
+    name: "ApiImport",
+    components: {ScheduleImport, MsDialogFooter, MsSelectTree},
+    props: {
+      saved: {
+        type: Boolean,
+        default: true,
       },
-        {
-          id: 'incrementalMerge',
-          name: this.$t('commons.not_cover')
-        }],
-      protocol: "",
-      platforms: [
-        {
-          name: 'MeterSphere',
-          value: 'Metersphere',
-          tip: this.$t('api_test.api_import.ms_tip'),
-          exportTip: this.$t('api_test.api_import.ms_export_tip'),
+      moduleOptions: Array,
+      propotal: String,
+      model: {
+        type: String,
+        default: 'definition'
+      }
+    },
+    data() {
+      return {
+        visible: false,
+        swaggerUrlEnable: false,
+        swaggerSynchronization: false,
+        showEnvironmentSelect: true,
+        showXpackCompnent:false,
+        moduleObj: {
+          id: 'id',
+          label: 'name',
+        },
+        modeOptions: [{
+          id: 'fullCoverage',
+          name: this.$t('commons.cover')
+        },
+          {
+            id: 'incrementalMerge',
+            name: this.$t('commons.not_cover')
+          }],
+        protocol: "",
+        platforms: [
+          {
+            name: 'MeterSphere',
+            value: 'Metersphere',
+            tip: this.$t('api_test.api_import.ms_tip'),
+            exportTip: this.$t('api_test.api_import.ms_export_tip'),
+            suffixes: new Set(['json'])
+          },
+        ],
+        postmanPlanform: {
+          name: 'Postman',
+          value: 'Postman',
+          tip: this.$t('api_test.api_import.postman_tip'),
+          exportTip: this.$t('api_test.api_import.post_export_tip'),
           suffixes: new Set(['json'])
         },
-      ],
-      forsetiPlanform:{
+        swaggerPlanform: {
+          name: 'Swagger',
+          value: 'Swagger2',
+          tip: this.$t('api_test.api_import.swagger_tip'),
+          exportTip: this.$t('api_test.api_import.swagger_export_tip'),
+          suffixes: new Set(['json'])
+        },
+        harPlanform: {
+          name: 'HAR',
+          value: 'Har',
+          tip: this.$t('api_test.api_import.har_tip'),
+          exportTip: this.$t('api_test.api_import.har_export_tip'),
+          suffixes: new Set(['har'])
+        },
+        esbPlanform: {
+          name: 'ESB',
+          value: 'ESB',
+          tip: this.$t('api_test.api_import.esb_tip'),
+          exportTip: this.$t('api_test.api_import.esb_export_tip'),
+          suffixes: new Set(['xlsx', 'xls'])
+        },
+        forsetiPlanform:{
           name: 'Forseti',
           value: 'Forseti',
           tip: this.$t('api_test.api_import.forseti_tip'),
           suffixes: new Set(['json'])
-      },
-      postmanPlanform:{
-        name: 'Postman',
-        value: 'Postman',
-        tip: this.$t('api_test.api_import.postman_tip'),
-        exportTip: this.$t('api_test.api_import.post_export_tip'),
-        suffixes: new Set(['json'])
-      },
-      swaggerPlanform:{
-        name: 'Swagger',
-        value: 'Swagger2',
-        tip: this.$t('api_test.api_import.swagger_tip'),
-        exportTip: this.$t('api_test.api_import.swagger_export_tip'),
-        suffixes: new Set(['json'])
-      },
-      harPlanform:{
-        name: 'HAR',
-        value: 'Har',
-        tip: this.$t('api_test.api_import.har_tip'),
-        exportTip: this.$t('api_test.api_import.har_export_tip'),
-        suffixes: new Set(['har'])
-      },
-      esbPlanform : {
-        name: 'ESB',
-        value: 'ESB',
-        tip: this.$t('api_test.api_import.esb_tip'),
-        exportTip: this.$t('api_test.api_import.esb_export_tip'),
-        suffixes: new Set(['xlsx','xls'])
-      },
-      selectedPlatform: {},
-      selectedPlatformValue: 'Metersphere',
-      result: {},
-      projects: [],
-      environments: [],
-      useEnvironment: false,
-      formData: {
-        file: undefined,
-        swaggerUrl: '',
-        modeId: this.$t('commons.not_cover'),
-        moduleId: '',
-        appId: '',
-      },
-      rules: {
-        modeId: [
-          {required: true, message: this.$t('commons.please_select_import_mode'), trigger: 'change'},
-        ],
-        moduleId: [
-          {required: true, message: this.$t('commons.please_select_import_module'), trigger: 'change'},
-        ],
-      },
-      currentModule: {},
-      fileList: []
-    }
-  },
-  activated() {
-    this.selectedPlatform = this.platforms[0];
-  },
-  created() {
-    this.platforms.push(this.postmanPlanform);
-    this.platforms.push(this.swaggerPlanform);
-    this.platforms.push(this.harPlanform);
-    this.platforms.push(this.forsetiPlanform);
-  },
-  watch: {
-    selectedPlatformValue() {
-      for (let i in this.platforms) {
-        if (this.platforms[i].value === this.selectedPlatformValue) {
-          this.selectedPlatform = this.platforms[i];
-          break;
-        }
-      }
-    },
-    propotal(){
-      let postmanIndex = this.platforms.indexOf(this.postmanPlanform);
-      let swaggerPlanformIndex = this.platforms.indexOf(this.swaggerPlanform);
-      let harPlanformIndex = this.platforms.indexOf(this.harPlanform);
-      let esbPlanformIndex = this.platforms.indexOf(this.esbPlanform);
-      let forsetiPlanformIndex = this.platforms.indexOf(this.forsetiPlanform);
-      if(postmanIndex>=0){
-        this.platforms.splice(this.platforms.indexOf(this.postmanPlanform),1);
-      }
-      if(swaggerPlanformIndex>=0){
-        this.platforms.splice(this.platforms.indexOf(this.swaggerPlanform),1);
-      }
-      if(harPlanformIndex>=0){
-        this.platforms.splice(this.platforms.indexOf(this.harPlanform),1);
-      }
-      if(esbPlanformIndex>=0){
-        this.platforms.splice(this.platforms.indexOf(this.esbPlanform),1);
-      }
-      if(forsetiPlanformIndex>=0){
-        this.platforms.splice(this.platforms.indexOf(this.forsetiPlanform),1);
-      }
-      if(this.propotal === 'TCP'){
-        this.platforms.push(this.esbPlanform);
-        return true;
-      }else if(this.propotal === 'HTTP'){
-        this.platforms.push(this.postmanPlanform);
-        this.platforms.push(this.swaggerPlanform);
-        this.platforms.push(this.harPlanform);
-        this.platforms.push(this.forsetiPlanform);
-        return false;
+        },
+        selectedPlatform: {},
+        selectedPlatformValue: 'Metersphere',
+        result: {},
+        projects: [],
+        environments: [],
+        useEnvironment: false,
+        formData: {
+          file: undefined,
+          swaggerUrl: '',
+          modeId: this.$t('commons.not_cover'),
+          moduleId: '',
+          appId: ''
+        },
+        rules: {
+          modeId: [
+            {required: true, message: this.$t('commons.please_select_import_mode'), trigger: 'change'},
+          ],
+        },
+        currentModule: {},
+        fileList: []
       }
     },
     activated() {
@@ -276,25 +229,49 @@ export default {
       this.platforms.push(this.postmanPlanform);
       this.platforms.push(this.swaggerPlanform);
       this.platforms.push(this.harPlanform);
+      this.platforms.push(this.forsetiPlanform);
     },
-    isScenarioModel() {
-      return this.model === 'scenario';
-    },
-    isForseti() {
-      return this.selectedPlatformValue === 'Forseti';
-    },
-    projectId() {
-      return this.$store.state.projectId
-    },
-  },
-  methods: {
-    scheduleEdit() {
-      if (!this.formData.swaggerUrl) {
-        this.$warning(this.$t('commons.please_fill_path'));
-        this.swaggerSynchronization = !this.swaggerSynchronization
-      } else {
-        if (this.swaggerSynchronization) {
-          this.$refs.scheduleEdit.open(this.buildParam());
+    watch: {
+      selectedPlatformValue() {
+        for (let i in this.platforms) {
+          if (this.platforms[i].value === this.selectedPlatformValue) {
+            this.selectedPlatform = this.platforms[i];
+            break;
+          }
+        }
+      },
+      propotal() {
+        let postmanIndex = this.platforms.indexOf(this.postmanPlanform);
+        let swaggerPlanformIndex = this.platforms.indexOf(this.swaggerPlanform);
+        let harPlanformIndex = this.platforms.indexOf(this.harPlanform);
+        let esbPlanformIndex = this.platforms.indexOf(this.esbPlanform);
+        let forsetiPlanformIndex = this.platforms.indexOf(this.forsetiPlanform);
+        if (postmanIndex >= 0) {
+          this.platforms.splice(this.platforms.indexOf(this.postmanPlanform), 1);
+        }
+        if (swaggerPlanformIndex >= 0) {
+          this.platforms.splice(this.platforms.indexOf(this.swaggerPlanform), 1);
+        }
+        if (harPlanformIndex >= 0) {
+          this.platforms.splice(this.platforms.indexOf(this.harPlanform), 1);
+        }
+        if (esbPlanformIndex >= 0) {
+          this.platforms.splice(this.platforms.indexOf(this.esbPlanform), 1);
+        }
+        if(forsetiPlanformIndex>=0){
+          this.platforms.splice(this.platforms.indexOf(this.forsetiPlanform),1);
+        }
+        if (this.propotal === 'TCP') {
+          if(hasLicense()){
+            this.platforms.push(this.esbPlanform);
+          }
+          return true;
+        } else if (this.propotal === 'HTTP') {
+          this.platforms.push(this.postmanPlanform);
+          this.platforms.push(this.swaggerPlanform);
+          this.platforms.push(this.harPlanform);
+          this.platforms.push(this.forsetiPlanform);
+          return false;
         }
       }
     },
@@ -308,6 +285,9 @@ export default {
       showTemplate() {
         return this.selectedPlatformValue === 'ESB';
       },
+      isForseti() {
+        return this.selectedPlatformValue === 'Forseti';
+      },
       isScenarioModel() {
         return this.model === 'scenario';
       },
@@ -315,24 +295,11 @@ export default {
         return this.$store.state.projectId
       },
     },
-    save() {
-      this.$refs.form.validate(valid => {
-        if (valid) {
-          if (((this.selectedPlatformValue != 'Forseti' && this.selectedPlatformValue != 'Swagger2') || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEnable)) && !this.formData.file) {
-            this.$warning(this.$t('commons.please_upload'));
-            return;
-          }
-          let url = '/api/definition/import';
-          if (this.isScenarioModel) {
-            url = '/api/automation/import';
-          }
-          let param = this.buildParam();
-          this.result = this.$fileUpload(url, param.file, null, this.buildParam(), response => {
-            let res = response.data;
-            this.$success(this.$t('test_track.case.import.success'));
-            this.visible = false;
-            this.$emit('refresh', res);
-          });
+    methods: {
+      scheduleEdit() {
+        if (!this.formData.swaggerUrl) {
+          this.$warning(this.$t('commons.please_fill_path'));
+          this.swaggerSynchronization = !this.swaggerSynchronization
         } else {
           if (this.swaggerSynchronization) {
             this.$refs.scheduleEdit.open(this.buildParam());
@@ -377,8 +344,7 @@ export default {
       save() {
         this.$refs.form.validate(valid => {
           if (valid) {
-            if ((this.selectedPlatformValue != 'Swagger2' || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEnable)) && !this.formData.file) {
-              this.$warning(this.$t('commons.please_upload'));
+          if (((this.selectedPlatformValue != 'Forseti' && this.selectedPlatformValue != 'Swagger2') || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEnable)) && !this.formData.file) {              this.$warning(this.$t('commons.please_upload'));
               return;
             }
             let url = '/api/definition/import';
@@ -415,7 +381,23 @@ export default {
         if (!this.swaggerUrlEnable) {
           param.swaggerUrl = undefined;
         }
+        //多选框数据处理
+        if(this.selectedPlatformValue === 'Forseti') {
+					let s = [];
+					for(var i = 0; i < this.formData.appId.length; i++) {
+						s.push(this.formData.appId[i].split(":")[0]);
+					}
+					param.appId = s.join(",");
+        }else{
+          param.appId = "";
+        }
+
         return param;
+      },
+      getAppIdList() {
+        this.$get("https://shop-gateway-inner.tuhu.work/int-spring-arch-forseti-server/service/apps", response => {
+          this.$set(this.formData, "appIdList", response.data);
+        })
       },
       close() {
         this.formData = {
@@ -426,31 +408,6 @@ export default {
         removeGoBackListener(this.close);
         this.visible = false;
       }
-      //多选框数据处理
-      if(this.selectedPlatformValue === 'Forseti') {
-					let s = [];
-					for(var i = 0; i < this.formData.appId.length; i++) {
-						s.push(this.formData.appId[i].split(":")[0]);
-					}
-					param.appId = s.join(",");
-      }else{
-        param.appId = "";
-      }
-      return param;
-    },
-    getAppIdList() {
-      this.$get("https://shop-gateway-inner.tuhu.work/int-spring-arch-forseti-server/service/apps", response => {
-        this.$set(this.formData, "appIdList", response.data);
-      })
-    },
-    close() {
-      this.formData = {
-        file: undefined,
-        swaggerUrl: ''
-      };
-      this.fileList = [];
-      removeGoBackListener(this.close);
-      this.visible = false;
     }
   }
 </script>
