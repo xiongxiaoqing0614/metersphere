@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :close-on-click-modal="false" :title="$t('api_test.api_import.title')" width="30%"
+  <el-dialog :close-on-click-modal="false" :title="$t('api_test.api_import.title')" width="90%"
              :visible.sync="visible" class="api-import" v-loading="result.loading" @close="close"
              :destroy-on-close="true">
 
@@ -23,7 +23,7 @@
 
     <el-form :model="formData" :rules="rules" label-width="100px" v-loading="result.loading" ref="form">
       <el-row>
-        <el-col :span="11">
+        <el-col :span="6">
           <el-form-item :label="$t('commons.import_module')" prop="moduleId">
             <ms-select-tree size="small" :data="moduleOptions" :defaultKey="formData.moduleId" @getValue="setModule" :obj="moduleObj" clearable checkStrictly/>
           </el-form-item>
@@ -62,8 +62,29 @@
             <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
           </el-form-item>
         </el-col>
+                <el-col :span="14" v-show="isForseti" style="margin-top: 40px;width:70%;">
+          <el-form-item :label="'Tuhu AppID'" prop="tuhuAppId" class="tuhu-appid">
+              <el-select size="medium" clearable filterable v-model="formData.appId" :placeholder="$t('api_test.api_import.forseti_select')" @visible-change="getAppIdList()" multiple style="width:100%;" >
+                <el-option
+                  v-for="item in formData.appIdList"
+                  :key="item"
+                  :label="item"
+                  :value="item">
+                </el-option>
+              </el-select>
+            <!--el-input size="small" v-model="formData.appId" clearable show-word-limit/-->
+          </el-form-item>
+          <!-- <el-form-item>
+            <el-switch
+              v-model="swaggerSynchronization"
+              @click.native="scheduleEdit"
+              >
+            </el-switch>
+            <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
+          </el-form-item> -->
+        </el-col>
         <el-col :span="12"
-                v-if="selectedPlatformValue != 'Swagger2' || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEnable)">
+                v-if="(selectedPlatformValue != 'Forseti' && selectedPlatformValue != 'Swagger2') || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEnable)">
           <el-upload
             class="api-upload"
             drag
@@ -87,7 +108,7 @@
       <div>
         <span>{{ $t('api_test.api_import.tip') }}：{{ selectedPlatform.tip }}</span>
       </div>
-      <div>
+      <div v-if="selectedPlatformValue != 'Forseti'">
         <span>{{ $t('api_test.api_import.export_tip') }}：{{ selectedPlatform.exportTip }}</span>
       </div>
     </div>
@@ -173,6 +194,12 @@
           exportTip: this.$t('api_test.api_import.esb_export_tip'),
           suffixes: new Set(['xlsx', 'xls'])
         },
+        forsetiPlanform:{
+          name: 'Forseti',
+          value: 'Forseti',
+          tip: this.$t('api_test.api_import.forseti_tip'),
+          suffixes: new Set(['json'])
+        },
         selectedPlatform: {},
         selectedPlatformValue: 'Metersphere',
         result: {},
@@ -184,6 +211,7 @@
           swaggerUrl: '',
           modeId: this.$t('commons.not_cover'),
           moduleId: '',
+          appId: ''
         },
         rules: {
           modeId: [
@@ -201,6 +229,7 @@
       this.platforms.push(this.postmanPlanform);
       this.platforms.push(this.swaggerPlanform);
       this.platforms.push(this.harPlanform);
+      this.platforms.push(this.forsetiPlanform);
     },
     watch: {
       selectedPlatformValue() {
@@ -216,6 +245,7 @@
         let swaggerPlanformIndex = this.platforms.indexOf(this.swaggerPlanform);
         let harPlanformIndex = this.platforms.indexOf(this.harPlanform);
         let esbPlanformIndex = this.platforms.indexOf(this.esbPlanform);
+        let forsetiPlanformIndex = this.platforms.indexOf(this.forsetiPlanform);
         if (postmanIndex >= 0) {
           this.platforms.splice(this.platforms.indexOf(this.postmanPlanform), 1);
         }
@@ -228,6 +258,9 @@
         if (esbPlanformIndex >= 0) {
           this.platforms.splice(this.platforms.indexOf(this.esbPlanform), 1);
         }
+        if(forsetiPlanformIndex>=0){
+          this.platforms.splice(this.platforms.indexOf(this.forsetiPlanform),1);
+        }
         if (this.propotal === 'TCP') {
           if(hasLicense()){
             this.platforms.push(this.esbPlanform);
@@ -237,6 +270,7 @@
           this.platforms.push(this.postmanPlanform);
           this.platforms.push(this.swaggerPlanform);
           this.platforms.push(this.harPlanform);
+          this.platforms.push(this.forsetiPlanform);
           return false;
         }
       }
@@ -250,6 +284,9 @@
       },
       showTemplate() {
         return this.selectedPlatformValue === 'ESB';
+      },
+      isForseti() {
+        return this.selectedPlatformValue === 'Forseti';
       },
       isScenarioModel() {
         return this.model === 'scenario';
@@ -307,8 +344,7 @@
       save() {
         this.$refs.form.validate(valid => {
           if (valid) {
-            if ((this.selectedPlatformValue != 'Swagger2' || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEnable)) && !this.formData.file) {
-              this.$warning(this.$t('commons.please_upload'));
+          if (((this.selectedPlatformValue != 'Forseti' && this.selectedPlatformValue != 'Swagger2') || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEnable)) && !this.formData.file) {              this.$warning(this.$t('commons.please_upload'));
               return;
             }
             let url = '/api/definition/import';
@@ -345,7 +381,23 @@
         if (!this.swaggerUrlEnable) {
           param.swaggerUrl = undefined;
         }
+        //多选框数据处理
+        if(this.selectedPlatformValue === 'Forseti') {
+					let s = [];
+					for(var i = 0; i < this.formData.appId.length; i++) {
+						s.push(this.formData.appId[i].split(":")[0]);
+					}
+					param.appId = s.join(",");
+        }else{
+          param.appId = "";
+        }
+
         return param;
+      },
+      getAppIdList() {
+        this.$get("https://shop-gateway-inner.tuhu.work/int-spring-arch-forseti-server/service/apps", response => {
+          this.$set(this.formData, "appIdList", response.data);
+        })
       },
       close() {
         this.formData = {
