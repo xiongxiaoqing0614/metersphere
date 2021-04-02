@@ -122,7 +122,7 @@ public class TestPlanService {
     @Resource
     private ApiDefinitionMapper  apiDefinitionMapper;
     @Resource
-    private TestPlanApiCaseMapper  testPlanApiCaseMapper;
+    private TestPlanApiCaseMapper testPlanApiCaseMapper;
     @Resource
     private TestPlanApiScenarioMapper testPlanApiScenarioMapper;
     @Resource
@@ -131,6 +131,8 @@ public class TestPlanService {
     private TestCaseTestMapper testCaseTestMapper;
     @Resource
     private ApiScenarioReportMapper apiScenarioReportMapper;
+    @Resource
+    private TestPlanReportMapper testPlanReportMapper;
 
     public synchronized String addTestPlan(AddTestPlanRequest testPlan) {
         if (getTestPlanByName(testPlan.getName()).size() > 0) {
@@ -176,7 +178,7 @@ public class TestPlanService {
         return Optional.ofNullable(testPlanMapper.selectByPrimaryKey(testPlanId)).orElse(new TestPlan());
     }
 
-    public int editTestPlan(TestPlanDTO testPlan, Boolean isSendMessage) {
+    public String editTestPlan(TestPlanDTO testPlan, Boolean isSendMessage) {
         checkTestPlanExist(testPlan);
         TestPlan res = testPlanMapper.selectByPrimaryKey(testPlan.getId()); //  先查一次库
         testPlan.setUpdateTime(System.currentTimeMillis());
@@ -230,7 +232,7 @@ public class TestPlanService {
                     .build();
             noticeSendService.send(NoticeConstants.TaskType.TEST_PLAN_TASK, noticeModel);
         }
-        return i;
+        return testPlan.getId();
     }
 
     //计划内容
@@ -385,6 +387,11 @@ public class TestPlanService {
             request.setProjectId(projectId);
         }
         List<TestPlanDTOWithMetric> testPlans = extTestPlanMapper.list(request);
+        testPlans.forEach(item -> {
+            TestPlanReportExample example = new TestPlanReportExample();
+            example.createCriteria().andTestPlanIdEqualTo(item.getId());
+            item.setExecutionTimes((int) testPlanReportMapper.countByExample(example));
+        });
         calcTestPlanRate(testPlans);
         return testPlans;
     }
@@ -409,7 +416,7 @@ public class TestPlanService {
                     || StringUtils.equals(res, "success")
                     || StringUtils.equals(res, ScenarioStatus.Success.name())) {
                 passNum++;
-            } else if (res == null) {
+            } else if (res == null || StringUtils.equals(TestPlanStatus.Prepare.name(), res)) {
                 prepareNum++;
             } else {
                 failNum++;

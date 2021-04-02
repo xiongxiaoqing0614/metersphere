@@ -399,9 +399,6 @@ export default {
     selectNodeIds: {
       type: Array
     },
-    selectParentNodes: {
-      type: Array
-    }
   },
   watch: {
     planId() {
@@ -473,10 +470,7 @@ export default {
           }
           this.selectRows.clear();
           if (this.$refs.table) {
-            setTimeout(() => {
-              this.$refs.table.doLayout();
-              this.result.loading = false;
-            }, 500)
+            setTimeout(this.$refs.table.doLayout, 200)
           }
         });
       }
@@ -717,5 +711,9 @@ export default {
 
 .ms-table-header >>> .table-title {
   height: 0px;
+}
+
+/deep/ .el-table__fixed-body-wrapper {
+  top: 60px !important;
 }
 </style>

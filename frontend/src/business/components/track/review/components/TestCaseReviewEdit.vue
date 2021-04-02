@@ -7,7 +7,8 @@
                :visible.sync="dialogFormVisible"
                @close="close"
                v-loading="result.loading"
-               width="65%">
+               width="65%"
+               v-if="isStepTableAlive">
 
       <el-form :model="form" :rules="rules" ref="reviewForm">
 
@@ -109,6 +110,7 @@ export default {
   components: {MsInputTag, TestPlanStatusButton},
   data() {
     return {
+      isStepTableAlive: true,
       dialogFormVisible: false,
       result: {},
       form: {
@@ -136,7 +138,16 @@ export default {
       reviewerOptions: []
     };
   },
+  computed: {
+    projectId() {
+      return this.$store.state.projectId;
+    }
+  },
   methods: {
+    reload() {
+      this.isStepTableAlive = false;
+      this.$nextTick(() => (this.isStepTableAlive = true));
+    },
     openCaseReviewEditDialog(caseReview) {
       this.resetForm();
       this.setReviewerOptions();
@@ -148,9 +159,12 @@ export default {
         Object.assign(tmp, caseReview);
         Object.assign(this.form, tmp);
         this.dbProjectIds = JSON.parse(JSON.stringify(this.form.projectIds));
+      } else {
+        this.form.tags = [];
       }
       listenGoBack(this.close);
       this.dialogFormVisible = true;
+      this.reload();
     },
     reviewInfo() {
 
@@ -171,10 +185,13 @@ export default {
           if (!this.compareTime(new Date().getTime(), this.form.endTime)) {
             return false;
           }
-          this.result = this.$post('/test/case/review/' + this.operationType, param, response => {
-            this.dialogFormVisible = false;
-            this.$router.push('/track/review/view/' + response.data);
-          });
+          param.projectId = this.projectId;
+          if (this.projectId) {
+            this.result = this.$post('/test/case/review/' + this.operationType, param, response => {
+              this.dialogFormVisible = false;
+              this.$router.push('/track/review/view/' + response.data);
+            });
+          }
         } else {
           return false;
         }
@@ -200,11 +217,14 @@ export default {
             return false;
           }
 
-          this.result = this.$post('/test/case/review/' + this.operationType, param, () => {
-            this.$success(this.$t('commons.save_success'));
-            this.dialogFormVisible = false;
-            this.$emit("refresh");
-          });
+          param.projectId = this.projectId;
+          if (this.projectId) {
+            this.result = this.$post('/test/case/review/' + this.operationType, param, () => {
+              this.$success(this.$t('commons.save_success'));
+              this.dialogFormVisible = false;
+              this.$emit("refresh");
+            });
+          }
 
         } else {
           return false;

@@ -14,6 +14,7 @@ import io.metersphere.api.service.ApiAutomationService;
 import io.metersphere.api.service.ApiTestEnvironmentService;
 import io.metersphere.base.domain.ApiScenarioWithBLOBs;
 import io.metersphere.base.domain.ApiTestEnvironmentWithBLOBs;
+import io.metersphere.commons.constants.MsTestElementConstants;
 import io.metersphere.commons.utils.CommonBeanFactory;
 import io.metersphere.commons.utils.FileUtils;
 import io.metersphere.commons.utils.SessionUtils;
@@ -77,9 +78,9 @@ public class MsScenario extends MsTestElement {
         if (!config.isOperating() && !this.isEnable()) {
             return;
         }
-        if (this.getReferenced() != null && this.getReferenced().equals("Deleted")) {
+        if (this.getReferenced() != null && this.getReferenced().equals(MsTestElementConstants.Deleted.name())) {
             return;
-        } else if (this.getReferenced() != null && this.getReferenced().equals("REF")) {
+        } else if (this.getReferenced() != null && MsTestElementConstants.REF.name().equals(this.getReferenced())) {
             try {
                 ApiAutomationService apiAutomationService = CommonBeanFactory.getBean(ApiAutomationService.class);
                 ObjectMapper mapper = new ObjectMapper();
@@ -87,9 +88,9 @@ public class MsScenario extends MsTestElement {
                 ApiScenarioWithBLOBs scenario = apiAutomationService.getApiScenario(this.getId());
                 if (scenario != null && StringUtils.isNotEmpty(scenario.getScenarioDefinition())) {
                     JSONObject element = JSON.parseObject(scenario.getScenarioDefinition());
+                    this.setName(scenario.getName());
                     hashTree = mapper.readValue(element.getString("hashTree"), new TypeReference<LinkedList<MsTestElement>>() {
                     });
-                    OldVersionUtil.transferHashTree(hashTree);
                     // 场景变量
                     if (StringUtils.isNotEmpty(element.getString("variables"))) {
                         LinkedList<ScenarioVariable> variables = mapper.readValue(element.getString("variables"),
@@ -114,23 +115,26 @@ public class MsScenario extends MsTestElement {
         // 设置共享cookie
         config.setEnableCookieShare(enableCookieShare);
         Map<String, EnvironmentConfig> envConfig = new HashMap<>(16);
-        // 兼容历史数据
-        if (environmentMap == null || environmentMap.isEmpty()) {
-            environmentMap = new HashMap<>(16);
-            if (StringUtils.isNotBlank(environmentId)) {
-                environmentMap.put(SessionUtils.getCurrentProjectId(), environmentId);
-            }
-        }
-        if (environmentMap != null && !environmentMap.isEmpty()) {
-            environmentMap.keySet().forEach(projectId -> {
-                ApiTestEnvironmentService environmentService = CommonBeanFactory.getBean(ApiTestEnvironmentService.class);
-                ApiTestEnvironmentWithBLOBs environment = environmentService.get(environmentMap.get(projectId));
-                if (environment != null && environment.getConfig() != null) {
-                    EnvironmentConfig env = JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class);
-                    envConfig.put(projectId, env);
+        if (config.getConfig() == null) {
+            // 兼容历史数据
+            if (this.environmentMap == null || this.environmentMap.isEmpty()) {
+                this.environmentMap = new HashMap<>(16);
+                if (StringUtils.isNotBlank(environmentId)) {
+                    // 兼容1.8之前 没有environmentMap但有environmentId的数据
+                    this.environmentMap.put("historyProjectID", environmentId);
                 }
-            });
-            config.setConfig(envConfig);
+            }
+            if (this.environmentMap != null && !this.environmentMap.isEmpty()) {
+                this.environmentMap.keySet().forEach(projectId -> {
+                    ApiTestEnvironmentService environmentService = CommonBeanFactory.getBean(ApiTestEnvironmentService.class);
+                    ApiTestEnvironmentWithBLOBs environment = environmentService.get(this.environmentMap.get(projectId));
+                    if (environment != null && environment.getConfig() != null) {
+                        EnvironmentConfig env = JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class);
+                        envConfig.put(projectId, env);
+                    }
+                });
+                config.setConfig(envConfig);
+            }
         }
         if (CollectionUtils.isNotEmpty(this.getVariables())) {
             config.setVariables(this.variables);

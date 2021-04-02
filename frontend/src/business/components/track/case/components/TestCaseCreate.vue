@@ -95,12 +95,15 @@ export default {
   watch: {
     treeNodes() {
       this.getModuleOptions();
-    },
+    }
   },
   computed: {
     projectId() {
       return this.$store.state.projectId
     },
+    moduleOptions() {
+      return this.$store.state.testCaseModuleOptions;
+    }
   },
   methods: {
     saveTestCase(saveAs) {
@@ -114,8 +117,8 @@ export default {
             this.testCaseForm.nodePath = this.currentModule.path;
             this.testCaseForm.nodeId = this.currentModule.id;
           } else {
-            this.testCaseForm.nodePath = "/全部用例"
-            this.testCaseForm.nodeId = "root"
+            this.testCaseForm.nodePath = "/默认模块"
+            this.testCaseForm.nodeId = "default-module"
           }
           this.result = this.$post(path, this.testCaseForm, response => {
             this.testCaseForm.id = response.data.id
@@ -134,12 +137,12 @@ export default {
       })
     },
     getModuleOptions() {
-      let moduleOptions = [];
-      this.treeNodes.forEach(node => {
-        buildNodePath(node, {path: ''}, moduleOptions);
-      });
+      // let moduleOptions = [];
+      // this.treeNodes.forEach(node => {
+      //   buildNodePath(node, {path: ''}, moduleOptions);
+      // });
       if(this.currentModule!==undefined){
-        moduleOptions.forEach(item => {
+        this.moduleOptions.forEach(item => {
           if (this.currentModule.id === item.id) {
             this.currentModule.path = item.path;
           }

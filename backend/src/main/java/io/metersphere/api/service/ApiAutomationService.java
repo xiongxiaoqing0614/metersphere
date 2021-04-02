@@ -1,30 +1,31 @@
 package io.metersphere.api.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSONPath;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.metersphere.api.dto.ApiTestImportRequest;
 import io.metersphere.api.dto.DeleteAPIReportRequest;
 import io.metersphere.api.dto.JmxInfoDTO;
+import io.metersphere.api.dto.ScenarioEnv;
 import io.metersphere.api.dto.automation.*;
 import io.metersphere.api.dto.automation.parse.ScenarioImport;
 import io.metersphere.api.dto.automation.parse.ScenarioImportParserFactory;
 import io.metersphere.api.dto.datacount.ApiDataCountResult;
 import io.metersphere.api.dto.definition.RunDefinitionRequest;
 import io.metersphere.api.dto.definition.request.*;
+import io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy;
 import io.metersphere.api.dto.definition.request.unknown.MsJmeterElement;
 import io.metersphere.api.dto.definition.request.variable.ScenarioVariable;
 import io.metersphere.api.dto.scenario.environment.EnvironmentConfig;
 import io.metersphere.api.jmeter.JMeterService;
 import io.metersphere.api.parse.ApiImportParser;
 import io.metersphere.base.domain.*;
-import io.metersphere.base.mapper.ApiScenarioMapper;
-import io.metersphere.base.mapper.ApiScenarioReportMapper;
-import io.metersphere.base.mapper.TestCaseReviewScenarioMapper;
-import io.metersphere.base.mapper.TestPlanApiScenarioMapper;
+import io.metersphere.base.mapper.*;
 import io.metersphere.base.mapper.ext.*;
 import io.metersphere.commons.constants.*;
 import io.metersphere.commons.exception.MSException;
@@ -32,6 +33,7 @@ import io.metersphere.commons.utils.*;
 import io.metersphere.controller.request.ScheduleRequest;
 import io.metersphere.i18n.Translator;
 import io.metersphere.job.sechedule.ApiScenarioTestJob;
+import io.metersphere.job.sechedule.SwaggerUrlImportJob;
 import io.metersphere.job.sechedule.TestPlanTestJob;
 import io.metersphere.service.ScheduleService;
 import io.metersphere.track.dto.TestPlanDTO;
@@ -62,6 +64,8 @@ import java.util.stream.Collectors;
 @Transactional(rollbackFor = Exception.class)
 public class ApiAutomationService {
     @Resource
+    ApiScenarioModuleMapper apiScenarioModuleMapper;
+    @Resource
     private ExtScheduleMapper extScheduleMapper;
     @Resource
     private ApiScenarioMapper apiScenarioMapper;
@@ -90,6 +94,12 @@ public class ApiAutomationService {
     @Resource
     @Lazy
     private TestPlanScenarioCaseService testPlanScenarioCaseService;
+    @Resource
+    private EsbApiParamService esbApiParamService;
+    @Resource
+    private ApiTestCaseService apiTestCaseService;
+    @Resource
+    private ApiDefinitionService apiDefinitionService;
 
     public List<ApiScenarioDTO> list(ApiScenarioRequest request) {
         request = this.initRequest(request, true, true);
@@ -184,6 +194,9 @@ public class ApiAutomationService {
         scenario.setCreateTime(System.currentTimeMillis());
         scenario.setNum(getNextNum(request.getProjectId()));
 
+        //检查场景的请求步骤。如果含有ESB请求步骤的话，要做参数计算处理。
+        esbApiParamService.checkScenarioRequests(request);
+
         apiScenarioMapper.insert(scenario);
 
         List<String> bodyUploadIds = request.getBodyUploadIds();
@@ -205,6 +218,9 @@ public class ApiAutomationService {
         List<String> bodyUploadIds = request.getBodyUploadIds();
         FileUtils.createBodyFiles(bodyUploadIds, bodyFiles);
 
+        //检查场景的请求步骤。如果含有ESB请求步骤的话，要做参数计算处理。
+        esbApiParamService.checkScenarioRequests(request);
+
         final ApiScenarioWithBLOBs scenario = buildSaveScenario(request);
         apiScenarioMapper.updateByPrimaryKeySelective(scenario);
         extScheduleMapper.updateNameByResourceID(request.getId(), request.getName());//  修改场景name，同步到修改首页定时任务
@@ -223,6 +239,7 @@ public class ApiAutomationService {
         scenario.setPrincipal(request.getPrincipal());
         scenario.setStepTotal(request.getStepTotal());
         scenario.setUpdateTime(System.currentTimeMillis());
+        scenario.setDescription(request.getDescription());
         scenario.setScenarioDefinition(JSON.toJSONString(request.getScenarioDefinition()));
         if (StringUtils.isNotEmpty(request.getStatus())) {
             scenario.setStatus(request.getStatus());
@@ -234,9 +251,14 @@ public class ApiAutomationService {
         } else {
             scenario.setUserId(request.getUserId());
         }
-        if (StringUtils.isEmpty(request.getApiScenarioModuleId()) || StringUtils.isEmpty(request.getModulePath())) {
-            scenario.setApiScenarioModuleId("root");
-            scenario.setModulePath("/默认模块");
+        if (StringUtils.isEmpty(request.getApiScenarioModuleId()) || "default-module".equals(request.getApiScenarioModuleId())) {
+            ApiScenarioModuleExample example = new ApiScenarioModuleExample();
+            example.createCriteria().andProjectIdEqualTo(request.getProjectId()).andNameEqualTo("默认模块");
+            List<ApiScenarioModule> modules = apiScenarioModuleMapper.selectByExample(example);
+            if (CollectionUtils.isNotEmpty(modules)) {
+                scenario.setApiScenarioModuleId(modules.get(0).getId());
+                scenario.setModulePath(modules.get(0).getName());
+            }
         }
         return scenario;
     }
@@ -348,6 +370,144 @@ public class ApiAutomationService {
             return apiScenarioDTO;
         }
         return null;
+    }
+
+    public ScenarioEnv getApiScenarioEnv(String definition) {
+        ObjectMapper mapper = new ObjectMapper();
+        ScenarioEnv env = new ScenarioEnv();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        try {
+            JSONObject element = JSON.parseObject(definition);
+            List<MsTestElement> hashTree = mapper.readValue(element.getString("hashTree"), new TypeReference<LinkedList<MsTestElement>>(){});
+            for (int i = 0; i < hashTree.size(); i++) {
+                MsTestElement tr = hashTree.get(i);
+                String referenced = tr.getReferenced();
+                if (StringUtils.equals(MsTestElementConstants.REF.name(), referenced)) {
+                    if (StringUtils.equals(tr.getType(), "HTTPSamplerProxy")) {
+                        MsHTTPSamplerProxy http = (MsHTTPSamplerProxy)tr;
+                        String refType = tr.getRefType();
+                        if (StringUtils.equals(refType, "CASE")) {
+                            http.setUrl(null);
+                        } else {
+                            ApiDefinition apiDefinition = apiDefinitionService.get(tr.getId());
+                            http.setUrl(apiDefinition.getPath());
+                        }
+                        if (StringUtils.isBlank(http.getUrl()) || !isURL(http.getUrl())) {
+                            env.getProjectIds().add(http.getProjectId());
+                            env.setFullUrl(false);
+                        }
+                    } else if (StringUtils.equals(tr.getType(), "TCPSampler")) {
+                        if (StringUtils.equals(tr.getRefType(), "CASE")) {
+                            ApiTestCaseWithBLOBs apiTestCaseWithBLOBs = apiTestCaseService.get(tr.getId());
+                            env.getProjectIds().add(apiTestCaseWithBLOBs.getProjectId());
+                        } else {
+                            ApiDefinition apiDefinition = apiDefinitionService.get(tr.getId());
+                            env.getProjectIds().add(apiDefinition.getProjectId());
+                        }
+                    } else if (StringUtils.equals(tr.getType(), "scenario")) {
+                        ApiScenarioDTO apiScenario = getApiScenario(tr.getId());
+                        String scenarioDefinition = apiScenario.getScenarioDefinition();
+                        JSONObject element1 = JSON.parseObject(scenarioDefinition);
+                        LinkedList<MsTestElement> hashTree1 = mapper.readValue(element1.getString("hashTree"), new TypeReference<LinkedList<MsTestElement>>(){});
+                        tr.setHashTree(hashTree1);
+                    }
+                } else {
+                    if (StringUtils.equals(tr.getType(), "HTTPSamplerProxy")) {
+                        // 校验是否是全路径
+                        MsHTTPSamplerProxy httpSamplerProxy = (MsHTTPSamplerProxy)tr;
+                        if (httpSamplerProxy.isEnable()) {
+                            if (StringUtils.isBlank(httpSamplerProxy.getUrl()) || !isURL(httpSamplerProxy.getUrl())) {
+                                env.getProjectIds().add(httpSamplerProxy.getProjectId());
+                                env.setFullUrl(false);
+                            }
+                        }
+                    } else if (StringUtils.equals(tr.getType(), "TCPSampler")) {
+                        env.getProjectIds().add(tr.getProjectId());
+                    }
+                }
+                if (CollectionUtils.isNotEmpty(tr.getHashTree())) {
+                    getHashTree(tr.getHashTree(), env);
+                }
+            }
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return env;
+    }
+
+    private void getHashTree(List<MsTestElement> tree, ScenarioEnv env) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            for (int i = 0; i < tree.size(); i++) {
+                MsTestElement tr = tree.get(i);
+                String referenced = tr.getReferenced();
+                if (StringUtils.equals(MsTestElementConstants.REF.name(), referenced)) {
+                    if (StringUtils.equals(tr.getType(), "HTTPSamplerProxy")) {
+                        MsHTTPSamplerProxy http = (MsHTTPSamplerProxy)tr;
+                        String refType = tr.getRefType();
+                        if (StringUtils.equals(refType, "CASE")) {
+                            http.setUrl(null);
+                        } else {
+                            ApiDefinition apiDefinition = apiDefinitionService.get(tr.getId());
+                            http.setUrl(apiDefinition.getPath());
+                        }
+                        if (StringUtils.isBlank(http.getUrl()) || !this.isURL(http.getUrl())) {
+                            env.setFullUrl(false);
+                            env.getProjectIds().add(http.getProjectId());
+                        }
+                    } else if (StringUtils.equals(tr.getType(), "TCPSampler")) {
+                        if (StringUtils.equals(tr.getRefType(), "CASE")) {
+                            ApiTestCaseWithBLOBs apiTestCaseWithBLOBs = apiTestCaseService.get(tr.getId());
+                            env.getProjectIds().add(apiTestCaseWithBLOBs.getProjectId());
+                        } else {
+                            ApiDefinition apiDefinition = apiDefinitionService.get(tr.getId());
+                            env.getProjectIds().add(apiDefinition.getProjectId());
+                        }
+                    }  else if (StringUtils.equals(tr.getType(), "scenario")) {
+                        ApiScenarioDTO apiScenario = getApiScenario(tr.getId());
+                        String scenarioDefinition = apiScenario.getScenarioDefinition();
+                        JSONObject element1 = JSON.parseObject(scenarioDefinition);
+                        LinkedList<MsTestElement> hashTree1 = mapper.readValue(element1.getString("hashTree"), new TypeReference<LinkedList<MsTestElement>>(){});
+                        tr.setHashTree(hashTree1);
+                    }
+                } else {
+                    if (StringUtils.equals(tr.getType(), "HTTPSamplerProxy")) {
+                        // 校验是否是全路径
+                        MsHTTPSamplerProxy httpSamplerProxy = (MsHTTPSamplerProxy)tr;
+                        if (httpSamplerProxy.isEnable()) {
+                            if (StringUtils.isBlank(httpSamplerProxy.getUrl()) || !isURL(httpSamplerProxy.getUrl())) {
+                                env.setFullUrl(false);
+                                env.getProjectIds().add(httpSamplerProxy.getProjectId());
+                            }
+                        }
+                    } else if (StringUtils.equals(tr.getType(), "TCPSampler")) {
+                        env.getProjectIds().add(tr.getProjectId());
+                    }
+                }
+                if (CollectionUtils.isNotEmpty(tr.getHashTree())) {
+                    getHashTree(tr.getHashTree(), env);
+                }
+            }
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean isURL(String str) {
+        try {
+            String regex = "^((https|http|ftp|rtsp|mms)?://)"
+                    + "?(([0-9a-z_!~*'().&=+$%-]+: )?[0-9a-z_!~*'().&=+$%-]+@)?"
+                    + "(([0-9]{1,3}\\.){3}[0-9]{1,3}" + "|" + "([0-9a-z_!~*'()-]+\\.)*"
+                    + "([0-9a-z][0-9a-z-]{0,61})?[0-9a-z]\\."
+                    + "[a-z]{2,6})"
+                    + "(:[0-9]{1,5})?"
+                    + "((/?)|"
+                    + "(/[0-9a-z_!~*'().;?:@&=+$,%#-]+)+/?)$";
+            return str.matches(regex) || (str.matches("^(http|https|ftp)://.*$") && str.matches(".*://\\$\\{.*$"));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public List<ApiScenarioWithBLOBs> getApiScenarios(List<String> ids) {
@@ -698,6 +858,10 @@ public class ApiAutomationService {
         return extApiScenarioMapper.countByProjectID(projectId);
     }
 
+    public List<ApiScenarioWithBLOBs> selectIdAndScenarioByProjectId(String projectId) {
+        return extApiScenarioMapper.selectIdAndScenarioByProjectId(projectId);
+    }
+
     public long countScenarioByProjectIDAndCreatInThisWeek(String projectId) {
         Map<String, Date> startAndEndDateInWeek = DateUtils.getWeedFirstTimeAndLastTime(new Date());
         Date firstTime = startAndEndDateInWeek.get("firstTime");
@@ -799,7 +963,9 @@ public class ApiAutomationService {
         if (StringUtils.equals(request.getGroup(), ScheduleGroup.TEST_PLAN_TEST.name())) {
             scheduleService.addOrUpdateCronJob(
                     request, TestPlanTestJob.getJobKey(request.getResourceId()), TestPlanTestJob.getTriggerKey(request.getResourceId()), TestPlanTestJob.class);
-        } else {
+        }else if(StringUtils.equals(request.getGroup(), ScheduleGroup.SWAGGER_IMPORT.name())){
+            scheduleService.addOrUpdateCronJob(request, SwaggerUrlImportJob.getJobKey(request.getResourceId()), SwaggerUrlImportJob.getTriggerKey(request.getResourceId()), SwaggerUrlImportJob.class);
+        } else{
             scheduleService.addOrUpdateCronJob(
                     request, ApiScenarioTestJob.getJobKey(request.getResourceId()), ApiScenarioTestJob.getTriggerKey(request.getResourceId()), ApiScenarioTestJob.class);
         }
@@ -1018,5 +1184,132 @@ public class ApiAutomationService {
                 (query) -> extApiScenarioMapper.selectIdsByQuery((ApiScenarioRequest) query));
 
         this.deleteBatch(request.getIds());
+    }
+
+    /**
+     * 统计接口覆盖率
+     * 1.场景中复制的接口
+     * 2.场景中引用/复制的案例
+     * 3.场景中的自定义路径与接口定义中的匹配
+     *
+     * @param allScenarioInfoList     场景集合（id / scenario大字段 必须有数据）
+     * @param allEffectiveApiList     接口集合（id / path 必须有数据）
+     * @param allEffectiveApiCaseList 案例集合(id /api_definition_id 必须有数据)
+     * @return
+     */
+    public float countInterfaceCoverage(List<ApiScenarioWithBLOBs> allScenarioInfoList, List<ApiDefinition> allEffectiveApiList, List<ApiTestCase> allEffectiveApiCaseList) {
+//        float coverageRageNumber = (float) apiCountResult.getExecutionPassCount() * 100 / allCount;
+        float intetfaceCoverage = 0;
+        if (allEffectiveApiList == null || allEffectiveApiList.isEmpty()) {
+            return 100;
+        }
+
+        /**
+         * 前置工作：
+         *  1。将接口集合转化数据结构: map<url,List<id>> urlMap 用来做3的筛选
+         *  2。将案例集合转化数据结构：map<testCase.id,List<testCase.apiId>> caseIdMap 用来做2的筛选
+         *  3。将接口集合转化数据结构: List<id> allApiIdList 用来做1的筛选
+         *  4。自定义List<api.id> coveragedIdList 已覆盖的id集合。 最终计算公式是 coveragedIdList/allApiIdList
+         *
+         * 解析allScenarioList的scenarioDefinition字段。
+         * 1。提取每个步骤的url。 在 urlMap筛选
+         * 2。提取每个步骤的id.   在caseIdMap 和 allApiIdList。
+         */
+        Map<String, List<String>> urlMap = new HashMap<>();
+        List<String> allApiIdList = new ArrayList<>();
+        Map<String,List<String>> caseIdMap = new HashMap<>();
+        for (ApiDefinition model : allEffectiveApiList) {
+            String url = model.getPath();
+            String id = model.getId();
+            allApiIdList.add(id);
+            if (urlMap.containsKey(url)) {
+                urlMap.get(url).add(id);
+            } else {
+                List<String> list = new ArrayList<>();
+                list.add(id);
+                urlMap.put(url, list);
+            }
+        }
+        for (ApiTestCase model : allEffectiveApiCaseList){
+            String caseId = model.getId();
+            String apiId = model.getApiDefinitionId();
+            if (urlMap.containsKey(caseId)) {
+                urlMap.get(caseId).add(apiId);
+            } else {
+                List<String> list = new ArrayList<>();
+                list.add(apiId);
+                urlMap.put(caseId, list);
+            }
+        }
+
+        if (allApiIdList.isEmpty()) {
+            return 100;
+        }
+
+        List<String> urlList = new ArrayList<>();
+        List<String> idList=  new ArrayList<>();
+
+        for (ApiScenarioWithBLOBs model : allScenarioInfoList) {
+            String scenarioDefiniton = model.getScenarioDefinition();
+            this.addUrlAndIdToList(scenarioDefiniton,urlList,idList);
+        }
+
+        List<String> containsApiIdList = new ArrayList<>();
+
+        for (String url : urlList) {
+            List<String> apiIdList = urlMap.get(url);
+            if(apiIdList!=null ){
+                for (String api : apiIdList) {
+                    if(!containsApiIdList.contains(api)){
+                        containsApiIdList.add(api);
+                    }
+                }
+            }
+        }
+
+        for (String id : idList) {
+            List<String> apiIdList = caseIdMap.get(id);
+            if(apiIdList!=null ){
+                for (String api : apiIdList) {
+                    if(!containsApiIdList.contains(api)){
+                        containsApiIdList.add(api);
+                    }
+                }
+            }
+
+            if(allApiIdList.contains(id)){
+                if(!containsApiIdList.contains(id)){
+                    containsApiIdList.add(id);
+                }
+            }
+        }
+
+        float coverageRageNumber = (float) containsApiIdList.size() * 100 / allApiIdList.size();
+        return coverageRageNumber;
+    }
+
+    private void addUrlAndIdToList(String scenarioDefiniton, List<String> urlList, List<String> idList) {
+        try {
+            JSONObject scenarioObj = JSONObject.parseObject(scenarioDefiniton);
+            if(scenarioObj.containsKey("hashTree")){
+                JSONArray hashArr = scenarioObj.getJSONArray("hashTree");
+                for (int i = 0; i < hashArr.size(); i++) {
+                    JSONObject elementObj = hashArr.getJSONObject(i);
+                    if(elementObj.containsKey("id")){
+                        String id = elementObj.getString("id");
+                        idList.add(id);
+                    }
+                    if(elementObj.containsKey("url")){
+                        String url = elementObj.getString("url");
+                        urlList.add(url);
+                    }
+                    if(elementObj.containsKey("path")){
+                        String path = elementObj.getString("path");
+                        urlList.add(path);
+                    }
+                }
+            }
+        }catch (Exception e){
+        }
     }
 }

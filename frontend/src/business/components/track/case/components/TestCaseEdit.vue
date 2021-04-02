@@ -35,7 +35,7 @@
 
             <el-col :span="7">
               <el-form-item :label="$t('test_track.case.module')" :label-width="formLabelWidth" prop="module">
-                <ms-select-tree :disabled="readOnly" :data="moduleOptions" :defaultKey="form.module" :obj="moduleObj"
+                <ms-select-tree :disabled="readOnly" :data="treeNodes" :defaultKey="form.module" :obj="moduleObj"
                                 @getValue="setModule" clearable checkStrictly size="small" />
               </el-form-item>
             </el-col>
@@ -277,7 +277,7 @@
 <script>
 import {TokenKey, WORKSPACE_ID} from '@/common/js/constants';
 import MsDialogFooter from '../../../common/components/MsDialogFooter'
-import {getCurrentUser, handleCtrlSEvent, listenGoBack, removeGoBackListener} from "@/common/js/utils";
+import {getCurrentUser, getNodePath, handleCtrlSEvent, listenGoBack, removeGoBackListener} from "@/common/js/utils";
 import {Message} from "element-ui";
 import TestCaseAttachment from "@/business/components/track/case/components/TestCaseAttachment";
 import {buildNodePath,buildTree} from "../../../api/definition/model/NodeTree";
@@ -309,13 +309,13 @@ export default {
       sysList: [],//一级选择框的数据
       options: REVIEW_STATUS,
       statuOptions: API_STATUS,
-      comments: [],
+       comments: [],
       result: {},
       dialogFormVisible: false,
       form: {
         name: '',
-        module: 'root',
-        nodePath:'',
+        module: 'default-module',
+        nodePath:'/默认模块',
         maintainer: getCurrentUser().id,
         priority: 'P0',
         type: '',
@@ -337,7 +337,6 @@ export default {
         reviewStatus: 'Prepare',
       },
       readOnly: false,
-      moduleOptions: [],
       maintainerOptions: [],
       testOptions: [],
       demandOptions: [],
@@ -382,9 +381,6 @@ export default {
       type: Array
     },
     currentTestCaseInfo: {},
-    setModuleOptions: {
-      type: Array
-    },
     /*readOnly: {
       type: Boolean,
       default: false
@@ -401,11 +397,15 @@ export default {
     projectIds() {
       return this.$store.state.projectId
     },
+    moduleOptions() {
+      return this.$store.state.testCaseModuleOptions;
+    }
   },
   mounted() {
     this.getSelectOptions();
     if (this.type === 'edit' || this.type === 'copy') {
       this.open(this.currentTestCaseInfo)
+      this.getComments(this.currentTestCaseInfo)
     }
     // Cascader 级联选择器: 点击文本就让它自动点击前面的input就可以触发选择。
     setInterval(function () {
@@ -415,22 +415,40 @@ export default {
         };
       });
     }, 1000);
-    if(this.selectNode && this.selectNode.data){
-      this.form.module = this.selectNode.data.id;
-      this.form.nodePath = this.selectNode.data.path;
+    if(this.selectNode && this.selectNode.data && !this.form.id){
+        this.form.module = this.selectNode.data.id;
+        this.form.nodePath = this.selectNode.data.path;
+    }
+    if((!this.form.module || this.form.module==="default-module" || this.form.module ==="root") && this.treeNodes.length > 0){
+      this.form.module =  this.treeNodes[0].id;
+      this.form.nodePath = this.treeNodes[0].path;
     }
   },
-  watch: {
-    treeNodes() {
-      this.getModuleOptions();
-    },
-    moduleOptions() {
-      this.$emit('setModuleOptions', this.moduleOptions);
-    }
-  },
+  // watch: {
+    // treeNodes() {
+    //   this.getModuleOptions();
+    // },
+    // moduleOptions() {
+    //   this.$emit('setModuleOptions', this.moduleOptions);
+    // }
+  // },
   created() {
     this.loadOptions();
     this.addListener(); //  添加 ctrl s 监听
+    if(this.selectNode && this.selectNode.data && !this.form.id){
+      this.form.module = this.selectNode.data.id;
+      this.form.nodePath = this.selectNode.data.path;
+    }else{
+      this.form.module =this.treeNodes && this.length>0? this.treeNodes[0].id:"";
+    }
+    if (this.type === 'edit' || this.type === 'copy') {
+      this.form.module = this.currentTestCaseInfo.nodeId;
+      this.form.nodePath = this.currentTestCaseInfo.nodePath;
+    }
+    if((!this.form.module || this.form.module==="default-module" || this.form.module ==="root") && this.treeNodes.length > 0){
+      this.form.module =  this.treeNodes[0].id;
+      this.form.nodePath = this.treeNodes[0].path;
+    }
   },
   methods: {
     setModule(id,data) {
@@ -762,6 +780,7 @@ export default {
       Object.assign(param, this.form);
       param.steps = JSON.stringify(this.form.steps);
       param.nodeId = this.form.module;
+      param.nodePath = getNodePath(this.form.module, this.moduleOptions);
       if (this.projectId) {
         param.projectId = this.projectId;
       }
@@ -772,7 +791,7 @@ export default {
       }
       param.testId = JSON.stringify(this.form.selected)
       param.tags = this.form.tags;
-      param.type = 'functional'
+      param.type = 'functional';
       return param;
     },
     getOption(param) {
@@ -833,18 +852,6 @@ export default {
       this.form.testId = '';
       this.getTestOptions()
     },
-    getModuleOptions() {
-      this.moduleOptions = [];
-      this.moduleOptions.unshift({
-        "id": "root",
-        "name": this.$t('commons.module_title'),
-        "level": 0,
-        "children": this.treeNodes,
-      });
-      this.moduleOptions.forEach(node => {
-        buildTree(node, {path: ''});
-      });
-    },
     getMaintainerOptions() {
       let workspaceId = localStorage.getItem(WORKSPACE_ID);
       this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
@@ -871,7 +878,6 @@ export default {
       }
     },
     getSelectOptions() {
-      this.getModuleOptions();
       this.getMaintainerOptions();
       this.getTestOptions();
       if (this.type === 'edit') {
@@ -921,7 +927,7 @@ export default {
       }
 
       if (this.tableData.filter(f => f.name === file.name).length > 0) {
-        this.$error(this.$t('load_test.delete_file'));
+        this.$error(this.$t('load_test.delete_file') + ', name: ' + file.name);
         return false;
       }
 

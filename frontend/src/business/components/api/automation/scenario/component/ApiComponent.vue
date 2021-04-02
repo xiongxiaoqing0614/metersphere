@@ -64,7 +64,7 @@
           </el-tabs>
         </div>
         <div v-else-if="showXpackCompnent&&request.backEsbDataStruct != null">
-          <esb-definition-response :currentProtocol="request.protocol" :request="request" :is-api-component="false"
+          <esb-definition-response v-xpack v-if="showXpackCompnent"  :currentProtocol="request.protocol" :request="request" :is-api-component="false"
                                    :show-options-button="false" :show-header="true" :result="request.requestResult"/>
         </div>
         <div v-else>
@@ -258,9 +258,7 @@
               this.request.id = response.data.id;
               this.request.disabled = true;
               this.request.root = true;
-              if (!this.request.projectId) {
-                this.request.projectId = response.data.projectId;
-              }
+              this.request.projectId = response.data.projectId;
               this.reload();
               this.sort();
             } else {
