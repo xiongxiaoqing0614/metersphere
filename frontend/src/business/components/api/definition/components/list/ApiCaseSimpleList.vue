@@ -157,7 +157,7 @@ import {parseEnvironment} from "@/business/components/api/test/model/Environment
 import MsTableHeaderSelectPopover from "@/business/components/common/components/table/MsTableHeaderSelectPopover";
 import MsTableAdvSearchBar from "@/business/components/common/components/search/MsTableAdvSearchBar";
 import {API_CASE_CONFIGS} from "@/business/components/common/components/search/search-components";
-import {_filter, _handleSelect, _handleSelectAll, _sort, getLabel, getSystemLabel,} from "@/common/js/tableUtils";
+import {_filter, _handleSelect, _handleSelectAll, _sort, getLabel} from "@/common/js/tableUtils";
 import {API_CASE_LIST} from "@/common/js/constants";
 import {Api_Case_List} from "@/business/components/common/model/JsonData";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
@@ -263,7 +263,6 @@ export default {
   },
   created: function () {
     this.initTable();
-    getSystemLabel(this, this.type)
     this.$nextTick(() => {
       this.$refs.caseTable.bodyWrapper.scrollTop = 5
     })
@@ -314,7 +313,7 @@ export default {
         this.condition.status = "Trash";
         this.condition.moduleIds = [];
       }
-      if(!this.selectAll){
+      if (!this.selectAll) {
         this.selectAll = false;
         this.unSelection = [];
         this.selectDataCounts = 0;
@@ -343,7 +342,7 @@ export default {
           this.total = response.data.itemCount;
           this.tableData = response.data.listObject;
 
-          if(!this.selectAll){
+          if (!this.selectAll) {
             this.unSelection = response.data.listObject.map(s => s.id);
           }
 
@@ -352,13 +351,11 @@ export default {
               item.tags = JSON.parse(item.tags);
             }
           })
-          if (this.$refs.caseTable) {
-            setTimeout(() => {
-              this.$refs.caseTable.doLayout();
-              this.result.loading = false;
-            }, 500)
-          }
-          this.$nextTick(function(){
+
+          this.$nextTick(function () {
+            if (this.$refs.caseTable) {
+              setTimeout(this.$refs.caseTable.doLayout, 200)
+            }
             this.checkTableRowIsSelect();
           })
         });
@@ -366,20 +363,20 @@ export default {
       getLabel(this, API_CASE_LIST);
 
     },
-    checkTableRowIsSelect(){
+    checkTableRowIsSelect() {
       //如果默认全选的话，则选中应该选中的行
-      if(this.selectAll){
+      if (this.selectAll) {
         let unSelectIds = this.unSelection;
-        this.tableData.forEach(row=>{
-          if(unSelectIds.indexOf(row.id)<0){
-            this.$refs.caseTable.toggleRowSelection(row,true);
+        this.tableData.forEach(row => {
+          if (unSelectIds.indexOf(row.id) < 0) {
+            this.$refs.caseTable.toggleRowSelection(row, true);
 
             //默认全选，需要把选中对行添加到selectRows中。不然会影响到勾选函数统计
             if (!this.selectRows.has(row)) {
               this.$set(row, "showMore", true);
               this.selectRows.add(row);
             }
-          }else{
+          } else {
             //不勾选的行，也要判断是否被加入了selectRow中。加入了的话就去除。
             if (this.selectRows.has(row)) {
               this.$set(row, "showMore", false);
@@ -694,5 +691,9 @@ export default {
 
 /deep/ .el-table__fixed {
   height: 100% !important;
+}
+
+/deep/ .el-table__fixed-body-wrapper {
+  top: 60px !important;
 }
 </style>

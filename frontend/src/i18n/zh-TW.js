@@ -5,6 +5,7 @@ export default {
     pass_rate: '通過率',
     execution_times: '執行次數',
     cover: '覆蓋',
+    module_title: '默認模塊',
     not_cover: '不覆蓋',
     import: '導入',
     import_success: '導入成功',
@@ -705,6 +706,14 @@ export default {
       }
     },
     automation: {
+      constant: "常量",
+      counter: "計數器",
+      random: "随机器",
+      view_scene_variables: "查看場景變量",
+      open_scene: "打開場景",
+      save_as_api: "另存為接口定義",
+      delete_step: "删除步骤",
+      reference_deleted_info: "引用場景已經被刪除",
       follow_people: "關註人",
       create_tag: "創建Tag",
       scenario_step: "場景步驟",
@@ -1007,6 +1016,7 @@ export default {
           coverage: "覆蓋率",
           pass: "通過率",
           success: "成功率",
+          interface_coverage: "接口覆蓋率",
         },
       },
       api_details_card: {

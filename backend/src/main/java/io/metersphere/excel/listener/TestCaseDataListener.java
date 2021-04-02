@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TestCaseDataListener extends EasyExcelListener<TestCaseExcelData> {
 
@@ -64,6 +65,16 @@ public class TestCaseDataListener extends EasyExcelListener<TestCaseExcelData> {
                 if (i != 0 && StringUtils.equals(nodes[i].trim(), "")) {
                     stringBuilder.append(Translator.get("module_not_null") + "; ");
                     break;
+                }
+            }
+            //增加字数校验，每一层不能超过100字
+            for (int i = 0; i < nodes.length; i++) {
+                String nodeStr = nodes[i];
+                if(StringUtils.isNotEmpty(nodeStr)){
+                    if(nodeStr.trim().length()>100){
+                        stringBuilder.append(Translator.get("module") + Translator.get("test_track.length_less_than") + "100:"+nodeStr);
+                        break;
+                    }
                 }
             }
         }
@@ -141,7 +152,7 @@ public class TestCaseDataListener extends EasyExcelListener<TestCaseExcelData> {
     public void saveData() {
 
         //excel中用例都有错误时就返回，只要有用例可用于更新或者插入就不返回
-        if (!errList.isEmpty() && list.size() == 0 && updateList.size() == 0) {
+        if (!errList.isEmpty()) {
             return;
         }
 
@@ -151,6 +162,7 @@ public class TestCaseDataListener extends EasyExcelListener<TestCaseExcelData> {
                     .map(item -> this.convert2TestCase(item))
                     .collect(Collectors.toList());
             testCaseService.saveImportData(result, projectId);
+            this.isUpdated = true;
         }
 
         if (!(updateList.size() == 0)) {
@@ -180,9 +192,11 @@ public class TestCaseDataListener extends EasyExcelListener<TestCaseExcelData> {
         if (nodePath.endsWith("/")) {
             nodePath = nodePath.substring(0, nodePath.length() - 1);
         }
-
         testCase.setNodePath(nodePath);
 
+        //将标签设置为前端可解析的格式
+        String modifiedTags = modifyTagPattern(data);
+        testCase.setTags(modifiedTags);
 
         String steps = getSteps(data);
         testCase.setSteps(steps);
@@ -201,6 +215,7 @@ public class TestCaseDataListener extends EasyExcelListener<TestCaseExcelData> {
         testCase.setProjectId(this.projectId);
         testCase.setUpdateTime(System.currentTimeMillis());
 
+        //调整nodePath格式
         String nodePath = data.getNodePath();
         if (!nodePath.startsWith("/")) {
             nodePath = "/" + nodePath;
@@ -213,8 +228,39 @@ public class TestCaseDataListener extends EasyExcelListener<TestCaseExcelData> {
         String steps = getSteps(data);
         testCase.setSteps(steps);
 
+        //将标签设置为前端可解析的格式
+        String modifiedTags = modifyTagPattern(data);
+        testCase.setTags(modifiedTags);
+
         return testCase;
     }
+
+    /**
+     *  调整tags格式，便于前端进行解析。
+     *  例如对于：标签1，标签2。将调整为:["标签1","标签2"]。
+     */
+    public String modifyTagPattern(TestCaseExcelData data){
+        String tags = data.getTags();
+        try {
+            if (StringUtils.isNotBlank(tags)) {
+                JSONArray.parse(tags);
+                return tags;
+            }
+            return "[]";
+        } catch (Exception e) {
+            if (tags != null) {
+                Stream<String> stringStream = Arrays.stream(tags.split("[,;，；]"));  //当标签值以中英文的逗号和分号分隔时才能正确解析
+                List<String> tagList = stringStream.map(tag -> tag = "\"" + tag + "\"")
+                        .collect(Collectors.toList());
+                String modifiedTags = StringUtils.join(tagList, ",");
+                modifiedTags = "[" + modifiedTags + "]";
+                return modifiedTags;
+            } else {
+                return "[]";
+            }
+        }
+    }
+
 
     public String getSteps(TestCaseExcelData data) {
         JSONArray jsonArray = new JSONArray();
@@ -223,12 +269,12 @@ public class TestCaseDataListener extends EasyExcelListener<TestCaseExcelData> {
         String[] stepRes = new String[1];
 
         if (data.getStepDesc() != null) {
-            stepDesc = data.getStepDesc().split("\r\n");
+            stepDesc = data.getStepDesc().split("\r\n|\n");
         } else {
             stepDesc[0] = "";
         }
         if (data.getStepResult() != null) {
-            stepRes = data.getStepResult().split("\r\n");
+            stepRes = data.getStepResult().split("\r\n|\n");
         } else {
             stepRes[0] = "";
         }

@@ -5,6 +5,7 @@ export default {
     pass_rate: '通过率',
     execution_times: '执行次数',
     cover: '覆盖',
+    module_title: '默认模块',
     not_cover: '不覆盖',
     import: '导入',
     import_success: '导入成功',
@@ -706,6 +707,14 @@ export default {
       }
     },
     automation: {
+      constant: "常量",
+      counter: "计数器",
+      random: "随机数",
+      view_scene_variables: "查看场景变量",
+      open_scene: "打开场景",
+      save_as_api: "另存为接口定义",
+      delete_step: "删除步骤",
+      reference_deleted_info: "引用场景已经被删除",
       follow_people: "关注人",
       create_tag: "创建Tag",
       scenario_step: "场景步骤",
@@ -1009,6 +1018,7 @@ export default {
           coverage: "覆盖率",
           pass: "通过率",
           success: "成功率",
+          interface_coverage: "接口覆盖率",
         },
       },
       api_details_card: {
