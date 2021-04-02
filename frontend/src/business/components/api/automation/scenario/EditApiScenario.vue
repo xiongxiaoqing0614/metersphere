@@ -119,18 +119,21 @@
                 <el-col :span="3" class="ms-col-one ms-font">
                   <el-checkbox v-model="enableCookieShare">共享cookie</el-checkbox>
                 </el-col>
-                <el-col :span="6">
+                <el-col :span="5">
                   <env-popover :env-map="projectEnvMap" :project-ids="projectIds" @setProjectEnvMap="setProjectEnvMap"
                                :project-list="projectList" ref="envPopover"/>
                 </el-col>
-                <el-col :span="3">
+                <el-col :span="4">
                   <el-button :disabled="scenarioDefinition.length < 1" size="mini" type="primary" v-prevent-re-click @click="runDebug">{{$t('api_test.request.debug')}}</el-button>
+                  <el-tooltip class="item" effect="dark" :content="$t('commons.refresh')" placement="right-start">
+                    <el-button :disabled="scenarioDefinition.length < 1" size="mini"  icon ="el-icon-refresh" v-prevent-re-click @click="getApiScenario"></el-button>
+                  </el-tooltip>
                   <font-awesome-icon class="alt-ico" :icon="['fa', 'expand-alt']" size="lg" @click="fullScreen"/>
                 </el-col>
               </el-row>
             </div>
             <!-- 场景步骤内容 -->
-            <div v-loading="loading">
+            <div>
               <el-tree node-key="resourceId" :props="props" :data="scenarioDefinition" class="ms-tree"
                        :default-expanded-keys="expandedNode"
                        :expand-on-click-node="false"
@@ -322,6 +325,7 @@
         projectList: [],
         debugResult: new Map,
         drawer: false,
+        isFullUrl: true
       }
     },
     created() {
@@ -599,6 +603,11 @@
           if (!arr[i].projectId) {
             // 如果自身没有ID并且场景有ID则赋值场景ID，否则赋值当前项目ID
             arr[i].projectId = scenarioProjectId ? scenarioProjectId : this.projectId;
+          } else {
+            const project = this.projectList.find(p => p.id === arr[i].projectId);
+            if (!project) {
+              arr[i].projectId = scenarioProjectId ? scenarioProjectId : this.projectId;
+            }
           }
 
           if (arr[i].hashTree != undefined && arr[i].hashTree.length > 0) {
@@ -622,6 +631,11 @@
           // 设置项目ID
           if (!this.scenarioDefinition[i].projectId) {
             this.scenarioDefinition[i].projectId = this.projectId;
+          } else {
+            const project = this.projectList.find(p => p.id === this.scenarioDefinition[i].projectId);
+            if (!project) {
+              this.scenarioDefinition[i].projectId = this.projectId;
+            }
           }
 
           if (this.scenarioDefinition[i].hashTree != undefined && this.scenarioDefinition[i].hashTree.length > 0) {
@@ -644,7 +658,7 @@
         this.customizeRequest = {};
         this.sort();
         this.reload();
-        this.initProjectIds();
+        // this.initProjectIds();
       },
       addScenario(arr) {
         if (arr && arr.length > 0) {
@@ -667,7 +681,7 @@
         this.isBtnHide = false;
         this.sort();
         this.reload();
-        this.initProjectIds();
+        // this.initProjectIds();
       },
       setApiParameter(item, refType, referenced) {
         let request = {};
@@ -709,7 +723,7 @@
         this.isBtnHide = false;
         this.sort();
         this.reload();
-        this.initProjectIds();
+        // this.initProjectIds();
       },
       getMaintainerOptions() {
         let workspaceId = localStorage.getItem(WORKSPACE_ID);
@@ -736,7 +750,7 @@
               hashTree.splice(index, 1);
               this.sort();
               this.reload();
-              this.initProjectIds();
+              // this.initProjectIds();
             }
           }
         });
@@ -763,11 +777,14 @@
         this.loading = true
         this.$nextTick(() => {
           this.loading = false
-        })
+        });
+        let definition = JSON.parse(JSON.stringify(this.currentScenario));
+        definition.hashTree = this.scenarioDefinition;
+        this.getEnv(JSON.stringify(definition));
       },
       runDebug() {
         /*触发执行操作*/
-        let sign = this.$refs.envPopover.checkEnv();
+        let sign = this.$refs.envPopover.checkEnv(this.isFullUrl);
         if (!sign) {
           return;
         }
@@ -958,7 +975,16 @@
           })
         });
       },
+      getEnv(definition) {
+        this.$post("/api/automation/getApiScenarioEnv", {definition: definition}, res => {
+          if (res.data) {
+            this.projectIds = new Set(res.data.projectIds);
+            this.isFullUrl = res.data.fullUrl;
+          }
+        })
+      },
       getApiScenario() {
+        this.loading = true;
         if (this.currentScenario.tags != undefined && !(this.currentScenario.tags instanceof Array)) {
           this.currentScenario.tags = JSON.parse(this.currentScenario.tags);
         }
@@ -973,6 +999,7 @@
             if (response.data) {
               this.path = "/api/automation/update";
               if (response.data.scenarioDefinition != null) {
+                this.getEnv(response.data.scenarioDefinition);
                 let obj = JSON.parse(response.data.scenarioDefinition);
                 if (obj) {
                   this.currentEnvironmentId = obj.environmentId;
@@ -1009,8 +1036,9 @@
                 this.path = "/api/automation/create";
               }
             }
+            this.loading = false;
             this.sort();
-            this.initProjectIds();
+            // this.initProjectIds();
             // this.getEnvironments();
           })
         }
@@ -1080,18 +1108,18 @@
         })
       },
       refReload() {
-        this.initProjectIds();
+        // this.initProjectIds();
         this.reload();
       },
       initProjectIds() {
-        // 加载环境配置
-        this.$nextTick(() => {
-          this.projectIds.clear();
-          this.scenarioDefinition.forEach(data => {
-            let arr = jsonPath.query(data, "$..projectId");
-            arr.forEach(a => this.projectIds.add(a));
-          })
-        })
+        // // 加载环境配置
+        // this.$nextTick(() => {
+        //   this.projectIds.clear();
+        //   this.scenarioDefinition.forEach(data => {
+        //     let arr = jsonPath.query(data, "$..projectId");
+        //     arr.forEach(a => this.projectIds.add(a));
+        //   })
+        // })
       },
       detailRefresh(result) {
         // 把执行结果分发给各个请求

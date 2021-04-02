@@ -248,6 +248,7 @@ import {Api_List} from "@/business/components/common/model/JsonData";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 import {Body} from "@/business/components/api/definition/model/ApiTestModel";
+import {buildNodePath} from "@/business/components/api/definition/model/NodeTree";
 
 
 export default {
@@ -463,7 +464,7 @@ export default {
           // nexttick:表格加载完成之后触发。判断是否需要勾选行
           this.$nextTick(function () {
             if (this.$refs.apiDefinitionTable) {
-              this.$refs.apiDefinitionTable.doLayout();
+              setTimeout(this.$refs.apiDefinitionTable.doLayout, 200)
             }
             this.checkTableRowIsSelect();
           })
@@ -768,13 +769,21 @@ export default {
       });
     },
     buildApiPath(apis) {
-      apis.forEach((api) => {
+      try {
+        let options = [];
         this.moduleOptions.forEach(item => {
-          if (api.moduleId === item.id) {
-            api.modulePath = item.path;
-          }
+          buildNodePath(item, {path: ''}, options);
         });
-      });
+        apis.forEach((api) => {
+          options.forEach((item) => {
+            if (api.moduleId === item.id) {
+              api.modulePath = item.path;
+            }
+          })
+        });
+      } catch (e) {
+        console.log(e);
+      }
     },
     sort(column) {
       // 每次只对一个字段排序
