@@ -120,8 +120,7 @@ export default {
       this.openLdap = response.data;
       if(this.openLdap){
         this.form.authenticate='LDAP'
-      }
-      else{
+      }else{
         this.form.authenticate='LOCAL'
       }
       
