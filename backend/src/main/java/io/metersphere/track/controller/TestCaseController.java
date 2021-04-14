@@ -58,10 +58,10 @@ public class TestCaseController {
         return testCaseService.listTestCase(request);
     }
 
-    @GetMapping("/list/detail/{projectId}")
-    public List<TestCaseWithBLOBs> listDetail(@PathVariable String projectId) {
-        checkPermissionService.checkProjectOwner(projectId);
-        return testCaseService.listTestCaseDetail(projectId);
+    @PostMapping("/list/minder")
+    public List<TestCaseWithBLOBs> listDetail(@RequestBody QueryTestCaseRequest request) {
+        checkPermissionService.checkProjectOwner(request.getProjectId());
+        return testCaseService.listTestCaseForMinder(request);
     }
 
    /*jenkins项目下所有接口和性能测试用例*/
@@ -126,6 +126,12 @@ public class TestCaseController {
     @RequiresRoles(value = {RoleConstants.TEST_USER, RoleConstants.TEST_MANAGER}, logical = Logical.OR)
     public String editTestCase(@RequestPart("request") EditTestCaseRequest request, @RequestPart(value = "file") List<MultipartFile> files) {
         return testCaseService.edit(request, files);
+    }
+
+    @PostMapping(value = "/edit/testPlan", consumes = {"multipart/form-data"})
+    @RequiresRoles(value = {RoleConstants.TEST_USER, RoleConstants.TEST_MANAGER}, logical = Logical.OR)
+    public String editTestCaseByTestPlan(@RequestPart("request") EditTestCaseRequest request, @RequestPart(value = "file") List<MultipartFile> files) {
+        return testCaseService.editTestCase(request, files);
     }
 
     @PostMapping("/delete/{testCaseId}")

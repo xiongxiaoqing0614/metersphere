@@ -91,7 +91,6 @@ public class TestCaseService {
     TestCaseFileMapper testCaseFileMapper;
     @Resource
     TestCaseTestMapper testCaseTestMapper;
-
     private void setNode(TestCaseWithBLOBs testCase){
         if (StringUtils.isEmpty(testCase.getNodeId()) || "default-module".equals(testCase.getNodeId())) {
             TestCaseNodeExample example = new TestCaseNodeExample();
@@ -131,7 +130,6 @@ public class TestCaseService {
 
     public int editTestCase(TestCaseWithBLOBs testCase) {
         testCase.setUpdateTime(System.currentTimeMillis());
-        checkTestCaseExist(testCase);
         return testCaseMapper.updateByPrimaryKeySelective(testCase);
     }
 
@@ -842,6 +840,44 @@ public class TestCaseService {
         return request.getId();
     }
 
+    public String editTestCase(EditTestCaseRequest request, List<MultipartFile> files) {
+        String testCaseId = testPlanTestCaseMapper.selectByPrimaryKey(request.getId()).getCaseId();
+        request.setId(testCaseId);
+        TestCaseWithBLOBs testCaseWithBLOBs = testCaseMapper.selectByPrimaryKey(testCaseId);
+        if (testCaseWithBLOBs == null) {
+            MSException.throwException(Translator.get("edit_load_test_not_found") + request.getId());
+        }
+        testCaseWithBLOBs.setRemark(request.getRemark());
+        // 新选择了一个文件，删除原来的文件
+        List<FileMetadata> updatedFiles = request.getUpdatedFileList();
+        List<FileMetadata> originFiles = fileService.getFileMetadataByCaseId(testCaseId);
+        List<String> updatedFileIds = updatedFiles.stream().map(FileMetadata::getId).collect(Collectors.toList());
+        List<String> originFileIds = originFiles.stream().map(FileMetadata::getId).collect(Collectors.toList());
+        // 相减
+        List<String> deleteFileIds = ListUtils.subtract(originFileIds, updatedFileIds);
+        fileService.deleteFileRelatedByIds(deleteFileIds);
+
+        if (!CollectionUtils.isEmpty(deleteFileIds)) {
+            TestCaseFileExample testCaseFileExample = new TestCaseFileExample();
+            testCaseFileExample.createCriteria().andFileIdIn(deleteFileIds);
+            testCaseFileMapper.deleteByExample(testCaseFileExample);
+        }
+
+
+        if (files != null) {
+            files.forEach(file -> {
+                final FileMetadata fileMetadata = fileService.saveFile(file, testCaseWithBLOBs.getProjectId());
+                TestCaseFile testCaseFile = new TestCaseFile();
+                testCaseFile.setFileId(fileMetadata.getId());
+                testCaseFile.setCaseId(testCaseId);
+                testCaseFileMapper.insert(testCaseFile);
+            });
+        }
+        this.setNode(request);
+        editTestCase(request);
+        return request.getId();
+    }
+
     public List<TestCaseDTO> listTestCaseIds(QueryTestCaseRequest request) {
         List<OrderRequest> orderList = ServiceUtils.getDefaultOrder(request.getOrders());
         OrderRequest order = new OrderRequest();
@@ -855,12 +891,6 @@ public class TestCaseService {
         selectFields.add("name");
         request.setSelectFields(selectFields);
         return extTestCaseMapper.list(request);
-    }
-
-    public List<TestCaseWithBLOBs> listTestCaseDetail(String projectId) {
-        TestCaseExample testCaseExample = new TestCaseExample();
-        testCaseExample.createCriteria().andProjectIdEqualTo(projectId);
-        return testCaseMapper.selectByExampleWithBLOBs(testCaseExample);
     }
 
     public void minderEdit(TestCaseMinderEditRequest request) {
@@ -890,5 +920,9 @@ public class TestCaseService {
         TestCaseExample example = new TestCaseExample();
         example.createCriteria().andProjectIdEqualTo(projectId);
         return testCaseMapper.selectByExample(example);
+    }
+
+    public List<TestCaseWithBLOBs> listTestCaseForMinder(QueryTestCaseRequest request) {
+        return extTestCaseMapper.listForMinder(request);
     }
 }

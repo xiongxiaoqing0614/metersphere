@@ -20,6 +20,7 @@ export default {
     help_documentation: 'Help documentation',
     tuhu_wiki_documentation: 'Tuhu Wiki documentation',
     delete_cancelled: 'Delete cancelled',
+    option_cannot_spread_pages: 'This options not support spread pages.Do you want continue?',
     workspace: 'Workspace',
     organization: 'Organization',
     setting: 'Setting',
@@ -298,6 +299,7 @@ export default {
       mail: 'mail',
       nail_robot: 'Nail robot',
       enterprise_wechat_robot: 'Enterprise wechat robot',
+      lark: "Flying Book Robot",
       notes: '1. Nail and create a custom robot in the enterprise group, and then copy the webhook address on our platform;\n' +
         '\n' +
         '2. Robots are selected as swarm robots, and "custom keyword" is selected for security verification: "task notification";\n' +
@@ -524,6 +526,10 @@ export default {
     response_timeout: 'Timeout to response',
     custom_http_code: 'Custom HTTP response success status code',
     separated_by_commas: 'Separated by commas',
+    serialize_threadgroups: 'Whether the scene is executed sequentially',
+    autostop_threadgroups: 'Auto stop enable',
+    reaches_duration: 'Delay',
+    autostop_delay: 'seconds before stopping the test',
     create: 'Create Test',
     select_resource_pool: 'Please Select Resource Pool',
     resource_pool_is_null: 'Resource Pool is empty',
@@ -986,6 +992,15 @@ export default {
       unit_of_measurement: "",
       unit_of_count: "",
       unit_of_times: "times",
+      formula:{
+        completion: "finished api / all api * 100%",
+        coverage: "apis whitch have test case / all apis * 100%",
+        pass: "scenarios whitch final execute is sucess / all scenarios * 100%",
+        success: "execute success count number / all execute count number * 100%",
+        interface_coverage: "api whitch in scenario's step / all api * 100%",
+        review: "reviewd cases / all cases * 100%",
+        testplan_coverage: "relevance function cases / all function cases * 100%",
+      },
       api_count_card: {
         title: "API count",
       },

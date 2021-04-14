@@ -38,6 +38,7 @@ export default {
     copy_success: '复制成功',
     modify_success: '修改成功',
     delete_cancel: '已取消删除',
+    option_cannot_spread_pages: '这个操作不支持跨页，是否继续？',
     confirm: '确定',
     cancel: '取消',
     prompt: '提示',
@@ -299,6 +300,7 @@ export default {
       mail: '邮件',
       nail_robot: '钉钉机器人',
       enterprise_wechat_robot: '企业微信机器人',
+      lark: '飞书机器人',
       notes: '1.钉钉和企业群里新建一个自定义机器人，然后复制 webhook 地址在我们平台上;\n' +
         '       2.机器人选择为群机器人，安全验证选择“自定义关键词” ："任务通知";\n' +
         '       3.选择接收人时必须是你所建的群里包含的人,接收人手机号为必填项且为钉钉企业所使用的手机号,',
@@ -524,6 +526,10 @@ export default {
     create: '创建测试',
     run: '一键运行',
     select_resource_pool: '请选择资源池',
+    serialize_threadgroups: '场景是否顺序执行',
+    autostop_threadgroups: '自动停止开启',
+    reaches_duration: '到达执行时间',
+    autostop_delay: '秒后停止测试',
     resource_pool_is_null: '资源池为空',
     download_log_file: '下载完整日志文件',
     pressure_prediction_chart: '压力预估图',
@@ -990,6 +996,15 @@ export default {
       unit_of_measurement: "个",
       unit_of_count: "个",
       unit_of_times: "次",
+      formula:{
+        completion: "已完成的接口/接口总数*100%",
+        coverage: "有案例的接口/接口总数*100%",
+        pass: "最后一次执行成功的场景/场景总数*100%",
+        success: "执行成功的次数/执行总次数*100%",
+        interface_coverage: "被场景步骤包含的接口/接口总数*100%",
+        review: "评审通过的功能案例/所有功能案例 * 100%",
+        testplan_coverage: "关联的功能案例/所有功能案例 * 100%",
+      },
       api_count_card: {
         title: "接口数量统计",
       },

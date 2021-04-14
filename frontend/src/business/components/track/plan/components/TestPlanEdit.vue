@@ -8,7 +8,7 @@
                @close="close"
                width="65%">
 
-      <el-form :model="form" :rules="rules" ref="planFrom">
+      <el-form :model="form" :rules="rules" ref="planFrom" v-if="isStepTableAlive">
 
         <el-row>
           <el-col :span="8" :offset="1">
@@ -31,9 +31,9 @@
             <el-form-item :label="$t('test_track.plan.plan_principal')" :label-width="formLabelWidth" prop="principal">
               <el-select v-model="form.principal" :placeholder="$t('test_track.plan.input_plan_principal')" filterable>
                 <el-option
-                  v-for="item in principalOptions"
+                  v-for="(item) in principalOptions"
                   :key="item.id"
-                  :label="item.name"
+                  :label="item.name + '(' + item.id + ')'"
                   :value="item.id">
                 </el-option>
               </el-select>
@@ -134,6 +134,7 @@ export default {
   components: {TestPlanStatusButton, MsInputTag},
   data() {
     return {
+      isStepTableAlive: true,
       dialogFormVisible: false,
       form: {
         name: '',
@@ -158,7 +159,17 @@ export default {
       principalOptions: []
     };
   },
+  created() {
+    //设置“测试阶段”和“负责人”的默认值
+    this.form.stage = 'smoke';
+    const adminToken = JSON.parse(localStorage.getItem("Admin-Token"));
+    this.form.principal = adminToken.name + "(" + adminToken.id + ")";
+  },
   methods: {
+    reload() {
+      this.isStepTableAlive = false;
+      this.$nextTick(() => (this.isStepTableAlive = true));
+    },
     openTestPlanEditDialog(testPlan) {
       this.resetForm();
       this.setPrincipalOptions();
@@ -169,9 +180,12 @@ export default {
         let tmp = {};
         Object.assign(tmp, testPlan);
         Object.assign(this.form, tmp);
+      } else {
+        this.form.tags = [];
       }
       listenGoBack(this.close);
       this.dialogFormVisible = true;
+      this.reload();
     },
     testPlanInfo() {
       this.$refs['planFrom'].validate((valid) => {
@@ -259,8 +273,9 @@ export default {
           this.$refs['planFrom'].resetFields();
           this.form.name = '';
           this.form.projectIds = [];
-          this.form.principal = '';
-          this.form.stage = '';
+          const adminToken = JSON.parse(localStorage.getItem("Admin-Token"));
+          this.form.principal = adminToken.name + "(" + adminToken.id + ")";
+          this.form.stage = 'smoke';
           this.form.description = '';
           this.form.status = null;
           this.form.plannedStartTime = null;

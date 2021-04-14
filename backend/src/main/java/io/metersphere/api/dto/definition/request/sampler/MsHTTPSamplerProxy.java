@@ -28,6 +28,7 @@ import org.apache.jorphan.collections.HashTree;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -137,9 +138,25 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         }
 
 
-        // 1.8 之前历史数据
-        if (StringUtils.isEmpty(this.getProjectId()) && config.getConfig() != null && !config.getConfig().isEmpty()) {
-            this.setProjectId("historyProjectID");
+        // 数据兼容处理
+        if(config.getConfig() != null && StringUtils.isNotEmpty(this.getProjectId()) && config.getConfig().containsKey(this.getProjectId())){
+            // 1.8 之后 当前正常数据
+        } else if (config.getConfig() != null && config.getConfig().containsKey(getParentProjectId())) {
+            // 1.8 前后 混合数据
+            this.setProjectId(getParentProjectId());
+        } else {
+            // 1.8 之前 数据
+            if (config.getConfig() != null) {
+                if (config.getConfig().containsKey("historyProjectID")) {
+                    this.setProjectId("historyProjectID");
+                } else {
+                    // 测试计划执行
+                    Iterator<String> it = config.getConfig().keySet().iterator();
+                    if (it.hasNext()) {
+                        this.setProjectId(it.next());
+                    }
+                }
+            }
         }
 
         // 添加环境中的公共变量
@@ -290,6 +307,17 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         return false;
     }
 
+    private String getParentProjectId() {
+        MsTestElement parent = this.getParent();
+        while(parent != null) {
+            if (StringUtils.isNotBlank(parent.getProjectId())) {
+                return parent.getProjectId();
+            }
+            parent = parent.getParent();
+        }
+        return "";
+    }
+
     private String getRestParameters(String path) {
         StringBuffer stringBuffer = new StringBuffer();
         stringBuffer.append(path);
@@ -352,8 +380,9 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         headerManager.setName(StringUtils.isNotEmpty(this.getName()) ? this.getName() + "HeaderManager" : "HeaderManager");
         headerManager.setProperty(TestElement.TEST_CLASS, HeaderManager.class.getName());
         headerManager.setProperty(TestElement.GUI_CLASS, SaveService.aliasToClass("HeaderPanel"));
+        //  header 也支持 mock 参数
         headers.stream().filter(KeyValue::isValid).filter(KeyValue::isEnable).forEach(keyValue ->
-                headerManager.add(new Header(keyValue.getName(), keyValue.getValue()))
+                headerManager.add(new Header(keyValue.getName(), ScriptEngineUtils.calculate(keyValue.getValue())))
         );
         if (headerManager.getHeaders().size() > 0) {
             tree.add(headerManager);

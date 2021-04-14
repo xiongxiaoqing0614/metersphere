@@ -38,6 +38,7 @@ export default {
     copy_success: '復制成功',
     modify_success: '修改成功',
     delete_cancel: '已取消刪除',
+    option_cannot_spread_pages: '這個操作不能跨頁，是否繼續？',
     confirm: '確定',
     cancel: '取消',
     prompt: '提示',
@@ -299,6 +300,7 @@ export default {
       mail: '郵件',
       nail_robot: '釘釘機器人',
       enterprise_wechat_robot: '企業微信機器人',
+      lark: '飛書機器人',
       notes: '1.釘釘和企業群裏新建壹個自定義機器人，然後復制 webhook 地址在我們平臺上;\n' +
         '       2.機器人選擇為群機器人，安全驗證選擇“自定義關鍵詞” ："任務通知";\n' +
         '       3.選擇接收人時必須是妳所建的群裏包含的人,接收人手機號為必填項且為釘釘企業所使用的手機號,',
@@ -402,7 +404,7 @@ export default {
     apikey_delete_confirm: '這個 API Key 確定要刪除嗎?',
     input_id_placeholder: '請輸入ID (不支持中文)',
     source: '用戶來源',
-    button:{
+    button: {
       add_workspace_batch: '批量添加到工作空間',
       add_user_role_batch: '批量添加角色',
     }
@@ -524,6 +526,10 @@ export default {
     create: '創建測試',
     run: '壹鍵運行',
     select_resource_pool: '請選擇資源池',
+    serialize_threadgroups: '場景是否順序執行',
+    autostop_threadgroups: '自動停止開啟',
+    reaches_duration: '到達執行時間',
+    autostop_delay: '秒後停止測試',
     resource_pool_is_null: '資源池為空',
     download_log_file: '下載完整日誌文件',
     pressure_prediction_chart: '壓力預估圖',
@@ -909,8 +915,8 @@ export default {
         code_template_get_response_header: "獲取響應頭",
         code_template_get_response_code: "獲取響應碼",
         code_template_get_response_result: "獲取響應結果",
-        code_add_report_length : "報文头添加長度",
-        code_hide_report_length : "隱藏報文長度"
+        code_add_report_length: "報文头添加長度",
+        code_hide_report_length: "隱藏報文長度"
       },
       dubbo: {
         protocol: "協議",
@@ -988,6 +994,15 @@ export default {
       unit_of_measurement: "個",
       unit_of_count: "個",
       unit_of_times: "次",
+      formula:{
+        completion: "已完成的接口/接口總數*100%",
+        coverage: "有案例的接口/接口總數*100%",
+        pass: "最後一次執行成功的場景/場景總數*100%",
+        success: "執行成功的次數/执行總次數*100%",
+        interface_coverage: "被場景步驟包含的接口/接口總數*100%",
+        review: "評審通過的功能案例/所有功能案例 * 100%",
+        testplan_coverage: "關聯的功能案例數/所有功能案例 * 100%",
+      },
       api_count_card: {
         title: "接口數量統計",
       },
