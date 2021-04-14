@@ -118,9 +118,13 @@ export default {
     });
     this.$get("/ldap/open", response => {
       this.openLdap = response.data;
-      if (this.openLdap){
-        this.form.authenticate = 'LDAP';
+      if(this.openLdap){
+        this.form.authenticate='LDAP'
       }
+      else{
+        this.form.authenticate='LOCAL'
+      }
+      
     })
   },
   created: function () {
