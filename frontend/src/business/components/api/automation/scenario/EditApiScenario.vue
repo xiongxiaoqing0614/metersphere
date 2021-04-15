@@ -144,7 +144,7 @@
                     <span class="custom-tree-node father" slot-scope="{ node, data}" style="width: 96%">
                       <!-- 步骤组件-->
                        <ms-component-config :type="data.type" :scenario="data" :response="response" :currentScenario="currentScenario"
-                                            :currentEnvironmentId="currentEnvironmentId" :node="node" :project-list="projectList" :env-map="projectEnvMap" 
+                                            :currentEnvironmentId="currentEnvironmentId" :node="node" :project-list="projectList" :env-map="projectEnvMap"
                                             @remove="remove" @copyRow="copyRow" @suggestClick="suggestClick" @refReload="refReload" @openScenario="openScenario"/>
                     </span>
               </el-tree>
@@ -969,8 +969,10 @@
                   if(hashTree[i].type == "HTTPSamplerProxy"){
                     for(var keyName in hashTree[i]){
                       if(keyName == "useEnvironment"){
-                        hasEnv = true;
-                        break;
+                        if(hashTree[i].useEnvironment){
+                          hasEnv = true;
+                          break;
+                        }
                       }
                     }
                     if (!hasEnv){

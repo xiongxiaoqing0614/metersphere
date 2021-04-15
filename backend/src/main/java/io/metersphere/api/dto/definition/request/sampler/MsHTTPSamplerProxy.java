@@ -123,20 +123,11 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         sampler.setDoMultipart(this.isDoMultipartPost());
 
         if (config.getConfig() == null) {
-            // 单独接口执行
             this.setProjectId(config.getProjectId());
+        }
+        if (useEnvironment != null) {
             config.setConfig(getEnvironmentConfig(useEnvironment));
         }
-        else{
-            if (config != null && config.getConfig() != null) {
-                if (useEnvironment != null) {
-                    config.setConfig(getEnvironmentConfig(useEnvironment));
-                } else {
-                    config.setConfig(config.getConfig());
-                }
-            }
-        }
-
 
         // 数据兼容处理
         if(config.getConfig() != null && StringUtils.isNotEmpty(this.getProjectId()) && config.getConfig().containsKey(this.getProjectId())){

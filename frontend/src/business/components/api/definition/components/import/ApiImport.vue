@@ -44,6 +44,7 @@
               :active-text="$t('api_test.api_import.swagger_url_import')">
             </el-switch>
           </el-form-item>
+
         </el-col>
         <el-col :span="1">
           <el-divider direction="vertical"/>
@@ -61,7 +62,7 @@
             <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
           </el-form-item>
         </el-col>
-        <el-col :span="14" v-show="isForseti" style="margin-top: 40px;width:70%;">
+                <el-col :span="14" v-show="isForseti" style="margin-top: 40px;width:70%;">
           <el-form-item :label="'Tuhu AppID'" prop="tuhuAppId" class="tuhu-appid">
               <el-select size="medium" clearable filterable v-model="formData.appId" :placeholder="$t('api_test.api_import.forseti_select')" @visible-change="getAppIdList()" multiple style="width:100%;" >
                 <el-option
@@ -83,7 +84,7 @@
           </el-form-item> -->
         </el-col>
         <el-col :span="12"
-                v-if="(selectedPlatformValue != 'Forseti' && selectedPlatformValue != 'Swagger2') || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEable)">
+                v-if="(selectedPlatformValue != 'Forseti' && selectedPlatformValue != 'Swagger2') || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEnable)">
           <el-upload
             class="api-upload"
             drag
@@ -199,6 +200,12 @@
           exportTip: this.$t('api_test.api_import.esb_export_tip'),
           suffixes: new Set(['xlsx', 'xls'])
         },
+        forsetiPlanform:{
+          name: 'Forseti',
+          value: 'Forseti',
+          tip: this.$t('api_test.api_import.forseti_tip'),
+          suffixes: new Set(['json'])
+        },
         selectedPlatform: {},
         selectedPlatformValue: 'Metersphere',
         result: {},
@@ -287,6 +294,9 @@
       showTemplate() {
         return this.selectedPlatformValue === 'ESB';
       },
+      isForseti() {
+        return this.selectedPlatformValue === 'Forseti';
+      },
       isScenarioModel() {
         return this.model === 'scenario';
       },
@@ -343,8 +353,7 @@
       save() {
         this.$refs.form.validate(valid => {
           if (valid) {
-          if (((this.selectedPlatformValue != 'Forseti' && this.selectedPlatformValue != 'Swagger2') || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEable)) && !this.formData.file) {
-              this.$warning(this.$t('commons.please_upload'));
+          if (((this.selectedPlatformValue != 'Forseti' && this.selectedPlatformValue != 'Swagger2') || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEnable)) && !this.formData.file) {              this.$warning(this.$t('commons.please_upload'));
               return;
             }
             let url = '/api/definition/import';
