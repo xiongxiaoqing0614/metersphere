@@ -420,7 +420,7 @@ public class ApiAutomationService {
                                     env.getProjectIds().add(httpSamplerProxy.getProjectId());
                                 }else{
                                     String scenarioId = element.getString("id");
-                                    ApiScenarioDTO myApiScenario = getApiScenario(scenarioId);
+                                    ApiScenarioWithBLOBs myApiScenario = getApiScenario(scenarioId);
                                     if(myApiScenario != null) {
                                         String sceProjectId = myApiScenario.getProjectId();
                                         env.getProjectIds().add(sceProjectId);

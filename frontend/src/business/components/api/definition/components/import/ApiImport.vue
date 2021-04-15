@@ -200,12 +200,6 @@
           exportTip: this.$t('api_test.api_import.esb_export_tip'),
           suffixes: new Set(['xlsx', 'xls'])
         },
-        forsetiPlanform:{
-          name: 'Forseti',
-          value: 'Forseti',
-          tip: this.$t('api_test.api_import.forseti_tip'),
-          suffixes: new Set(['json'])
-        },
         selectedPlatform: {},
         selectedPlatformValue: 'Metersphere',
         result: {},
@@ -293,9 +287,6 @@
       },
       showTemplate() {
         return this.selectedPlatformValue === 'ESB';
-      },
-      isForseti() {
-        return this.selectedPlatformValue === 'Forseti';
       },
       isScenarioModel() {
         return this.model === 'scenario';
