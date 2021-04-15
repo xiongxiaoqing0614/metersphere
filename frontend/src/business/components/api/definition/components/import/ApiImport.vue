@@ -166,6 +166,12 @@
             suffixes: new Set(['json'])
           },
         ],
+        forsetiPlanform:{
+          name: 'Forseti',
+          value: 'Forseti',
+          tip: this.$t('api_test.api_import.forseti_tip'),
+          suffixes: new Set(['json'])
+        },
         postmanPlanform: {
           name: 'Postman',
           value: 'Postman',
@@ -276,6 +282,9 @@
       }
     },
     computed: {
+      isForseti() {
+        return this.selectedPlatformValue === 'Forseti';
+      },
       isSwagger2() {
         return this.selectedPlatformValue === 'Swagger2';
       },
@@ -381,7 +390,7 @@
         if (!this.swaggerUrlEnable) {
           param.swaggerUrl = undefined;
         }
-        //多选框数据处理
+        //Forseti多选框数据处理
         if(this.selectedPlatformValue === 'Forseti') {
 					let s = [];
 					for(var i = 0; i < this.formData.appId.length; i++) {
