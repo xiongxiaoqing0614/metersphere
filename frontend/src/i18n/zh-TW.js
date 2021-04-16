@@ -1149,6 +1149,9 @@ export default {
     please_search: "請搜索",
     date: "日期"
   },
+  test_kanban: {
+    test_kanban: "看板報表",
+  },
   test_track: {
     test_track: "測試跟蹤",
     confirm: "確 定",

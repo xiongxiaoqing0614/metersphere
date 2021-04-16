@@ -1147,6 +1147,9 @@ export default {
     please_search: "Please Search",
     date: "Date"
   },
+  test_kanban: {
+    test_kanban: "Kanban",
+  },
   test_track: {
     test_track: "Track",
     confirm: "Confirm",

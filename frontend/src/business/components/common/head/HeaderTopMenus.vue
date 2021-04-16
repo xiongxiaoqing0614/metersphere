@@ -7,7 +7,9 @@
            :default-active="activeIndex"
            @select="handleSelect"
            router>
-
+    <el-menu-item index="/kanban" v-permission="['test_manager','test_user','test_viewer']">
+      {{ $t('test_kanban.test_kanban') }}
+    </el-menu-item>
     <el-menu-item index="/track" v-permission="['test_manager','test_user','test_viewer']">
       {{ $t('test_track.test_track') }}
     </el-menu-item>

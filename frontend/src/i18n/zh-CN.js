@@ -1151,6 +1151,9 @@ export default {
     please_search: "请搜索",
     date: "日期"
   },
+  test_kanban: {
+    test_kanban: "看板报表",
+  },
   test_track: {
     test_track: "测试跟踪",
     planning_execution: "规划&执行",
