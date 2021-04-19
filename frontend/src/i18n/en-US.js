@@ -1149,6 +1149,7 @@ export default {
   },
   test_kanban: {
     test_kanban: "Kanban",
+    kanban_summary: "Summary"
   },
   test_track: {
     test_track: "Track",

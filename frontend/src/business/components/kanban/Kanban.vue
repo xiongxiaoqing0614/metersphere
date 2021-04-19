@@ -22,9 +22,6 @@
       return {
         baseUrl: "kanban"
       }
-    },
-    activated() {
-      this.$refs.table.doLayout()
     }
   }
 </script>

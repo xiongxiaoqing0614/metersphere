@@ -1151,6 +1151,7 @@ export default {
   },
   test_kanban: {
     test_kanban: "看板報表",
+    kanban_summary: "總體概覽"
   },
   test_track: {
     test_track: "測試跟蹤",

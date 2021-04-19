@@ -5,6 +5,7 @@ import Setting from "@/business/components/settings/router";
 import API from "@/business/components/api/router";
 import Performance from "@/business/components/performance/router";
 import Track from "@/business/components/track/router";
+import Kanban from "@/business/components/kanban/router";
 
 const requireContext = require.context('@/business/components/xpack/', true, /router\.js$/)
 const Report = requireContext.keys().map(key => requireContext(key).report);
@@ -25,6 +26,7 @@ const router = new VueRouter({
     API,
     Performance,
     Track,
+    Kanban,
     ...ReportObj
   ]
 });
