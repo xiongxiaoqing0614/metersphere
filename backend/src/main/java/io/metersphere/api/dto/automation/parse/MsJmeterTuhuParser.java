@@ -116,15 +116,16 @@ public class MsJmeterTuhuParser extends ApiImportAbstractParser<ScenarioImport> 
 
     private List<ApiScenarioWithBLOBs> paseObj(ApiTestImportRequest request, HashTree tree) {
         List<ApiScenarioWithBLOBs> scenarioWithBLOBsList = new ArrayList<>();
-        List<HashTree> transactionControllerList = this.getTransactionController(tree);
+        Map<String,HashTree> transactionControllerList = new HashMap<String, HashTree>();
+        this.getTransactionController(tree,transactionControllerList);
         String moduleName = this.getModuleName(tree);
         ApiScenarioModule module = ApiScenarioImportUtil.buildModule(ApiScenarioImportUtil.getSelectModule(request.getModuleId()), moduleName, this.projectId);
-        for (int i = 0; i<transactionControllerList.size(); i++){
+        for (String key: transactionControllerList.keySet()){
             MsScenario msScenario = new MsScenario();
             msScenario.setReferenced("IMPORT");
-            jmterHashTree(transactionControllerList.get(i), msScenario);
+            jmterHashTree(transactionControllerList.get(key), msScenario);
             ApiScenarioWithBLOBs scenarioWithBLOBs = new ApiScenarioWithBLOBs();
-            scenarioWithBLOBs.setName(msScenario.getName());
+            scenarioWithBLOBs.setName(key);
             scenarioWithBLOBs.setProjectId(request.getProjectId());
             if (msScenario != null && CollectionUtils.isNotEmpty(msScenario.getHashTree())) {
                 scenarioWithBLOBs.setStepTotal(msScenario.getHashTree().size());
@@ -743,9 +744,9 @@ public class MsJmeterTuhuParser extends ApiImportAbstractParser<ScenarioImport> 
                 if (scenario instanceof MsHTTPSamplerProxy && key instanceof HeaderManager) {
                     continue;
                 }
-                if (key instanceof TransactionController){
-                    scenario.setName(((TransactionController) key).getName());
-                }
+//                if (key instanceof TransactionController){
+//                    scenario.setName(((TransactionController) key).getName());
+//                }
                 elementNode = new MsJmeterElement();
                 elementNode.setType("JmeterElement");
                 TestElement testElement = (TestElement) key;
@@ -782,15 +783,20 @@ public class MsJmeterTuhuParser extends ApiImportAbstractParser<ScenarioImport> 
         }
     }
 
-    private List<HashTree> getTransactionController(HashTree tree){
-        List<HashTree> transactionControllerList = new ArrayList<>();
+    private void getTransactionController(HashTree tree, Map<String,HashTree> transactionControllerList){
         for (Object key : tree.keySet()) {
             if (key instanceof TransactionController){
                 HashTree transactionController = tree.get(key);
-                transactionControllerList.add(transactionController);
+                String controllerName = ((TransactionController) key).getName();
+                transactionControllerList.put(controllerName,transactionController);
+            }
+            // 递归子项
+            HashTree node = tree.get(key);
+            if (node != null) {
+                getTransactionController(node, transactionControllerList);
             }
         }
-        return transactionControllerList;
+
     }
 
     private String getModuleName(HashTree tree) {
