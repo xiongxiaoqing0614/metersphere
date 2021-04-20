@@ -3,12 +3,15 @@
     <el-table
       :data="tableData"
       border
+      stripe
       show-summary
       :default-sort = "{prop: 'department', order: 'descending'}"
       style="width: 100%">
       <el-table-column
         prop="department"
         sortable
+        :filters="orgList"
+        :filter-method="filterHandler"
         label="部门">
       </el-table-column>
       <el-table-column
@@ -58,14 +61,13 @@ export default {
   },
   data() {
     return {
-      tableData: null
+      tableData: null,
+      orgList: null,
+      wsList: null
     };
   },
-    created() {
-      const _this = this
-      this.$get("/kanban/summary", response => {
-        _this.tableData = response.data;
-      });
+  created() {
+    this.getSummary();
   },
   activated() {
     this.init();
@@ -76,92 +78,40 @@ export default {
     },
   },
   methods: {
-    checkTipsType() {
-      let random = Math.floor(Math.random() * (4 - 1 + 1)) + 1;
-      this.tipsType = random + "";
-    },
     init() {
-      let selectProjectId = this.projectId;
-      if (!selectProjectId) {
-        return;
-      }
-      this.$get("/kanban/summary", response => {
-        this.summaryData = response.data;
-        console.table(this.summaryData)
-      });
 
     },
-    setBarOption(data) {
-      let xAxis = [];
-      data.map(d => {
-        if (!xAxis.includes(d.xAxis)) {
-          xAxis.push(d.xAxis);
-        }
-      });
-      let yAxis1 = data.filter(d => d.groupName === 'FUNCTIONCASE').map(d => [d.xAxis, d.yAxis]);
-      let yAxis2 = data.filter(d => d.groupName === 'RELEVANCECASE').map(d => [d.xAxis, d.yAxis]);
-      let option = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'shadow'
-          }
-        },
-        xAxis: {
-          type: 'category',
-          data: xAxis
-        },
-        yAxis: {
-          type: 'value',
-          axisLine: {
-            show: false
-          },
-          axisTick: {
-            show: false
-          }
-        },
-        legend: {
-          data: ["功能用例数", "关联用例数"],
-          orient: 'vertical',
-          right: '80',
-        },
-        series: [{
-          name: "功能用例数",
-          data: yAxis1,
-          type: 'bar',
-          itemStyle: {
-            normal: {
-              color: this.$store.state.theme ? this.$store.state.theme : COUNT_NUMBER
-            }
-          }
-        },
+    getSummary(){
+      const _this = this;
+      this.$get("/kanban/summary", response => {
+        _this.tableData = response.data;
+        _this.orgList = new Array();
+        for(var i = 0, len = _this.tableData.length; i < len; i++){
+          console.log(_this.tableData[i])
+          var departName = _this.tableData[i].department
+          if(!this.hasFilter(_this.orgList, departName))
           {
-            name: "关联用例数",
-            data: yAxis2,
-            type: 'bar',
-            itemStyle: {
-              normal: {
-                color: this.$store.state.theme ? this.$store.state.theme : COUNT_NUMBER_SHALLOW
-              }
-            }
-          }]
-      };
-      this.caseOption = option;
+            console.log(_this.orgList.indexOf(departName))
+            _this.orgList.push({text: departName, value: departName});
+          }
+        }
+        console.log(_this.orgList)
+      });
     },
-    redirectPage(page, dataType, selectType) {
-      //test_plan 页面跳转
-      // this.$router.push('/track/plan/view/'+selectType);
-      switch (page) {
-        case "case":
-          this.$router.push({
-            name:'testCase',
-            params:{
-              dataType:dataType,dataSelectRange:selectType, projectId: this.projectId
-            }
-          });
-          break;
+    filterTag(value, row) {
+        return row.tag === value;
+    },
+    filterHandler(value, row, column) {
+      const property = row['department'];
+      return property === value;
+    },
+    hasFilter(orgList, orgName) {
+      for(var i = 0, len = orgList.length; i < len; i++){
+        if(orgName == orgList[i].text)
+          return true;
       }
-    },
+      return false;
+    }
   }
 }
 </script>
