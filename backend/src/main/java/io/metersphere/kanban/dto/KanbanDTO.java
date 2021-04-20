@@ -1,9 +1,8 @@
 package io.metersphere.kanban.dto;
-import lombok.Getter;
-import lombok.Setter;
 
-@Getter
-@Setter
+import lombok.Data;
+
+@Data
 public class KanbanDTO {
     private String department;
     private String team;

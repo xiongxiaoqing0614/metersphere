@@ -56,46 +56,17 @@ export default {
     MsMainContainer,
     MsContainer,
   },
-   data() {
-      return {
-        tableData: [{
-          department: '交易履约与营销平台中心',
-          team: '交易订单',
-          project: '交易购买履约售后',
-          apiCount: 175,
-          singleCount: 102,
-          scenarioCount: 14
-        }, {
-          department: '交易履约与营销平台中心',
-          team: '内容组',
-          project: '车友圈C端应用',
-          apiCount: 58,
-          singleCount: 23,
-          scenarioCount: 1
-        }, {
-          department: '交易履约与营销平台中心',
-          team: '内容组',
-          project: 'PC创作家平台',
-          apiCount: 8,
-          singleCount: 15,
-          scenarioCount: 1
-        }, {
-          department: '业务平台与CRM中心',
-          team: '业务平台与CRM-基础平台',
-          project: '企业账户',
-          apiCount: 349,
-          singleCount: 3,
-          scenarioCount: 1
-        }, {
-          department: '业务平台与CRM中心',
-          team: '业务平台与CRM-汽车学院',
-          project: '汽车学院',
-          apiCount: 25,
-          singleCount: 41,
-          scenarioCount: 21
-        }]
-      };
-    },
+  data() {
+    return {
+      tableData: null
+    };
+  },
+    created() {
+      const _this = this
+      this.$get("/kanban/summary", response => {
+        _this.tableData = response.data;
+      });
+  },
   activated() {
     this.init();
   },
@@ -115,7 +86,8 @@ export default {
         return;
       }
       this.$get("/kanban/summary", response => {
-        this.trackCountData = response.data;
+        this.summaryData = response.data;
+        console.table(this.summaryData)
       });
 
     },
