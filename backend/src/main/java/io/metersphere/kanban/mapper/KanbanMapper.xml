@@ -2,15 +2,19 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="io.metersphere.kanban.mapper.KanbanMapper">
     <select id="getSummary" resultType="io.metersphere.kanban.dto.KanbanDTO">
-        SELECT org.name department, ws.name team, proj.name project, 接口数量 apiCount, 单接口用例数量 singleCount, 场景用例数量 scenarioCount from organization org
-            left join workspace ws on ws.organization_id = org.id
-            left join project proj on proj.workspace_id = ws.id
+        SELECT org.name department, ws.name team, proj.name project, 接口数量 apiCount, P0接口数量 p0apiCount, 单接口用例数量 singleCount, 已完成单接口用例数量 completedSingleCount, 场景用例数量 scenarioCount, 已完成场景用例数量 completedScenarioCount
+            from organization org left join workspace ws on ws.organization_id = org.id left join project proj on proj.workspace_id = ws.id
             left join (SELECT ad.project_id adpid, COUNT(*) 接口数量 from api_definition ad where ad.status != 'Trash' group by ad.project_id) adc on proj.id = adc.adpid
+            left join (SELECT ad2.project_id adpid2, COUNT(*) P0接口数量 from api_definition ad2 where ad2.status != 'Trash' and ad2.tags like "%P0%" group by ad2.project_id) adc2 on proj.id = adc2.adpid2
             left join (SELECT atc.project_id atcid, COUNT(*) 单接口用例数量 from api_test_case atc
-                where atc.api_definition_id in (SELECT ad2.id from api_definition ad2 where ad2.status != 'Trash')
+                where atc.api_definition_id in (SELECT ad3.id from api_definition ad3 where ad3.status != 'Trash')
                 group by atc.project_id) stc on proj.id = stc.atcid
-            left join (SELECT as2.project_id as2id, COUNT(*) 场景用例数量 from api_scenario as2 where as2.status != 'Trash' group by as2.project_id) stc2 on proj.id = stc2.as2id
-            where proj.name is not null and 接口数量 is not null and org.name != 'MeterSphere demo test' and org.name != '平台架构中心' and proj.name != '审核2.0' and proj.name != 'test' and not proj.name like '%demo%'
+            left join (SELECT atc2.project_id atcid2, COUNT(*) 已完成单接口用例数量 from api_test_case atc2
+                where atc2.api_definition_id in (SELECT ad4.id from api_definition ad4 where ad4.status = 'Completed')
+                group by atc2.project_id) stc2 on proj.id = stc2.atcid2
+            left join (SELECT as2.project_id as2id, COUNT(*) 场景用例数量 from api_scenario as2 where as2.status != 'Trash' group by as2.project_id) stc3 on proj.id = stc3.as2id
+            left join (SELECT as3.project_id as2id2, COUNT(*) 已完成场景用例数量 from api_scenario as3 where as3.status = 'Completed' group by as3.project_id) stc4 on proj.id = stc4.as2id2
+                where proj.name is not null and 接口数量 is not null and org.name != 'MeterSphere demo test' and org.name != '平台架构中心' and proj.name != '审核2.0' and proj.name != 'test' and not proj.name like '%demo%'
             order by department desc, team, project
     </select>
 </mapper>

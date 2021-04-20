@@ -8,6 +8,7 @@
       :default-sort = "{prop: 'department', order: 'descending'}"
       style="width: 100%">
       <el-table-column
+        align="center"
         prop="department"
         sortable
         :filters="orgList"
@@ -15,29 +16,58 @@
         label="部门">
       </el-table-column>
       <el-table-column
+        align="center"
         prop="team"
         sortable
         label="小组">
       </el-table-column>
       <el-table-column
+        align="center"
         prop="project"
         sortable
         label="项目">
       </el-table-column>
-      <el-table-column
-        prop="apiCount"
-        sortable
-        label="接口数量">
+      <el-table-column label="接口数量" align="center">
+        <el-table-column
+          align="center"
+          prop="apiCount"
+          sortable
+          label="总数">
+        </el-table-column>
+        <el-table-column
+          align="center"
+          prop="p0apiCount"
+          sortable
+          label="P0接口">
+        </el-table-column>
       </el-table-column>
-      <el-table-column
-        prop="singleCount"
-        sortable
-        label="单接口用例数量">
+      <el-table-column label="单接口用例数量" align="center">
+        <el-table-column
+          align="center"
+          prop="singleCount"
+          sortable
+          label="总数">
+        </el-table-column>
+        <el-table-column
+          align="center"
+          prop="completedSingleCount"
+          sortable
+          label="已完成">
+        </el-table-column>
       </el-table-column>
-      <el-table-column
-        prop="scenarioCount"
-        sortable
-        label="场景用例数量">
+      <el-table-column label="场景用例数量" align="center">
+        <el-table-column
+          align="center"
+          prop="scenarioCount"
+          sortable
+          label="总数">
+        </el-table-column>
+        <el-table-column
+          align="center"
+          prop="completedScenarioCount"
+          sortable
+          label="已完成">
+        </el-table-column>
       </el-table-column>
     </el-table>
   </div>
