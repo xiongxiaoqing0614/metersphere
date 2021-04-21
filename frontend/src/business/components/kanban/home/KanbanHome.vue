@@ -52,6 +52,13 @@
       </el-table-column>
       <el-table-column
           align="center"
+          prop="apiCountThisWeek"
+          sortable
+          label="本周新增接口数"
+          v-if="showColumn.apiCountThisWeek">
+      </el-table-column>
+      <el-table-column
+          align="center"
           prop="singleCount"
           sortable
           label="单接口用例总数"
@@ -64,19 +71,33 @@
           label="已完成单接口用例"
           v-if="showColumn.completedSingleCount">
       </el-table-column>
-        <el-table-column
+      <el-table-column
+          align="center"
+          prop="singleCountThisWeek"
+          sortable
+          label="本周新增单用例数"
+          v-if="showColumn.singleCountThisWeek">
+      </el-table-column>
+      <el-table-column
           align="center"
           prop="scenarioCount"
           sortable
           label="场景用例总数"
           v-if="showColumn.scenarioCount">
-        </el-table-column>
-        <el-table-column
+      </el-table-column>
+      <el-table-column
           align="center"
           prop="completedScenarioCount"
           sortable
           label="已完成场景用例数"
           v-if="showColumn.completedScenarioCount">
+      </el-table-column>
+      <el-table-column
+          align="center"
+          prop="scenarioCountThisWeek"
+          sortable
+          label="本周新增场景用例数"
+          v-if="showColumn.scenarioCountThisWeek">
       </el-table-column>
     </el-table>
   </div>
@@ -86,7 +107,6 @@
 
 import MsMainContainer from "@/business/components/common/components/MsMainContainer";
 import MsContainer from "@/business/components/common/components/MsContainer";
-import {COUNT_NUMBER, COUNT_NUMBER_SHALLOW} from "@/common/js/constants";
 
 require('echarts/lib/component/legend');
 
@@ -114,6 +134,9 @@ export default {
       "scenarioCount":true,
       "completedSingleCount":true,
       "completedScenarioCount":true,
+      "apiCountThisWeek":true,
+      "singleCountThisWeek":true,
+      "scenarioCountThisWeek":true,
     }
     this.tableColumns = [
       {
@@ -144,6 +167,21 @@ export default {
       {
         prop: "completedScenarioCount",
         label: "已完成场景用例数",
+        show: true,
+      },
+      {
+        prop: "apiCountThisWeek",
+        label: "本周新增接口数",
+        show: true,
+      },
+      {
+        prop: "singleCountThisWeek",
+        label: "本周新增单接口用例数",
+        show: true,
+      },
+      {
+        prop: "scenarioCountThisWeek",
+        label: "本周新增场景用例数",
         show: true,
       },
     ]
@@ -190,6 +228,7 @@ export default {
       const _this = this;
       this.$get("/kanban/summary", response => {
         _this.tableData = response.data;
+        console.table(_this.tableData)
         _this.orgList = new Array();
         for(var i = 0, len = _this.tableData.length; i < len; i++){
           var departName = _this.tableData[i].department

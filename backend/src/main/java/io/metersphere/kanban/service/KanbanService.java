@@ -1,6 +1,6 @@
 package io.metersphere.kanban.service;
 
-import io.metersphere.kanban.dto.KanbanDTO;
+import io.metersphere.kanban.dto.TestCaseSummaryDTO;
 import io.metersphere.kanban.mapper.KanbanMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,8 +14,8 @@ public class KanbanService {
     @Resource
     private KanbanMapper kanbanMapper;
 
-    public List<KanbanDTO> getSummary() {
-        List<KanbanDTO> list = kanbanMapper.getSummary();
+    public List<TestCaseSummaryDTO> getSummary() {
+        List<TestCaseSummaryDTO> list = kanbanMapper.getSummary();
         return list;
     }
 }
