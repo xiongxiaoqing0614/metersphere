@@ -1153,7 +1153,7 @@ export default {
   },
   test_kanban: {
     test_kanban: "看板报表",
-    kanban_summary: "总体概览"
+    testcase_summary: "用例统计"
   },
   test_track: {
     test_track: "测试跟踪",

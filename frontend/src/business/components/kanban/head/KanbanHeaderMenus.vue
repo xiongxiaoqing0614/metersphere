@@ -6,14 +6,13 @@
         <el-menu class="header-menu" :unique-opened="true" mode="horizontal" router
                  :default-active='$route.path'>
           <el-menu-item :index="'/kanban/home'">
-            {{ $t("test_kanban.kanban_summary") }}
+            {{ $t("test_kanban.testcase_summary") }}
           </el-menu-item>
         </el-menu>
       </el-col>
       <el-col :span="8"/>
     </el-row>
   </div>
-
 </template>
 <script>
 

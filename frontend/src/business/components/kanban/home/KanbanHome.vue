@@ -1,5 +1,14 @@
 <template>
   <div>
+    <p>
+    <label>请选择需要展示的数据：</label><el-checkbox-group v-model="checkedTableColumns">
+      <el-checkbox
+        v-for="column in tableColumns"
+        :key="column.prop"
+        :label="column.prop"
+        >{{ column.label }}</el-checkbox>
+    </el-checkbox-group>
+    </p>
     <el-table
       :data="tableData"
       border
@@ -27,52 +36,51 @@
         sortable
         label="项目">
       </el-table-column>
-      <el-table-column label="接口数量" align="center">
         <el-table-column
           align="center"
           prop="apiCount"
           sortable
-          label="总数">
+          label="接口总数"
+          v-if="showColumn.apiCount">
         </el-table-column>
         <el-table-column
           align="center"
           prop="p0apiCount"
           sortable
-          label="P0接口">
-        </el-table-column>
+          label="P0接口数"
+          v-if="showColumn.p0apiCount">
       </el-table-column>
-      <el-table-column label="单接口用例数量" align="center">
-        <el-table-column
+      <el-table-column
           align="center"
           prop="singleCount"
           sortable
-          label="总数">
-        </el-table-column>
-        <el-table-column
+          label="单接口用例总数"
+          v-if="showColumn.singleCount">
+      </el-table-column>
+      <el-table-column
           align="center"
           prop="completedSingleCount"
           sortable
-          label="已完成">
-        </el-table-column>
+          label="已完成单接口用例"
+          v-if="showColumn.completedSingleCount">
       </el-table-column>
-      <el-table-column label="场景用例数量" align="center">
         <el-table-column
           align="center"
           prop="scenarioCount"
           sortable
-          label="总数">
+          label="场景用例总数"
+          v-if="showColumn.scenarioCount">
         </el-table-column>
         <el-table-column
           align="center"
           prop="completedScenarioCount"
           sortable
-          label="已完成">
-        </el-table-column>
+          label="已完成场景用例数"
+          v-if="showColumn.completedScenarioCount">
       </el-table-column>
     </el-table>
   </div>
 </template>
-
 
 <script>
 
@@ -93,11 +101,52 @@ export default {
     return {
       tableData: null,
       orgList: null,
-      wsList: null
+      wsList: null,
+      tableColumns:null
     };
   },
   created() {
     this.getSummary();
+    this.showColumn = {
+      "apiCount":true,
+      "p0apiCount":true,
+      "singleCount":true,
+      "scenarioCount":true,
+      "completedSingleCount":true,
+      "completedScenarioCount":true,
+    }
+    this.tableColumns = [
+      {
+        prop: "apiCount",
+        label: "接口总数",
+        show: true,
+      },
+      {
+        prop: "p0apiCount",
+        label: "P0接口数",
+        show: true,
+      },
+      {
+        prop: "singleCount",
+        label: "单接口用例总数",
+        show: true,
+      },
+      {
+        prop: "scenarioCount",
+        label: "场景用例总数",
+        show: true,
+      },
+      {
+        prop: "completedSingleCount",
+        label: "已完成单接口用例数",
+        show: true,
+      },
+      {
+        prop: "completedScenarioCount",
+        label: "已完成场景用例数",
+        show: true,
+      },
+    ]
   },
   activated() {
     this.init();
@@ -106,6 +155,32 @@ export default {
     projectId() {
       return this.$store.state.projectId
     },
+    bindTableColumns() {
+      return this.tableColumns.filter((column) => column.show);
+    },
+    /* 这里使用了getter和setter，这样写的好处不用自己手动监听复选框的选中事件 */
+    checkedTableColumns: {
+        get() {
+          // 返回选中的列名
+					return this.bindTableColumns.map(column => column.prop);
+        },
+        set(checked) {
+          // 设置表格列的显示与隐藏
+          this.tableColumns.forEach((column, index) => {
+            // 如果选中，则设置列显示
+            if(checked.includes(column.prop)) {
+              console.log(column)
+              column.show = true;
+              this.showColumn[column.prop] = true;
+            } else {
+              // 如果未选中，则设置列隐藏
+              //console.log(column)
+              column.show = false;
+              this.showColumn[column.prop] = false;
+            }
+          })
+        }
+      },
   },
   methods: {
     init() {
@@ -117,15 +192,12 @@ export default {
         _this.tableData = response.data;
         _this.orgList = new Array();
         for(var i = 0, len = _this.tableData.length; i < len; i++){
-          console.log(_this.tableData[i])
           var departName = _this.tableData[i].department
           if(!this.hasFilter(_this.orgList, departName))
           {
-            console.log(_this.orgList.indexOf(departName))
             _this.orgList.push({text: departName, value: departName});
           }
         }
-        console.log(_this.orgList)
       });
     },
     filterTag(value, row) {
@@ -141,6 +213,15 @@ export default {
           return true;
       }
       return false;
+    },
+    showColumn(colKey) {
+        for(var column in this.tableColumns){
+          if(column.prop == colKey){
+            console.log(colKey)
+            return false;
+          }
+        }
+        return true;
     }
   }
 }
