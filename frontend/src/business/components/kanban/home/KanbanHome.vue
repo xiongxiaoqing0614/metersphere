@@ -16,7 +16,7 @@
       border
       stripe
       show-summary
-      :default-sort = "{prop: 'department', order: 'descending'}"
+      ref=“table”
       style="width: 100%">
       <el-table-column
         align="center"
@@ -155,7 +155,7 @@ export default {
       "apiCountThisWeek":true,
       "singleCountThisWeek":true,
       "scenarioCountThisWeek":true,
-    }
+    };
     this.tableColumns = [
       {
         prop: "p0APICount",
@@ -183,7 +183,7 @@ export default {
         show: true,
       },
       {
-        prop: "completedSingleCount",
+        prop: "completedAPICount",
         label: "已完成接口总数",
         show: true,
       },
@@ -212,7 +212,10 @@ export default {
         label: "本周新增场景用例数",
         show: true,
       },
-    ]
+    ];
+    this.$nextTick(() => {
+      this.$refs['table'].doLayout();
+    }) 
   },
   updated () {
     this.$nextTick(() => {
