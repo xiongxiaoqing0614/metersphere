@@ -1,6 +1,7 @@
 package io.metersphere.kanban.controller;
 
 import io.metersphere.api.dto.datacount.ApiDataCountResult;
+import io.metersphere.api.dto.datacount.response.ApiDataCountDTO;
 import io.metersphere.api.service.ApiAutomationService;
 import io.metersphere.api.service.ApiDefinitionService;
 import io.metersphere.api.service.ApiTestCaseService;
@@ -44,8 +45,12 @@ public class KanbanController {
             String projectId = summaryData.getProjectId();
             long dateCountByCreateInThisWeek = apiDefinitionService.countByProjectIDAndCreateInThisWeek(projectId);
             allInfo.setApiCountThisWeek(dateCountByCreateInThisWeek);
+            ApiDataCountDTO apiCountResult = new ApiDataCountDTO();
 
-            //List<ApiDataCountResult> countResultByStatelList = apiDefinitionService.countStateByProjectID(projectId);
+            List<ApiDataCountResult> countResultByStatelList = apiDefinitionService.countStateByProjectID(projectId);
+            apiCountResult.countStatus(countResultByStatelList);
+            allInfo.setCompletedAPICount(apiCountResult.getFinishedCount());
+            allInfo.setNonP0APICount(allInfo.getApiCount() - allInfo.getP0APICount());
 
             long dateSingleCountByCreateInThisWeek = apiTestCaseService.countByProjectIDAndCreateInThisWeek(projectId);
             allInfo.setSingleCountThisWeek(dateSingleCountByCreateInThisWeek);

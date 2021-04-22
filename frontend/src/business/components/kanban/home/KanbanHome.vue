@@ -28,7 +28,7 @@
         align="center"
         prop="team"
         sortable
-        label="小组">
+        label="团队">
       </el-table-column>
       <el-table-column
         align="center"
@@ -36,68 +36,82 @@
         sortable
         label="项目">
       </el-table-column>
-        <el-table-column
-          align="center"
-          prop="apiCount"
-          sortable
-          label="接口总数"
-          v-if="showColumn.apiCount">
-        </el-table-column>
-        <el-table-column
-          align="center"
-          prop="p0apiCount"
-          sortable
-          label="P0接口数"
-          v-if="showColumn.p0apiCount">
+      <el-table-column
+        align="center"
+        prop="p0APICount"
+        sortable
+        label="P0接口数"
+        v-if="showColumn.p0APICount">
       </el-table-column>
       <el-table-column
-          align="center"
-          prop="apiCountThisWeek"
-          sortable
-          label="本周新增接口数"
-          v-if="showColumn.apiCountThisWeek">
+        align="center"
+        prop="nonP0APICount"
+        sortable
+        label="非P0接口数"
+        v-if="showColumn.nonP0APICount">
       </el-table-column>
       <el-table-column
-          align="center"
-          prop="singleCount"
-          sortable
-          label="单接口用例总数"
-          v-if="showColumn.singleCount">
+        align="center"
+        prop="apiCount"
+        sortable
+        label="接口总数"
+        v-if="showColumn.apiCount">
       </el-table-column>
       <el-table-column
-          align="center"
-          prop="completedSingleCount"
-          sortable
-          label="已完成单接口用例"
-          v-if="showColumn.completedSingleCount">
+        align="center"
+        prop="singleCount"
+        sortable
+        label="接口用例总数"
+        v-if="showColumn.singleCount">
       </el-table-column>
       <el-table-column
-          align="center"
-          prop="singleCountThisWeek"
-          sortable
-          label="本周新增单用例数"
-          v-if="showColumn.singleCountThisWeek">
+        align="center"
+        prop="scenarioCount"
+        sortable
+        label="场景用例总数"
+        v-if="showColumn.scenarioCount">
       </el-table-column>
       <el-table-column
-          align="center"
-          prop="scenarioCount"
-          sortable
-          label="场景用例总数"
-          v-if="showColumn.scenarioCount">
+        align="center"
+        prop="completedAPICount"
+        sortable
+        label="已完成接口总数"
+        v-if="showColumn.completedAPICount">
       </el-table-column>
       <el-table-column
-          align="center"
-          prop="completedScenarioCount"
-          sortable
-          label="已完成场景用例数"
-          v-if="showColumn.completedScenarioCount">
+        align="center"
+        prop="completedSingleCount"
+        sortable
+        label="已完成接口用例数"
+        v-if="showColumn.completedSingleCount">
       </el-table-column>
       <el-table-column
-          align="center"
-          prop="scenarioCountThisWeek"
-          sortable
-          label="本周新增场景用例数"
-          v-if="showColumn.scenarioCountThisWeek">
+        align="center"
+        prop="completedScenarioCount"
+        sortable
+        label="已完成场景用例数"
+        v-if="showColumn.completedScenarioCount">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="apiCountThisWeek"
+        sortable
+        label="本周新增接口数"
+        v-if="showColumn.apiCountThisWeek">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="singleCountThisWeek"
+        sortable
+        label="本周新增接口用例数"
+        v-if="showColumn.singleCountThisWeek">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="scenarioCountThisWeek"
+        sortable
+        label="本周新增场景用例数"
+        v-if="showColumn.scenarioCountThisWeek">
       </el-table-column>
     </el-table>
   </div>
@@ -128,10 +142,12 @@ export default {
   created() {
     this.getSummary();
     this.showColumn = {
+      "p0APICount":true,
+      "nonP0APICount":true,
       "apiCount":true,
-      "p0apiCount":true,
       "singleCount":true,
       "scenarioCount":true,
+      "completedAPICount":true,
       "completedSingleCount":true,
       "completedScenarioCount":true,
       "apiCountThisWeek":true,
@@ -140,18 +156,23 @@ export default {
     }
     this.tableColumns = [
       {
+        prop: "p0APICount",
+        label: "P0接口数",
+        show: true,
+      },
+      {
+        prop: "nonP0APICount",
+        label: "非P0接口数",
+        show: true,
+      },
+      {
         prop: "apiCount",
         label: "接口总数",
         show: true,
       },
       {
-        prop: "p0apiCount",
-        label: "P0接口数",
-        show: true,
-      },
-      {
         prop: "singleCount",
-        label: "单接口用例总数",
+        label: "接口用例总数",
         show: true,
       },
       {
@@ -161,7 +182,12 @@ export default {
       },
       {
         prop: "completedSingleCount",
-        label: "已完成单接口用例数",
+        label: "已完成接口总数",
+        show: true,
+      },
+      {
+        prop: "completedSingleCount",
+        label: "已完成接口用例数",
         show: true,
       },
       {
