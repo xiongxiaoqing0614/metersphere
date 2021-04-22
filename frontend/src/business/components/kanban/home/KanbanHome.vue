@@ -1,16 +1,18 @@
 <template>
   <div>
-    <p>
-    <label>请选择需要展示的数据：</label><el-checkbox-group v-model="checkedTableColumns">
+    <div>
+    <label>请选择需要展示的数据：</label>
+    <el-checkbox-group v-model="checkedTableColumns">
       <el-checkbox
         v-for="column in tableColumns"
         :key="column.prop"
         :label="column.prop"
         >{{ column.label }}</el-checkbox>
     </el-checkbox-group>
-    </p>
+    </div>
     <el-table
       :data="tableData"
+      height="700"
       border
       stripe
       show-summary
@@ -211,6 +213,11 @@ export default {
         show: true,
       },
     ]
+  },
+  updated () {
+    this.$nextTick(() => {
+      this.$refs['table'].doLayout();
+    }) 
   },
   activated() {
     this.init();
