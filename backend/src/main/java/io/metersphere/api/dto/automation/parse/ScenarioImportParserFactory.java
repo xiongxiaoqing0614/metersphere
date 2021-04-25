@@ -14,6 +14,8 @@ public class ScenarioImportParserFactory {
             return new MsJmeterParser();
         } else if (StringUtils.equals(ApiImportPlatform.Har.name(), platform)) {
             return new HarScenarioParser();
+        } else if (StringUtils.equals(ApiImportPlatform.JmeterTuhu.name(), platform)){
+            return new MsJmeterTuhuParser();
         }
         return null;
     }
