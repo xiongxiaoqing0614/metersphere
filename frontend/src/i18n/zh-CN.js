@@ -12,6 +12,7 @@ export default {
     import_mode: '导入模式',
     import_module: '导入模块',
     import_user: '导入用户',
+    export: '导出',
     please_fill_in_the_template: '请填写模版内容',
     cut_back_old_version: '切回旧版',
     cut_back_new_version: '切回新版',
@@ -20,6 +21,7 @@ export default {
     help_documentation: '帮助文档',
     tuhu_wiki_documentation: '途虎Wiki文档',
     api_help_documentation: 'API文档',
+    confirm_delete: '是否删除',
     delete_cancelled: '已取消删除',
     workspace: '工作空间',
     organization: '组织',
@@ -150,6 +152,7 @@ export default {
     tag_tip: "输入回车添加标签",
     node_name_tip: "名称不能包含'\\'",
     more_operator: "更多操作",
+    mock: "Mock 设置",
     table: {
       select_tip: "已选中 {0} 条数据"
     },
@@ -254,7 +257,22 @@ export default {
       url: '当前站点URL',
       url_tip: '例如：http://localhost:8081',
       url_is_null: '当前站点URL不能为空'
+    },
+    prometheus_config: '监控配置',
+    prometheus: {
+      host: 'Prometheus地址',
+      host_tip: '例如:http://ms-prometheus:9090',
+      host_is_null: 'Prometheus地址不能为空'
     }
+  },
+  custom_field: {
+    case_status: '用例状态',
+    case_maintainer: '责任人',
+    case_priority: '用例等级',
+    issue_creator: '创建人',
+    issue_processor: '处理人',
+    issue_status: '状态',
+    issue_severity: '严重程度'
   },
   workspace: {
     create: '创建工作空间',
@@ -305,7 +323,7 @@ export default {
         '       2.机器人选择为群机器人，安全验证选择“自定义关键词” ："任务通知";\n' +
         '       3.选择接收人时必须是你所建的群里包含的人,接收人手机号为必填项且为钉钉企业所使用的手机号,',
       message: '事件，接收人，接收方式为必填项',
-      message_webhook: '接收方式为钉钉和企业机器人时，webhook为必填项',
+      message_webhook: '接收方式为钉钉和企业机器人,飞书时，webhook为必填项',
       template: "模版"
     },
     integration: {
@@ -458,8 +476,13 @@ export default {
     not_exist: "测试报告不存在",
     batch_delete: "批量删除报告",
     delete_batch_confirm: '确认批量删除报告',
+    response_time: '响应时间(s)',
+    max_users: '并发数'
   },
   load_test: {
+    concurrency_thread_group: '并发读取组',
+    thread_group: '线程组',
+    completed_test_report: '已完成测试报告',
     test: '测试',
     name: '测试名称',
     same_project_test: '只能运行同一项目内的测试',
@@ -491,7 +514,7 @@ export default {
     delete_file_confirm: '确认删除文件: ',
     file_size_limit: "文件个数超出限制！",
     delete_file: "文件已存在，请先删除同名文件！",
-    thread_num: '并发用户数：',
+    thread_num: '并发用户数',
     input_thread_num: '请输入线程数',
     duration: '压测时长',
     granularity: '聚合时间（秒）',
@@ -585,6 +608,21 @@ export default {
     batch_menus: {
       select_all_data: "选择所有数据(共{0}条)",
       select_show_data: "选择可见数据(共{0}条)",
+    },
+    mock: {
+      create_error: "接口信息未保存",
+      table: {
+        name: "期望名称",
+        tag: "标签",
+        creator: "创建人",
+        status: "状态",
+        update_time: "更新时间"
+      },
+      expect_detail: "期望详情",
+      base_info: "基本信息",
+      req_param: "请求参数",
+      rsp_param: "响应内容",
+      delete_mock_expect: "确认删除这条预期吗？",
     },
     definition: {
       api_title: "接口列表",
@@ -713,6 +751,8 @@ export default {
       }
     },
     automation: {
+      open_expansion: "一键展开",
+      close_expansion: "一键收起",
       constant: "常量",
       counter: "计数器",
       random: "随机数",
@@ -772,14 +812,22 @@ export default {
       report_name_info: '请输入报告名称',
       save_case_info: '请先保存用例',
       reference_deleted: '引用已删除',
+      loop_name: "循环",
+      loop_content: "默认为开启，当循环下只有一个请求时，可以开启/关闭;当循环下超过一个请求时，则只能开启。",
+      loop_return_val: "定义变量名称",
+      loop_input_val: "变量前缀",
+      loop_message: "当前循环下超过一个请求，不能关闭状态",
     },
     environment: {
+      create: '创建环境',
       name: "环境名称",
       socket: "环境域名",
+      condition_enable: "启用条件",
       globalVariable: "全局变量",
       environment_list: "环境列表",
       environment_config: "环境配置",
       config_environment: "配置环境",
+      copy_environment: "复制环境",
       environment: "环境",
       select_environment: "请选择环境",
       please_save_test: "请先保存测试",
@@ -787,6 +835,7 @@ export default {
       http_config: "HTTP配置",
       database_config: "数据库配置",
       tcp_config: "TCP配置",
+      import: "导入环境",
     },
     scenario: {
       scenario: "场景",
@@ -988,7 +1037,9 @@ export default {
       suffixFormatErr: "文件格式不符合要求",
       swagger_url_import: "使用URL导入",
       timing_synchronization: "定时同步",
-      next_synchronization_time: "下次同步时间"
+      next_synchronization_time: "下次同步时间",
+      ms_env_import_file_limit: "支持通过MeterSphere导出的json格式文件",
+      file_exceed_limit: "文件数量超出限制",
 
 
     },
@@ -996,7 +1047,7 @@ export default {
       unit_of_measurement: "个",
       unit_of_count: "个",
       unit_of_times: "次",
-      formula:{
+      formula: {
         completion: "已完成的接口/接口总数*100%",
         coverage: "有案例的接口/接口总数*100%",
         pass: "最后一次执行成功的场景/场景总数*100%",
@@ -1156,6 +1207,10 @@ export default {
     testcase_summary: "用例统计"
   },
   test_track: {
+    related_requirements: '关联需求',
+    please_related_requirements: '请选择要关联的需求',
+    please_select_the_test_to_associate: "请选择需要关联的测试",
+    person_responsible: "责任人",
     test_track: "测试跟踪",
     planning_execution: "规划&执行",
     confirm: "确 定",
@@ -1201,7 +1256,7 @@ export default {
       steps: "执行步骤",
       number: "编号",
       prerequisite: "前置条件",
-      step_desc: "步骤描述",
+      step_desc: "用例步骤",
       expected_results: "预期结果",
       input_name: "请输入名称",
       input_module: "请选择模块",
@@ -1232,13 +1287,13 @@ export default {
       batch_unlink: '批量取消关联',
       project_name: '所属项目',
       status: '评审结果',
-      status_prepare: '未评审',
-      status_pass: '通过',
-      status_un_pass: '未通过',
+      status_prepare: '未开始',
+      status_running: '进行中',
+      status_finished: '已完成',
       cancel_relevance_project: "取消项目关联会同时取消该项目下已关联的测试用例",
       img_loading_fail: "图片加载失败",
       pdf_loading_fail: "PDF加载失败",
-      upload_tip: "只能上传jpg、jpeg、png、docx、doc、pdf、xlsx文件",
+      upload_tip: "只能上传jpg、jpeg、png、docx、doc、pdf、xlsx、txt文件",
       attachment: "附件",
       upload_time: "上传时间",
       import: {
@@ -1331,6 +1386,7 @@ export default {
       no_link_case: "没有关联用例！",
       pass: "通过",
       un_pass: "未通过",
+      prepare: '未评审',
       comment: "评论",
       my_review: "我的评审",
       my_create: "我创建的评审",
@@ -1409,6 +1465,7 @@ export default {
       operate_step: "操作步骤",
       edit_component: "编辑组件",
       base_info: "基础信息",
+      mock_info: "Mock信息",
       test_result: "测试结果",
       result_distribution: "测试结果分布",
       custom_component: "自定义模块",
@@ -1446,10 +1503,13 @@ export default {
       title_description_required: "标题和描述必填",
       close_success: "关闭成功",
       preview: "预览",
+      status_new: '新建',
+      status_resolved: '已解决',
+      status_closed: '已关闭',
       please_choose_current_owner: "请选择处理人",
-      tapd_current_owner: "Tapd bug 处理人：",
-      zentao_bug_build: "禅道 bug 影响版本",
-      zentao_bug_assigned: "禅道 bug 处理人",
+      tapd_current_owner: "Tapd 处理人",
+      zentao_bug_build: "禅道 影响版本",
+      zentao_bug_assigned: "禅道 处理人",
     },
     report: {
       name: "测试计划报告",
@@ -1482,6 +1542,7 @@ export default {
     cannot_empty: '资源池不能为空',
     fill_the_data: '请完善数据',
     delete_prompt: '此操作将永久删除该资源池, 是否继续?',
+    update_prompt: '{0}  等测试正在使用此资源池，禁用可能会影响报告的监控部分，是否继续？',
     status_change_success: '状态修改成功!',
     status_change_failed: '状态修改失败, 校验不通过!',
     check_in: '校验中',
@@ -1682,9 +1743,21 @@ export default {
     title: '认证设置',
     auth_name_valid: '名称不支持特殊字符',
   },
+  module: {
+    title: '模块管理'
+  },
   table: {
     header_display_field: '表头显示字段',
     fields_to_be_selected: '待选字段',
     selected_fields: '已选字段'
+  },
+  run_mode: {
+    title: "模式",
+    serial: "串行",
+    parallel: "并行",
+    other_config: "其他配置",
+    idd_report: "独立报告",
+    set_report: "集合报告",
+    report_name: "报告名称",
   }
 };

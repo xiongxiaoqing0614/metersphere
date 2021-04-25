@@ -12,6 +12,7 @@ export default {
     import_mode: '導入模式',
     import_module: '導入模塊',
     import_user: '導入用戶',
+    export: "導出",
     please_fill_in_the_template: '請填寫模版內容',
     cut_back_old_version: '切回舊版',
     cut_back_new_version: '切回新版',
@@ -20,6 +21,7 @@ export default {
     help_documentation: '幫助文檔',
     tuhu_wiki_documentation: '途虎Wiki文檔',
     api_help_documentation: 'API文檔',
+    confirm_delete: '是否刪除',
     delete_cancelled: '已取消刪除',
     workspace: '工作空間',
     organization: '組織',
@@ -150,6 +152,7 @@ export default {
     tag_tip: "輸入回車添加標簽",
     node_name_tip: "名稱不能包含'\\'",
     more_operator: "更多操作",
+    mock: "Mock 設置",
     table: {
       select_tip: "已选中 {0} 条数据"
     },
@@ -254,6 +257,12 @@ export default {
       url: '當前站點URL',
       url_tip: '例如：http://localhost:8081',
       url_is_null: '當前站點URL不能為空'
+    },
+    prometheus_config: '監控配置',
+    prometheus: {
+      host: 'Prometheus地址',
+      host_tip: '例如:http://ms-prometheus:9090',
+      host_is_null: 'Prometheus地址不能為空'
     }
   },
   workspace: {
@@ -305,7 +314,7 @@ export default {
         '       2.機器人選擇為群機器人，安全驗證選擇“自定義關鍵詞” ："任務通知";\n' +
         '       3.選擇接收人時必須是妳所建的群裏包含的人,接收人手機號為必填項且為釘釘企業所使用的手機號,',
       message: '事件，接收人，接收方式為必填項',
-      message_webhook: '接收方式為釘釘和企業機器人時，webhook為必填項',
+      message_webhook: '接收方式為釘釘和企業機器人，飛書時，webhook為必填項',
       template: "模版"
     },
     integration: {
@@ -458,8 +467,13 @@ export default {
     not_exist: "測試報告不存在",
     batch_delete: "批量刪除報告",
     delete_batch_confirm: '確認批量刪除報告',
+    response_time: '響應時間(s)',
+    max_users: '並發数'
   },
   load_test: {
+    concurrency_thread_group: '併發讀取組',
+    thread_group: '線程組',
+    completed_test_report: '已完成的測試報告',
     test: '測試',
     name: '測試名稱',
     same_project_test: '只能運行同壹項目內的測試',
@@ -584,6 +598,21 @@ export default {
     batch_menus: {
       select_all_data: "選擇所有數據(共{0}條)",
       select_show_data: "選擇可見數據(共{0}條)",
+    },
+    mock: {
+      create_error: "接口信息未保存",
+      table: {
+        name: "期望名稱",
+        tag: "標籤",
+        creator: "創建人",
+        status: "狀態",
+        update_time: "更新時間"
+      },
+      expect_detail: "期望詳情",
+      base_info: "基本信息",
+      req_param: "請求參賽",
+      rsp_param: "響應內容",
+      delete_mock_expect: "確認刪除這條預期嗎？",
     },
     definition: {
       api_title: "接口列表",
@@ -712,6 +741,8 @@ export default {
       }
     },
     automation: {
+      open_expansion: "一鍵展開",
+      close_expansion: "一鍵收起",
       constant: "常量",
       counter: "計數器",
       random: "随机器",
@@ -771,14 +802,22 @@ export default {
       report_name_info: '請輸入報告名稱',
       save_case_info: '請先保存用例',
       reference_deleted: '引用已刪除',
+      loop_name: "循環",
+      loop_content: "默認為開啟，當循環下只有一個請求時，可以開啟/關閉;當循環下超過一個請求時，則只能開啟。",
+      loop_return_val: "定義變量名稱",
+      loop_input_val: "變量前綴",
+      loop_message: "當前循環下超過一個請求，不能關閉狀態",
     },
     environment: {
+      create: '創建環境',
       name: "環境名稱",
       socket: "環境域名",
+      condition_enable: "啟用條件",
       globalVariable: "全局變量",
       environment_list: "環境列表",
       environment_config: "環境配置",
       config_environment: "配置環境",
+      copy_environment: "複製環境",
       environment: "環境",
       select_environment: "請選擇環境",
       please_save_test: "請先保存測試",
@@ -786,6 +825,7 @@ export default {
       http_config: "HTTP配置",
       database_config: "數據庫配置",
       tcp_config: "TCP配置",
+      import: "導入環境",
     },
     scenario: {
       scenario: "場景",
@@ -988,7 +1028,8 @@ export default {
       swagger_url_import: "使用URL導入",
       timing_synchronization: "定時同步",
       next_synchronization_time: "下次同步時間",
-
+      ms_env_import_file_limit: "支持通過MeterSphere導出的json格式文件",
+      file_exceed_limit: "文件數量超出限制",
     },
     home_page: {
       unit_of_measurement: "個",
@@ -1154,6 +1195,10 @@ export default {
     testcase_summary: "用例統計"
   },
   test_track: {
+    related_requirements: '關聯需求',
+    please_related_requirements: '請選擇要關聯的需求',
+    please_select_the_test_to_associate: "請選擇要關聯的測試",
+    person_responsible: "責任人",
     test_track: "測試跟蹤",
     confirm: "確 定",
     cancel: "取 消",
@@ -1199,7 +1244,7 @@ export default {
       steps: "執行步驟",
       number: "編號",
       prerequisite: "前置條件",
-      step_desc: "步驟描述",
+      step_desc: "用例步驟",
       expected_results: "預期結果",
       input_name: "請輸入名稱",
       input_module: "請選擇模塊",
@@ -1236,7 +1281,7 @@ export default {
       cancel_relevance_project: "取消項目關聯會同時取消該項目下已關聯的測試用例",
       img_loading_fail: "圖片加載失敗",
       pdf_loading_fail: "PDF加載失敗",
-      upload_tip: "只能上傳jpg、jpeg、png、docx、doc、pdf、xlsx文件",
+      upload_tip: "只能上傳jpg、jpeg、png、docx、doc、pdf、xlsx、txt文件",
       attachment: "附件",
       upload_time: "上傳時間",
       import: {
@@ -1407,6 +1452,7 @@ export default {
       operate_step: "操作步驟",
       edit_component: "編輯組件",
       base_info: "基礎信息",
+      mock_info: "Mock信息",
       test_result: "測試結果",
       result_distribution: "測試結果分布",
       custom_component: "自定義模塊",
@@ -1445,9 +1491,9 @@ export default {
       close_success: "關閉成功",
       preview: "預覽",
       please_choose_current_owner: "請選擇處理人",
-      tapd_current_owner: "Tapd bug 處理人：",
-      zentao_bug_build: "禪道 bug 影響版本",
-      zentao_bug_assigned: "禪道 bug 處理人",
+      tapd_current_owner: "Tapd 處理人",
+      zentao_bug_build: "禪道 影響版本",
+      zentao_bug_assigned: "禪道 處理人",
     },
     report: {
       name: "測試計畫包括",
@@ -1480,6 +1526,7 @@ export default {
     cannot_empty: '資源池不能為空',
     fill_the_data: '請完善數據',
     delete_prompt: '此操作將永久刪除該資源池, 是否繼續?',
+    update_prompt: '{0}  等測試正在使用此資源池，禁用可能會影響報告的監控部分，是否繼續？',
     status_change_success: '狀態修改成功!',
     status_change_failed: '狀態修改失敗, 校驗不通過!',
     check_in: '校驗中',
@@ -1680,10 +1727,21 @@ export default {
     title: '認證設置',
     auth_name_valid: '名稱不支持特殊字符',
   },
+  module: {
+    title: '模塊管理'
+  },
   table: {
     header_display_field: '表頭顯示欄位',
     fields_to_be_selected: '待選欄位',
     selected_fields: '已選欄位'
+  },
+  run_mode: {
+    title: "模式",
+    serial: "串行",
+    parallel: "並行",
+    other_config: "其他配置",
+    idd_report: "獨立報告",
+    set_report: "集合報告",
+    report_name: "報告名稱",
   }
-
 };

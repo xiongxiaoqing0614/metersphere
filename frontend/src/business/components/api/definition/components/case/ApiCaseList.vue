@@ -176,7 +176,7 @@
               apiCase.tags = JSON.parse(apiCase.tags);
               this.$set(apiCase, 'selected', false);
             }
-            if (Object.prototype.toString.call(apiCase.request).match(/\[object (\w+)\]/)[1].toLowerCase() != 'object') {
+            if (Object.prototype.toString.call(apiCase.request).match(/\[object (\w+)\]/)[1].toLowerCase() !== 'object') {
               apiCase.request = JSON.parse(apiCase.request);
             }
             if (!apiCase.request.hashTree) {
@@ -192,7 +192,7 @@
         this.apiCaseList = [];
         this.visible = false;
       },
-      refreshModule(){
+      refreshModule() {
         this.$emit('refreshModule');
       },
       runRefresh() {
@@ -228,10 +228,7 @@
           if (this.isCaseEdit) {
             this.condition.id = this.testCaseId;
           }
-          if (this.api) {
-            this.condition.apiDefinitionId = this.api.id;
-          }
-
+          this.condition.apiDefinitionId = this.api.id;
           this.result = this.$post("/api/testcase/list", this.condition, response => {
             let data = [];
             if (response.data) {
@@ -242,20 +239,23 @@
                 apiCase.tags = JSON.parse(apiCase.tags);
                 this.$set(apiCase, 'selected', false);
               }
-              if (Object.prototype.toString.call(apiCase.request).match(/\[object (\w+)\]/)[1].toLowerCase() != 'object') {
+              if (Object.prototype.toString.call(apiCase.request).match(/\[object (\w+)\]/)[1].toLowerCase() !== 'object') {
                 apiCase.request = JSON.parse(apiCase.request);
               }
               if (!apiCase.request.hashTree) {
                 apiCase.request.hashTree = [];
               }
-
+              const index = this.runData.findIndex(d => d.name === apiCase.id);
+              if (index !== -1) {
+                apiCase.active = true;
+              }
             });
             this.apiCaseList = data;
             if (!this.useEnvironment && this.apiCaseList[0] && this.apiCaseList[0].request && this.apiCaseList[0].request.useEnvironment) {
               this.useEnvironment = this.apiCaseList[0].request.useEnvironment;
               this.environment = this.useEnvironment;
             }
-            if (addCase && this.apiCaseList.length == 0 && !this.loaded) {
+            if (addCase && this.apiCaseList.length === 0 && !this.loaded) {
               this.addCase();
             }
           });
@@ -282,7 +282,7 @@
                 apiCase.tags = JSON.parse(apiCase.tags);
                 this.$set(apiCase, 'selected', false);
               }
-              if (Object.prototype.toString.call(apiCase.request).match(/\[object (\w+)\]/)[1].toLowerCase() != 'object') {
+              if (Object.prototype.toString.call(apiCase.request).match(/\[object (\w+)\]/)[1].toLowerCase() !== 'object') {
                 apiCase.request = JSON.parse(apiCase.request);
               }
               if (!apiCase.request.hashTree) {
@@ -310,7 +310,7 @@
         }
       },
       addCase() {
-        if (this.api.request) {
+        if (this.api && this.api.request) {
           // 初始化对象
           let request = {};
           if (this.api.request instanceof Object) {
@@ -321,7 +321,7 @@
           if (!request.hashTree) {
             request.hashTree = [];
           }
-          if (request.backScript != null) {
+          if (request.backScript) {
             request.hashTree.push(request.backScript);
           }
           let uuid = getUUID();
@@ -343,7 +343,7 @@
       },
 
       singleRun(row) {
-        if (this.currentApi.protocol != "DUBBO" && this.currentApi.protocol != "dubbo://" && !this.environment) {
+        if (this.currentApi.protocol !== "DUBBO" && this.currentApi.protocol !== "dubbo://" && !this.environment) {
           this.$warning(this.$t('api_test.environment.select_environment'));
           return;
         }
@@ -361,12 +361,12 @@
       },
 
       batchRun() {
-        if (this.currentApi.protocol != "DUBBO" && this.currentApi.protocol != "dubbo://" && !this.environment) {
+        if (this.currentApi.protocol !== "DUBBO" && this.currentApi.protocol !== "dubbo://" && !this.environment) {
           this.$warning(this.$t('api_test.environment.select_environment'));
           return;
         }
         this.envMap = new Map();
-        this.envMap.set(this.$store.state.projectId,this.environment);
+        this.envMap.set(this.$store.state.projectId, this.environment);
         this.runData = [];
         this.batchLoadingIds = [];
         this.selectdCases = [];
@@ -398,18 +398,18 @@
             }
           })
         }
-        if (this.selectdCases.length == 0) {
+        if (this.selectdCases.length === 0) {
           this.$warning("请选择用例！");
           return;
         }
         // //根据不同的接口，注入不同的参数
-        if (this.currentApi.protocol == 'HTTP') {
+        if (this.currentApi.protocol === 'HTTP') {
           this.valueArr.method = REQ_METHOD;
-        } else if (this.currentApi.protocol == 'TCP') {
+        } else if (this.currentApi.protocol === 'TCP') {
           this.valueArr.method = TCP_METHOD;
-        } else if (this.currentApi.protocol == 'SQL') {
+        } else if (this.currentApi.protocol === 'SQL') {
           this.valueArr.method = SQL_METHOD;
-        } else if (this.currentApi.protocol == 'DUBBO') {
+        } else if (this.currentApi.protocol === 'DUBBO') {
           this.valueArr.method = DUBBO_METHOD;
         }
 

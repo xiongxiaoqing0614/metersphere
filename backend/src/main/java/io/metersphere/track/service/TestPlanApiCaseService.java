@@ -44,6 +44,12 @@ public class TestPlanApiCaseService {
     @Resource
     ApiDefinitionExecResultService apiDefinitionExecResultService;
 
+    public TestPlanApiCase getInfo(String caseId, String testPlanId) {
+        TestPlanApiCaseExample example = new TestPlanApiCaseExample();
+        example.createCriteria().andApiCaseIdEqualTo(caseId).andTestPlanIdEqualTo(testPlanId);
+        return testPlanApiCaseMapper.selectByExample(example).get(0);
+    }
+
     public List<TestPlanApiCaseDTO> list(ApiTestCaseRequest request) {
         request.setProjectId(null);
         request.setOrders(ServiceUtils.getDefaultOrder(request.getOrders()));
@@ -122,11 +128,11 @@ public class TestPlanApiCaseService {
         return testPlanApiCaseMapper.selectByPrimaryKey(id);
     }
 
-    public void setExecResult(String id, String status) {
+    public void setExecResult(String id, String status,Long time) {
         TestPlanApiCase apiCase = new TestPlanApiCase();
         apiCase.setId(id);
         apiCase.setStatus(status);
-        apiCase.setUpdateTime(System.currentTimeMillis());
+        apiCase.setUpdateTime(time);
         testPlanApiCaseMapper.updateByPrimaryKeySelective(apiCase);
     }
 
