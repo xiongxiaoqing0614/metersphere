@@ -116,7 +116,7 @@ public class ApiDefinitionService {
         ServiceUtils.getSelectAllIds(request, request.getCondition(),
                 (query) -> extApiDefinitionMapper.selectIds(query));
         List<ApiDefinitionResult> resList = extApiDefinitionMapper.listByIds(request.getIds());
-        calculateResult(resList);
+        calculateResult(resList, request.getProjectId());
         return resList;
     }
 
