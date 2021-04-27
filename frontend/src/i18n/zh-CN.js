@@ -381,7 +381,8 @@ export default {
     manager: '项目管理',
     no_data: '无数据',
     select: '选择项目',
-    repeatable: '接口定义URL可重复'
+    repeatable: '接口定义URL可重复',
+    upload_file_again: '重新上传'
   },
   member: {
     create: '添加成员',
@@ -448,6 +449,7 @@ export default {
     test_request_statistics: '请求统计',
     test_error_log: '错误记录',
     test_log_details: '日志详情',
+    test_monitor_details: '监控详情',
     test_details: '测试详情',
     test_duration: '当前执行时长：{0} 分钟 {1} 秒',
     test_start_time: '开始执行时间',
@@ -623,6 +625,9 @@ export default {
       req_param: "请求参数",
       rsp_param: "响应内容",
       delete_mock_expect: "确认删除这条预期吗？",
+      rule: {
+        input_code: "请输入 HTTP Code"
+      }
     },
     definition: {
       api_title: "接口列表",

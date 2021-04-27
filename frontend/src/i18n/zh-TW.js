@@ -372,7 +372,8 @@ export default {
     manager: '項目管理',
     no_data: '無數據',
     select: '選擇項目',
-    repeatable: '接口定義URL可重復'
+    repeatable: '接口定義URL可重復',
+    upload_file_again: '重新上傳'
   },
   member: {
     create: '添加成員',
@@ -439,6 +440,7 @@ export default {
     test_request_statistics: '請求統計',
     test_error_log: '錯誤記錄',
     test_log_details: '日誌詳情',
+    test_monitor_details: '監控詳情',
     test_details: '測試詳情',
     test_duration: '當前執行時長：{0} 分鐘 {1} 秒',
     test_start_time: '開始執行時間',
@@ -613,6 +615,9 @@ export default {
       req_param: "請求參賽",
       rsp_param: "響應內容",
       delete_mock_expect: "確認刪除這條預期嗎？",
+      rule: {
+        input_code: "請輸入 HTTP Code"
+      }
     },
     definition: {
       api_title: "接口列表",

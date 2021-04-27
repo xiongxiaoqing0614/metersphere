@@ -374,7 +374,8 @@ export default {
     manager: 'Manager',
     no_data: 'No Data',
     select: 'Select',
-    repeatable: 'Interface definition URL repeatable'
+    repeatable: 'Interface definition URL repeatable',
+    upload_file_again: 'Upload again'
   },
   member: {
     create: 'Create',
@@ -441,6 +442,7 @@ export default {
     test_request_statistics: 'Test Request Statistics',
     test_error_log: 'Test Error Log',
     test_log_details: 'Test Log Details',
+    test_monitor_details: 'Test Monitor Details',
     test_details: 'Test Details',
     test_duration: 'Current Execution Time：{0} minutes {1} seconds',
     test_start_time: 'Start Execution Time',
@@ -614,6 +616,9 @@ export default {
       req_param: "Request params",
       rsp_param: "Response Params",
       delete_mock_expect: "Confirm to delete this expect info ?",
+      rule: {
+        input_code: "Please input HTTP Code"
+      }
     },
     definition: {
       api_title: "Api test",
