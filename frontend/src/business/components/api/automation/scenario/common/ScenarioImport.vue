@@ -123,6 +123,13 @@
             tip: this.$t('api_test.api_import.har_tip'),
             exportTip: this.$t('api_test.api_import.har_export_tip'),
             suffixes: new Set(['har'])
+          },
+          {
+            name: 'JMeter-Tuhu',
+            value: 'JmeterTuhu',
+            tip: this.$t('api_test.api_import.jmeter_tip'),
+            exportTip: this.$t('api_test.api_import.jmeter_export_tip'),
+            suffixes: new Set(['jmx'])
           }
         ],
         selectedPlatform: {},
