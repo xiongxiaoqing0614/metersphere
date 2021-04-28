@@ -46,7 +46,7 @@
                                  :request="request"
                                  :showScript="false"/>
         <ms-sql-basis-parameters v-if="request.protocol==='SQL'|| request.type==='JDBCSampler'"
-                                 :request="request" :is-scenario="true" :environment="environment"
+                                 :request="request" :is-scenario="false" :environment="environment"
                                  :showScript="false"/>
         <ms-dubbo-basis-parameters v-if="request.protocol==='DUBBO' || request.protocol==='dubbo://'|| request.type==='DubboSampler'"
                                    :request="request"
@@ -310,7 +310,7 @@
       },
       run() {
         if (this.isApiImport) {
-          if (!this.envMap || this.envMap.size === 0) {
+          if (this.request.type && (this.request.type === "HTTPSamplerProxy" || this.request.type === "JDBCSampler" || this.request.type === "TCPSampler")) {
             this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
             return false;
           } else if (this.envMap && this.envMap.size > 0) {
