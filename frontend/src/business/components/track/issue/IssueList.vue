@@ -4,7 +4,7 @@
 
       <template v-slot:header>
         <ms-table-header :is-tester-permission="true" :condition.sync="condition" @search="getIssues" @create="handleCreate"
-                         :create-tip="'创建缺陷'" :title="'缺陷列表'"  :tip="'根据标题搜索'" :have-search="false"/>
+                         :create-tip="$t('test_track.issue.create_issue')" :title="$t('test_track.issue.issue_list')"  :tip="$t('issue.search_name')" :have-search="false"/>
       </template>
 
       <ms-table
@@ -132,6 +132,24 @@ export default {
         let data = response.data;
         this.total = data.itemCount;
         this.tableData = data.listObject;
+        for (let i = 0; i < this.tableData.length; i++) {
+          if (this.tableData[i]) {
+            if (this.tableData[i].platform !== 'Local') {
+              this.$post("issues/get/platform/issue", this.tableData[i]).then(response => {
+                let issues = response.data.data;
+                if (issues) {
+                  this.$set(this.tableData[i], "title", issues.title ? issues.title : "--");
+                  this.$set(this.tableData[i], "description", issues.description ? issues.description : "--");
+                  this.$set(this.tableData[i], "status", issues.status ? issues.status : 'delete');
+                }
+              }).catch(() => {
+                this.$set(this.tableData[i], "title", "--");
+                this.$set(this.tableData[i], "description", "--");
+                this.$set(this.tableData[i], "status", "--");
+              });
+            }
+          }
+        }
       });
     },
     handleEdit(data) {
