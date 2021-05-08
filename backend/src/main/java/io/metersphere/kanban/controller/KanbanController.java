@@ -9,12 +9,15 @@ import io.metersphere.kanban.dto.TestCaseAllInfoDTO;
 import io.metersphere.kanban.dto.TestCaseSummaryDTO;
 import io.metersphere.kanban.service.KanbanService;
 import io.metersphere.service.CheckPermissionService;
-import org.python.modules._io._ioTest;
+import io.metersphere.track.dto.TestPlanDTOWithMetric;
+import io.metersphere.track.request.testcase.QueryTestPlanRequest;
+import io.metersphere.track.service.TestPlanService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
+import io.metersphere.kanban.dto.ExecutionAllInfoDTO;
 
 @RestController
 @RequestMapping(value = "/kanban")
@@ -34,6 +37,9 @@ public class KanbanController {
 
     @Resource
     private CheckPermissionService checkPermissionService;
+
+    @Resource
+    private TestPlanService testPlanService;
 
     @GetMapping("summary")
     public List<TestCaseAllInfoDTO> dashboardSummary() {
@@ -61,6 +67,26 @@ public class KanbanController {
             allInfoList.add(allInfo);
         }
         return allInfoList;
+    }
+
+    @GetMapping("exeSummary")
+    public List<ExecutionAllInfoDTO> exeSummary() {
+        List<TestCaseSummaryDTO> summaryList = kanbanService.getSummary();
+        List<ExecutionAllInfoDTO> testPlans = new ArrayList<ExecutionAllInfoDTO>();
+        for(TestCaseSummaryDTO summaryData : summaryList) {
+            QueryTestPlanRequest request = new QueryTestPlanRequest();
+            request.setProjectId(summaryData.getProjectId());
+            List<TestPlanDTOWithMetric> oriTestPlans = testPlanService.listTestPlanByProject(request);
+            testPlanService.calcTestPlanRate(oriTestPlans);
+            for(TestPlanDTOWithMetric oriTestPlan : oriTestPlans) {
+                ExecutionAllInfoDTO thTestPlan = new ExecutionAllInfoDTO();
+                BeanUtils.copyProperties(oriTestPlan, thTestPlan);
+                thTestPlan.setDepartment(summaryData.getDepartment());
+                thTestPlan.setTeam(summaryData.getTeam());
+                testPlans.add(thTestPlan);
+            }
+        }
+        return testPlans;
     }
 
 }
