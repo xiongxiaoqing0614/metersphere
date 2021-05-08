@@ -5,6 +5,7 @@ import io.metersphere.api.dto.datacount.response.ApiDataCountDTO;
 import io.metersphere.api.service.ApiAutomationService;
 import io.metersphere.api.service.ApiDefinitionService;
 import io.metersphere.api.service.ApiTestCaseService;
+import io.metersphere.base.domain.TestPlanReportExample;
 import io.metersphere.kanban.dto.TestCaseAllInfoDTO;
 import io.metersphere.kanban.dto.TestCaseSummaryDTO;
 import io.metersphere.kanban.service.KanbanService;
@@ -71,22 +72,7 @@ public class KanbanController {
 
     @GetMapping("exeSummary")
     public List<ExecutionAllInfoDTO> exeSummary() {
-        List<TestCaseSummaryDTO> summaryList = kanbanService.getSummary();
-        List<ExecutionAllInfoDTO> testPlans = new ArrayList<ExecutionAllInfoDTO>();
-        for(TestCaseSummaryDTO summaryData : summaryList) {
-            QueryTestPlanRequest request = new QueryTestPlanRequest();
-            request.setProjectId(summaryData.getProjectId());
-            List<TestPlanDTOWithMetric> oriTestPlans = testPlanService.listTestPlanByProject(request);
-            testPlanService.calcTestPlanRate(oriTestPlans);
-            for(TestPlanDTOWithMetric oriTestPlan : oriTestPlans) {
-                ExecutionAllInfoDTO thTestPlan = new ExecutionAllInfoDTO();
-                BeanUtils.copyProperties(oriTestPlan, thTestPlan);
-                thTestPlan.setDepartment(summaryData.getDepartment());
-                thTestPlan.setTeam(summaryData.getTeam());
-                testPlans.add(thTestPlan);
-            }
-        }
-        return testPlans;
+        return kanbanService.getExeSummary();
     }
 
 }
