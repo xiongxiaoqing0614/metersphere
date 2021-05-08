@@ -1230,7 +1230,8 @@ export default {
   },
   test_kanban: {
     test_kanban: "Kanban",
-    testcase_summary: "TestCase Summary"
+    testcase_summary: "TestCase Summary",
+    execution_summary: "Execution Summary"
   },
   test_track: {
     related_requirements: 'Related requirements',
