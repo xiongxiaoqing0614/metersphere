@@ -7,6 +7,17 @@
           <el-input v-model="form.title" autocomplete="off"></el-input>
         </el-form-item>
 
+        <el-form-item :label="$t('custom_field.issue_creator')" prop="title">
+          <el-select filterable v-model="form.creator" :placeholder="$t('custom_field.issue_creator')">
+            <el-option
+              v-for="(item) in memberOptions"
+              :key="item.id"
+              :label="item.id + ' (' + item.name + ')'"
+              :value="item.id">
+            </el-option>
+          </el-select>
+        </el-form-item>
+
         <!-- 自定义字段 -->
         <el-form v-if="isFormAlive" :model="customFieldForm" :rules="customFieldRules" ref="customFieldForm"
                  class="case-form">
@@ -76,6 +87,7 @@ import {buildCustomFields, getTemplate, parseCustomField} from "@/common/js/cust
 import CustomFiledComponent from "@/business/components/settings/workspace/template/CustomFiledComponent";
 import TestCaseIssueList from "@/business/components/track/issue/TestCaseIssueList";
 import IssueEditDetail from "@/business/components/track/issue/IssueEditDetail";
+import {getCurrentUserId, getCurrentWorkspaceId} from "@/common/js/utils";
 
 export default {
   name: "IssueEditDetail",
@@ -111,13 +123,15 @@ export default {
       url: '',
       form: {
         title: '',
-        description: ''
+        description: '',
+        creator: null
       },
       tapdUsers: [],
       zentaoUsers: [],
       Builds: [],
       hasTapdId: false,
-      hasZentaoId: false
+      hasZentaoId: false,
+      memberOptions: []
     };
   },
   props: {
@@ -143,12 +157,18 @@ export default {
   methods: {
     open(data) {
       let initAddFuc = this.initEdit;
+      this.getMemberOptions();
       getTemplate('field/template/issue/get/relate/', this)
         .then((template) => {
           this.issueTemplate = template;
           this.getThirdPartyInfo();
           initAddFuc(data);
         });
+    },
+    getMemberOptions() {
+      this.$post('/user/ws/member/tester/list', {workspaceId: getCurrentWorkspaceId()}, response => {
+        this.memberOptions = response.data;
+      });
     },
     getThirdPartyInfo() {
       let platform = this.issueTemplate.platform;
@@ -180,6 +200,7 @@ export default {
         } else {
           //copy
           this.url = 'issues/add';
+          this.form.title = data.title + '_copy';
         }
       } else {
         this.form = {
@@ -187,6 +208,9 @@ export default {
           description: this.issueTemplate.content
         }
         this.url = 'issues/add';
+      }
+      if (!this.form.creator) {
+        this.form.creator = getCurrentUserId();
       }
       parseCustomField(this.form, this.issueTemplate, this.customFieldForm, this.customFieldRules, null);
       this.$nextTick(() => {

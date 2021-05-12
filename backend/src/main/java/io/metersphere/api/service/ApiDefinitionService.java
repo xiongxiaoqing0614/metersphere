@@ -300,7 +300,7 @@ public class ApiDefinitionService {
         if (StringUtils.isNotEmpty(request.getTags()) && !StringUtils.equals(request.getTags(), "[]")) {
             test.setTags(request.getTags());
         } else {
-            test.setTags(null);
+            test.setTags("");
         }
         this.setModule(test);
         apiDefinitionMapper.updateByPrimaryKeySelective(test);
@@ -348,7 +348,7 @@ public class ApiDefinitionService {
         if (StringUtils.isNotEmpty(request.getTags()) && !StringUtils.equals(request.getTags(), "[]")) {
             test.setTags(request.getTags());
         } else {
-            test.setTags(null);
+            test.setTags("");
         }
         apiDefinitionMapper.insert(test);
         return test;
@@ -583,8 +583,8 @@ public class ApiDefinitionService {
     public void addResult(TestResult res) {
         if (res != null && CollectionUtils.isNotEmpty(res.getScenarios()) && res.getScenarios().get(0) != null && CollectionUtils.isNotEmpty(res.getScenarios().get(0).getRequestResults())) {
             RequestResult result = res.getScenarios().get(0).getRequestResults().get(0);
-            if (result.getName().indexOf("<->") != -1) {
-                result.setName(result.getName().substring(0, result.getName().indexOf("<->")));
+            if (result.getName().indexOf(DelimiterConstants.SEPARATOR.toString()) != -1) {
+                result.setName(result.getName().substring(0, result.getName().indexOf(DelimiterConstants.SEPARATOR.toString())));
             }
             cache.put(res.getTestId(), result);
         } else {

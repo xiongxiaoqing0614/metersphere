@@ -26,6 +26,7 @@ import io.metersphere.api.dto.scenario.KeyValue;
 import io.metersphere.api.dto.scenario.environment.EnvironmentConfig;
 import io.metersphere.api.service.ApiTestEnvironmentService;
 import io.metersphere.base.domain.ApiTestEnvironmentWithBLOBs;
+import io.metersphere.commons.constants.DelimiterConstants;
 import io.metersphere.commons.constants.LoopConstants;
 import io.metersphere.commons.constants.MsTestElementConstants;
 import io.metersphere.commons.exception.MSException;
@@ -146,12 +147,6 @@ public abstract class MsTestElement {
         return jmeterTestPlanHashTree;
     }
 
-    public HashTree generateHashTree() {
-        HashTree jmeterTestPlanHashTree = new ListedHashTree();
-        this.toHashTree(jmeterTestPlanHashTree, this.hashTree, new ParameterConfig());
-        return jmeterTestPlanHashTree;
-    }
-
     public Arguments addArguments(ParameterConfig config) {
         if (config.isEffective(this.getProjectId()) && config.getConfig().get(this.getProjectId()).getCommonConfig() != null
                 && CollectionUtils.isNotEmpty(config.getConfig().get(this.getProjectId()).getCommonConfig().getVariables())) {
@@ -187,7 +182,7 @@ public abstract class MsTestElement {
         return null;
     }
 
-    protected void addCsvDataSet(HashTree tree, List<ScenarioVariable> variables, ParameterConfig config) {
+    protected void addCsvDataSet(HashTree tree, List<ScenarioVariable> variables, ParameterConfig config, String shareMode) {
         if (CollectionUtils.isNotEmpty(variables)) {
             List<ScenarioVariable> list = variables.stream().filter(ScenarioVariable::isCSVValid).collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(list)) {
@@ -205,8 +200,7 @@ public abstract class MsTestElement {
                         csvDataSet.setProperty("filename", BODY_FILE_DIR + "/" + item.getFiles().get(0).getId() + "_" + item.getFiles().get(0).getName());
                     }
                     csvDataSet.setIgnoreFirstLine(false);
-                    // csvDataSet.setProperty("quotedData",true);
-                    csvDataSet.setProperty("shareMode","shareMode.group");
+                    csvDataSet.setProperty("shareMode", shareMode);
                     csvDataSet.setProperty("recycle", true);
                     csvDataSet.setProperty("delimiter", item.getDelimiter());
                     csvDataSet.setComment(StringUtils.isEmpty(item.getDescription()) ? "" : item.getDescription());
@@ -259,12 +253,22 @@ public abstract class MsTestElement {
         }
     }
 
-    public void getFullPath(MsTestElement element, StringBuilder path) {
+    public String getFullPath(MsTestElement element, String path) {
+        if (element.getParent() == null) {
+            return path;
+        }
+        path = StringUtils.isEmpty(element.getName()) ? element.getType() : element.getName() + DelimiterConstants.STEP_DELIMITER.toString() + path;
+        return getFullPath(element.getParent(), path);
+    }
+
+    public void getScenarioSet(MsTestElement element, List<String> id_names) {
+        if (StringUtils.equals(element.getType(), "scenario")) {
+            id_names.add(element.getResourceId() + "_" + element.getName());
+        }
         if (element.getParent() == null) {
             return;
         }
-        path.append(StringUtils.isEmpty(element.getName()) ? element.getType() : element.getName()).append("^@~@^");
-        getFullPath(element.getParent(), path);
+        getScenarioSet(element.getParent(), id_names);
     }
 
     protected String getParentName(MsTestElement parent) {
@@ -282,9 +286,8 @@ public abstract class MsTestElement {
                 }
             }
             // 获取全路径以备后面使用
-            StringBuilder fullPath = new StringBuilder();
-            getFullPath(parent, fullPath);
-            return fullPath + "<->" + parent.getName();
+            String fullPath = getFullPath(parent, new String());
+            return fullPath + DelimiterConstants.SEPARATOR.toString() + parent.getName();
         }
         return "";
     }
