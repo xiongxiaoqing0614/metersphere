@@ -1,8 +1,14 @@
 package io.metersphere.kanban.service;
 
+import io.metersphere.api.dto.datacount.ApiDataCountResult;
+import io.metersphere.api.dto.datacount.response.ApiDataCountDTO;
+import io.metersphere.api.service.ApiAutomationService;
+import io.metersphere.api.service.ApiDefinitionService;
+import io.metersphere.api.service.ApiTestCaseService;
 import io.metersphere.base.domain.TestPlanReportExample;
 import io.metersphere.base.mapper.TestPlanReportMapper;
 import io.metersphere.kanban.dto.ExecutionAllInfoDTO;
+import io.metersphere.kanban.dto.TestCaseAllInfoDTO;
 import io.metersphere.kanban.dto.TestCaseSummaryDTO;
 import io.metersphere.kanban.mapper.KanbanMapper;
 import io.metersphere.track.dto.TestPlanDTOWithMetric;
@@ -24,16 +30,50 @@ import java.util.List;
 public class KanbanService {
     @Resource
     private KanbanMapper kanbanMapper;
+
+    @Resource
+    private ApiDefinitionService apiDefinitionService;
+
+    @Resource
+    private ApiTestCaseService apiTestCaseService;
+
+    @Resource
+    private ApiAutomationService apiAutomationService;
+
     @Resource
     private ExtTestPlanMapper extTestPlanMapper;
+
     @Resource
     private TestPlanService testPlanService;
+
     @Resource
     private TestPlanReportMapper testPlanReportMapper;
 
-    public List<TestCaseSummaryDTO> getSummary() {
-        List<TestCaseSummaryDTO> list = kanbanMapper.getSummary();
-        return list;
+    public List<TestCaseAllInfoDTO> getSummary() {
+        List<TestCaseSummaryDTO> summaryList = kanbanMapper.getSummary();
+        List<TestCaseAllInfoDTO> allInfoList = new ArrayList<TestCaseAllInfoDTO>();
+        for(TestCaseSummaryDTO summaryData : summaryList) {
+            TestCaseAllInfoDTO allInfo = new TestCaseAllInfoDTO();
+            BeanUtils.copyProperties(summaryData, allInfo);
+            String projectId = summaryData.getProjectId();
+            long dateCountByCreateInThisWeek = apiDefinitionService.countByProjectIDAndCreateInThisWeek(projectId);
+            allInfo.setApiCountThisWeek(dateCountByCreateInThisWeek);
+            ApiDataCountDTO apiCountResult = new ApiDataCountDTO();
+
+            List<ApiDataCountResult> countResultByStatelList = apiDefinitionService.countStateByProjectID(projectId);
+            apiCountResult.countStatus(countResultByStatelList);
+            allInfo.setCompletedAPICount(apiCountResult.getFinishedCount());
+            allInfo.setNonP0APICount(allInfo.getApiCount() - allInfo.getP0APICount());
+
+            long dateSingleCountByCreateInThisWeek = apiTestCaseService.countByProjectIDAndCreateInThisWeek(projectId);
+            allInfo.setSingleCountThisWeek(dateSingleCountByCreateInThisWeek);
+
+            long dateScenarioCountByCreateInThisWeek = apiAutomationService.countScenarioByProjectIDAndCreatInThisWeek(projectId);
+            allInfo.setScenarioCountThisWeek(dateScenarioCountByCreateInThisWeek);
+
+            allInfoList.add(allInfo);
+        }
+        return allInfoList;
     }
 
     public List<ExecutionAllInfoDTO> getExeSummary() {

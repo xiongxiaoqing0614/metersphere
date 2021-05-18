@@ -28,46 +28,12 @@ public class KanbanController {
     private KanbanService kanbanService;
 
     @Resource
-    private ApiDefinitionService apiDefinitionService;
-
-    @Resource
-    private ApiTestCaseService apiTestCaseService;
-
-    @Resource
-    private ApiAutomationService apiAutomationService;
-
-    @Resource
     private CheckPermissionService checkPermissionService;
 
-    @Resource
-    private TestPlanService testPlanService;
 
     @GetMapping("summary")
     public List<TestCaseAllInfoDTO> dashboardSummary() {
-        List<TestCaseSummaryDTO> summaryList = kanbanService.getSummary();
-        List<TestCaseAllInfoDTO> allInfoList = new ArrayList<TestCaseAllInfoDTO>();
-        for(TestCaseSummaryDTO summaryData : summaryList) {
-            TestCaseAllInfoDTO allInfo = new TestCaseAllInfoDTO();
-            BeanUtils.copyProperties(summaryData, allInfo);
-            String projectId = summaryData.getProjectId();
-            long dateCountByCreateInThisWeek = apiDefinitionService.countByProjectIDAndCreateInThisWeek(projectId);
-            allInfo.setApiCountThisWeek(dateCountByCreateInThisWeek);
-            ApiDataCountDTO apiCountResult = new ApiDataCountDTO();
-
-            List<ApiDataCountResult> countResultByStatelList = apiDefinitionService.countStateByProjectID(projectId);
-            apiCountResult.countStatus(countResultByStatelList);
-            allInfo.setCompletedAPICount(apiCountResult.getFinishedCount());
-            allInfo.setNonP0APICount(allInfo.getApiCount() - allInfo.getP0APICount());
-
-            long dateSingleCountByCreateInThisWeek = apiTestCaseService.countByProjectIDAndCreateInThisWeek(projectId);
-            allInfo.setSingleCountThisWeek(dateSingleCountByCreateInThisWeek);
-
-            long dateScenarioCountByCreateInThisWeek = apiAutomationService.countScenarioByProjectIDAndCreatInThisWeek(projectId);
-            allInfo.setScenarioCountThisWeek(dateScenarioCountByCreateInThisWeek);
-
-            allInfoList.add(allInfo);
-        }
-        return allInfoList;
+        return kanbanService.getSummary();
     }
 
     @GetMapping("exeSummary")
