@@ -788,7 +788,7 @@ public class ApiAutomationService {
 
         List<String> ids = request.getIds();
         //检查是否有正在执行中的情景
-        this.checkScenarioIsRunning(ids);
+//        this.checkScenarioIsRunning(ids);
 
         StringBuilder idStr = new StringBuilder();
         ids.forEach(item -> {
@@ -1079,7 +1079,7 @@ public class ApiAutomationService {
                 (query) -> extApiScenarioMapper.selectIdsByQuery((ApiScenarioRequest) query));
         List<String> ids = request.getIds();
         //检查是否有正在执行中的情景
-        this.checkScenarioIsRunning(ids);
+//        this.checkScenarioIsRunning(ids);
         StringBuilder idStr = new StringBuilder();
         ids.forEach(item -> {
             idStr.append("\"").append(item).append("\"").append(",");
@@ -1130,14 +1130,14 @@ public class ApiAutomationService {
         }
     }
 
-    public void checkScenarioIsRunning(List<String> ids) {
-        List<ApiScenarioReport> lastReportStatusByIds = apiReportService.selectLastReportByIds(ids);
-        for (ApiScenarioReport report : lastReportStatusByIds) {
-            if (StringUtils.equals(report.getStatus(), APITestStatus.Running.name())) {
-                MSException.throwException(report.getName() + " Is Running!");
-            }
-        }
-    }
+//    public void checkScenarioIsRunning(List<String> ids) {
+//        List<ApiScenarioReport> lastReportStatusByIds = apiReportService.selectLastReportByIds(ids);
+//        for (ApiScenarioReport report : lastReportStatusByIds) {
+//            if (StringUtils.equals(report.getStatus(), APITestStatus.Running.name())) {
+//                MSException.throwException(report.getName() + " Is Running!");
+//            }
+//        }
+//    }
 
     /**
      * 获取前台查询条件查询的所有(未经分页筛选)数据ID
@@ -1186,6 +1186,7 @@ public class ApiAutomationService {
         HashTree hashTree = null;
         try {
             hashTree = request.getTestElement().generateHashTree(config);
+            LogUtil.info(request.getTestElement().getJmx(hashTree));
         } catch (Exception e) {
             MSException.throwException(e.getMessage());
         }
