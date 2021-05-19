@@ -118,6 +118,13 @@
           :key="index">
         </el-table-column>
         <el-table-column
+          v-if="item.id == 'coverageRate'"
+          prop="coverageRate"
+          :label="$t('commons.coverage_rate')"
+          show-overflow-tooltip
+          :key="index">
+        </el-table-column>
+        <el-table-column
           v-if="item.id == 'plannedStartTime'"
           sortable
           prop="plannedStartTime"
@@ -231,6 +238,7 @@ import {Test_Plan_List} from "@/business/components/common/model/JsonData";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 import MsTag from "@/business/components/common/components/MsTag";
+import {pullAndMergeCodeCoverageRate} from "@/common/js/tuhu/testplan";
 
 
 export default {
@@ -316,16 +324,15 @@ export default {
       this.result = this.$post(this.buildPagePath(this.queryPath), this.condition, response => {
         let data = response.data;
         this.total = data.itemCount;
-        this.tableData = data.listObject;
-        this.tableData.forEach(item => {
+        data.listObject.forEach(item => {
           if (item.tags && item.tags.length > 0) {
             item.tags = JSON.parse(item.tags);
           }
           item.passRate = item.passRate + '%'
         })
+        this.tableData = pullAndMergeCodeCoverageRate(this, data.listObject);
       });
       getLabel(this, TEST_PLAN_LIST);
-
     },
     copyData(status) {
       return JSON.parse(JSON.stringify(this.dataMap.get(status)))

@@ -3,6 +3,7 @@ export default {
     please_select_import_mode: 'Please select import mode',
     please_select_import_module: 'Please select import module',
     pass_rate: 'Pass rate',
+    coverage_rate: 'Code Coverage rate',
     execution_times: 'Execution times',
     cover: 'Cover',
     module_title: 'Default module',

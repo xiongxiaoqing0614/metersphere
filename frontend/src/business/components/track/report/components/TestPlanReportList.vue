@@ -46,6 +46,7 @@
           <ms-tag v-else type="effect" effect="plain" :content="scope.row.status"/>
         </template>
       </el-table-column>
+      <el-table-column prop="coverageRate" :label="$t('commons.coverage_rate')" show-overflow-tooltip></el-table-column>
       <el-table-column min-width="150" :label="$t('commons.operating')">
         <template v-slot:default="scope">
           <ms-table-operator-button :tip="$t('test_track.plan_view.view_report')" icon="el-icon-document"
@@ -73,6 +74,7 @@ import ReportTriggerModeItem from "@/business/components/common/tableItem/Report
 import MsTag from "@/business/components/common/components/MsTag";
 import ShowMoreBtn from "@/business/components/track/case/components/ShowMoreBtn";
 import MsTableSelectAll from "@/business/components/common/components/table/MsTableSelectAll";
+import {pullAndMergeCodeCoverageRate} from "@/common/js/tuhu/testreport";
 import {
   _filter,
   _handleSelect,
@@ -153,7 +155,7 @@ export default {
       this.result = this.$post(this.buildPagePath(this.queryPath), this.condition, response => {
         let data = response.data;
         this.total = data.itemCount;
-        this.tableData = data.listObject;
+        this.tableData = pullAndMergeCodeCoverageRate(this, data.listObject);
         if (this.$refs.testPlanReportTable) {
           // setTimeout(this.$refs.testPlanReportTable,200);
         }
