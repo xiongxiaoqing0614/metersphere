@@ -262,7 +262,7 @@ export default {
     },
     getSummary(){
       const _this = this;
-      this.$get("/kanban/summary", response => {
+      this.$get("/tuhu/kanban/summary", response => {
         _this.tableData = response.data;
         console.table(_this.tableData)
         _this.orgList = new Array();

@@ -102,7 +102,7 @@ export default {
     },
     getSummary(){
       const _this = this;
-      this.$get("/kanban/exeSummary", response => {
+      this.$get("/tuhu/kanban/exeSummary", response => {
         _this.tableData = response.data;
         console.info(_this.tableData);
         console.table(_this.tableData)

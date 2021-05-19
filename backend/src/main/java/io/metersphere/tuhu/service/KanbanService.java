@@ -1,4 +1,4 @@
-package io.metersphere.kanban.service;
+package io.metersphere.tuhu.service;
 
 import io.metersphere.api.dto.datacount.ApiDataCountResult;
 import io.metersphere.api.dto.datacount.response.ApiDataCountDTO;
@@ -7,10 +7,10 @@ import io.metersphere.api.service.ApiDefinitionService;
 import io.metersphere.api.service.ApiTestCaseService;
 import io.metersphere.base.domain.TestPlanReportExample;
 import io.metersphere.base.mapper.TestPlanReportMapper;
-import io.metersphere.kanban.dto.ExecutionAllInfoDTO;
-import io.metersphere.kanban.dto.TestCaseAllInfoDTO;
-import io.metersphere.kanban.dto.TestCaseSummaryDTO;
-import io.metersphere.kanban.mapper.KanbanMapper;
+import io.metersphere.tuhu.dto.ExecutionAllInfoDTO;
+import io.metersphere.tuhu.dto.TestCaseAllInfoDTO;
+import io.metersphere.tuhu.dto.TestCaseSummaryDTO;
+import io.metersphere.tuhu.mapper.KanbanMapper;
 import io.metersphere.track.dto.TestPlanDTOWithMetric;
 import io.metersphere.track.request.testcase.QueryTestPlanRequest;
 import io.metersphere.track.service.TestPlanService;
@@ -18,7 +18,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import io.metersphere.base.mapper.ext.ExtTestPlanMapper;
-import io.metersphere.track.service.TestPlanService;
 
 
 import javax.annotation.Resource;
