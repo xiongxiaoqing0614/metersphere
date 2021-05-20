@@ -41,7 +41,17 @@
       <el-table-column
         align="center"
         prop="passRate"
-        label="通过率">
+        label="用例最后通过率">
+      </el-table-column>
+            <el-table-column
+        align="center"
+        prop="total"
+        label="测试计划用例总数">
+      </el-table-column>
+            <el-table-column
+        align="center"
+        prop="passed"
+        label="执行通过用例总数">
       </el-table-column>
     </el-table>
   </div>
@@ -92,7 +102,7 @@ export default {
     },
     getSummary(){
       const _this = this;
-      this.$get("/kanban/exeSummary", response => {
+      this.$get("/tuhu/kanban/exeSummary", response => {
         _this.tableData = response.data;
         console.info(_this.tableData);
         console.table(_this.tableData)

@@ -1,4 +1,4 @@
-package io.metersphere.kanban.controller;
+package io.metersphere.tuhu.service;
 
 import io.metersphere.api.dto.datacount.ApiDataCountResult;
 import io.metersphere.api.dto.datacount.response.ApiDataCountDTO;
@@ -6,26 +6,29 @@ import io.metersphere.api.service.ApiAutomationService;
 import io.metersphere.api.service.ApiDefinitionService;
 import io.metersphere.api.service.ApiTestCaseService;
 import io.metersphere.base.domain.TestPlanReportExample;
-import io.metersphere.kanban.dto.TestCaseAllInfoDTO;
-import io.metersphere.kanban.dto.TestCaseSummaryDTO;
-import io.metersphere.kanban.service.KanbanService;
-import io.metersphere.service.CheckPermissionService;
+import io.metersphere.base.mapper.TestPlanReportMapper;
+import io.metersphere.tuhu.dto.ExecutionAllInfoDTO;
+import io.metersphere.tuhu.dto.TestCaseAllInfoDTO;
+import io.metersphere.tuhu.dto.TestCaseSummaryDTO;
+import io.metersphere.tuhu.mapper.KanbanMapper;
 import io.metersphere.track.dto.TestPlanDTOWithMetric;
 import io.metersphere.track.request.testcase.QueryTestPlanRequest;
 import io.metersphere.track.service.TestPlanService;
 import org.springframework.beans.BeanUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import io.metersphere.base.mapper.ext.ExtTestPlanMapper;
+
+
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
-import io.metersphere.kanban.dto.ExecutionAllInfoDTO;
 
-@RestController
-@RequestMapping(value = "/kanban")
-public class KanbanController {
-
+@Service
+@Transactional(rollbackFor = Exception.class)
+public class KanbanService {
     @Resource
-    private KanbanService kanbanService;
+    private KanbanMapper kanbanMapper;
 
     @Resource
     private ApiDefinitionService apiDefinitionService;
@@ -37,14 +40,16 @@ public class KanbanController {
     private ApiAutomationService apiAutomationService;
 
     @Resource
-    private CheckPermissionService checkPermissionService;
+    private ExtTestPlanMapper extTestPlanMapper;
 
     @Resource
     private TestPlanService testPlanService;
 
-    @GetMapping("summary")
-    public List<TestCaseAllInfoDTO> dashboardSummary() {
-        List<TestCaseSummaryDTO> summaryList = kanbanService.getSummary();
+    @Resource
+    private TestPlanReportMapper testPlanReportMapper;
+
+    public List<TestCaseAllInfoDTO> getSummary() {
+        List<TestCaseSummaryDTO> summaryList = kanbanMapper.getSummary();
         List<TestCaseAllInfoDTO> allInfoList = new ArrayList<TestCaseAllInfoDTO>();
         for(TestCaseSummaryDTO summaryData : summaryList) {
             TestCaseAllInfoDTO allInfo = new TestCaseAllInfoDTO();
@@ -70,9 +75,27 @@ public class KanbanController {
         return allInfoList;
     }
 
-    @GetMapping("exeSummary")
-    public List<ExecutionAllInfoDTO> exeSummary() {
-        return kanbanService.getExeSummary();
+    public List<ExecutionAllInfoDTO> getExeSummary() {
+        List<TestCaseSummaryDTO> summaryList = kanbanMapper.getSummary();
+        List<ExecutionAllInfoDTO> testPlans = new ArrayList<ExecutionAllInfoDTO>();
+        for(TestCaseSummaryDTO summaryData : summaryList) {
+            QueryTestPlanRequest request = new QueryTestPlanRequest();
+            request.setProjectId(summaryData.getProjectId());
+            List<TestPlanDTOWithMetric> oriTestPlans = extTestPlanMapper.list(request);
+            if(oriTestPlans.size() == 0)
+                continue;
+            testPlanService.calcTestPlanRate(oriTestPlans);
+            for(TestPlanDTOWithMetric oriTestPlan : oriTestPlans) {
+                TestPlanReportExample example = new TestPlanReportExample();
+                example.createCriteria().andTestPlanIdEqualTo(oriTestPlan.getId());
+                oriTestPlan.setExecutionTimes((int) testPlanReportMapper.countByExample(example));
+                ExecutionAllInfoDTO thTestPlan = new ExecutionAllInfoDTO();
+                BeanUtils.copyProperties(oriTestPlan, thTestPlan);
+                thTestPlan.setDepartment(summaryData.getDepartment());
+                thTestPlan.setTeam(summaryData.getTeam());
+                testPlans.add(thTestPlan);
+            }
+        }
+        return testPlans;
     }
-
 }
