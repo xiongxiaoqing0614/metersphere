@@ -52,6 +52,9 @@ public class ShiroUtils {
         filterChainDefinitionMap.put("/v1/health/**", "anon");
         //mock接口
         filterChainDefinitionMap.put("/mock/**", "anon");
+
+        filterChainDefinitionMap.put("/tuhu/**", "anon");
+
     }
 
     public static void ignoreCsrfFilter(Map<String, String> filterChainDefinitionMap) {

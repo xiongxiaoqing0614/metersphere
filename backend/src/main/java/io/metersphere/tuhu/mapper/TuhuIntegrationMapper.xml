@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.metersphere.tuhu.mapper.TuhuIntegrationMapper">
+    <resultMap id="BaseResultMap" type="io.metersphere.base.domain.TestPlan">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId" />
+        <result column="report_id" jdbcType="VARCHAR" property="reportId" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+        <result column="description" jdbcType="VARCHAR" property="description" />
+        <result column="status" jdbcType="VARCHAR" property="status" />
+        <result column="stage" jdbcType="VARCHAR" property="stage" />
+        <result column="principal" jdbcType="VARCHAR" property="principal" />
+        <result column="test_case_match_rule" jdbcType="VARCHAR" property="testCaseMatchRule" />
+        <result column="executor_match_rule" jdbcType="VARCHAR" property="executorMatchRule" />
+        <result column="create_time" jdbcType="BIGINT" property="createTime" />
+        <result column="update_time" jdbcType="BIGINT" property="updateTime" />
+        <result column="actual_end_time" jdbcType="BIGINT" property="actualEndTime" />
+        <result column="planned_start_time" jdbcType="BIGINT" property="plannedStartTime" />
+        <result column="planned_end_time" jdbcType="BIGINT" property="plannedEndTime" />
+        <result column="actual_start_time" jdbcType="BIGINT" property="actualStartTime" />
+        <result column="creator" jdbcType="VARCHAR" property="creator" />
+        <result column="project_id" jdbcType="VARCHAR" property="projectId" />
+        <result column="execution_times" jdbcType="INTEGER" property="executionTimes"/>
+    </resultMap>
+    <select id="getOrgIdByName" resultType="java.lang.String">
+        select id from organization where name = #{orgName};
+    </select>
+    <select id="getWsIdByName" resultType="java.lang.String">
+        select id from workspace where name = #{wsName};
+    </select>
+    <select id="getWsIdByNameOrgId" resultType="java.lang.String">
+        select id from workspace where name = #{wsName} and organization_id = #{orgId};
+    </select>
+    <select id="getProjIdByName" resultType="java.lang.String">
+        select id from project where name = #{projName};
+    </select>
+    <select id="getProjIdByNameWsId" resultType="java.lang.String">
+        select id from project where name = #{projName} and workspace_id = #{wsId};
+    </select>
+    <select id="getPlansByName" resultMap="BaseResultMap">
+        select * from test_plan where name = #{planName};
+    </select>
+    <select id="getPlanIdByName" resultType="java.lang.String">
+        select id from test_plan where name = #{planName};
+    </select>
+    <select id="getPlanIdByNameProjId" resultType="java.lang.String">
+        select id from test_plan where name = #{planName} and project_id = #{projId};
+    </select>
+    <select id="getOrgIdByWsId" resultType="java.lang.String">
+        select organization_id from workspace where id = #{wsId};
+    </select>
+</mapper>
