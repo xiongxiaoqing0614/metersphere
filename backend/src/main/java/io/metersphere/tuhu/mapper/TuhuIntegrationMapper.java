@@ -7,13 +7,21 @@ import java.util.List;
 public interface TuhuIntegrationMapper {
     String getOrgIdByName(String orgName);
 
-    String getWSIdByName(String wsName);
+    List<String> getWsIdsByName(String wsName);
 
-    List<String> getProjIdByName(String projName);
+    String getWsIdByNameOrgId(String wsName, String orgId);
 
-    List<TestPlan> getPlanByName(String planName);
+    List<String> getProjIdsByName(String projName);
+
+    String getProjIdByNameWsId(String projName, String wsId);
+
+    List<TestPlan> getPlansByName(String planName);
 
     List<String> getPlanIdByName(String planName);
 
-    List<String> getPlanIDs();
+    String getPlanIdByNameProjId(String planName, String projId);
+
+    String getOrgIdByWsId(String wsId);
+
+
 }
