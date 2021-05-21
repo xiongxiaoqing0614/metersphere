@@ -123,6 +123,14 @@
           :label="$t('commons.coverage_rate')"
           show-overflow-tooltip
           :key="index">
+          <template v-slot:default="scope">
+            <el-button
+              @click="showCoverageRateReport(scope.row, $event)"
+              type="text"
+              size="small">
+              {{scope.row.coverageRate}}
+            </el-button>
+          </template>
         </el-table-column>
         <el-table-column
           v-if="item.id == 'plannedStartTime'"
@@ -208,6 +216,7 @@
                          :total="total"/>
     <test-report-template-list @openReport="openReport" ref="testReportTemplateList"/>
     <test-case-report-view @refresh="initTableData" ref="testCaseReportView"/>
+    <test-plan-code-coverage-rate-report-view @refresh="initTableData" ref="testPlanCodeCoverageRateReportView"/>
     <ms-delete-confirm :title="$t('test_track.plan.plan_delete')" @delete="_handleDelete" ref="deleteConfirm"
                        :with-tip="enableDeleteTip">
       {{ $t('test_track.plan.plan_delete_tip') }}
@@ -228,6 +237,7 @@ import PlanStageTableItem from "../../common/tableItems/plan/PlanStageTableItem"
 import {checkoutTestManagerOrTestUser, getCurrentUser} from "@/common/js/utils";
 import TestReportTemplateList from "../view/comonents/TestReportTemplateList";
 import TestCaseReportView from "../view/comonents/report/TestCaseReportView";
+import TestPlanCodeCoverageRateReportView from "@/business/components/track/report/components/TestPlanCodeCoverageRateReportView";
 import MsDeleteConfirm from "../../../common/components/MsDeleteConfirm";
 import {TEST_PLAN_CONFIGS} from "../../../common/components/search/search-components";
 import {LIST_CHANGE, TrackEvent} from "@/business/components/common/head/ListEvent";
@@ -249,6 +259,7 @@ export default {
     HeaderCustom,
     MsDeleteConfirm,
     TestCaseReportView,
+    TestPlanCodeCoverageRateReportView,
     TestReportTemplateList,
     PlanStageTableItem,
     PlanStatusTableItem,
@@ -411,6 +422,13 @@ export default {
       row.redirectFrom = "testPlan";
       this.$refs.scheduleMaintain.open(row);
     },
+    showCoverageRateReport(row, event){
+      event.preventDefault();
+      event.stopPropagation();
+      let url = `/tuhu/testplan/report?appId=${row._appId}&branchName=${row._branchName}&commitId=${row._commitId}&stage=${row._stage}`;
+      this.$refs.testPlanCodeCoverageRateReportView.open(row.name, url);
+      // window.open(url);
+    }
   }
 }
 </script>

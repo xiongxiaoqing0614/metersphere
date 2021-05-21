@@ -12,6 +12,14 @@ public class TuhuCodeCoverageRateResultDTO {
 
     private String testReportId;
 
+    private String appId;
+
+    private String branchName;
+
+    private String commitId;
+
+    private String stage;
+
     private Float coverageRate;
 
 }

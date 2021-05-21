@@ -7,9 +7,14 @@ import io.metersphere.controller.request.CodeCoverageBindRequest;
 import io.metersphere.dto.TuhuCodeCoverageRateResultDTO;
 import io.metersphere.service.TuhuService;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.math.BigInteger;
 import java.util.List;
 
 @RestController
@@ -32,4 +37,25 @@ public class TuhuController {
         return jsonObject;
     }
 
+    @GetMapping(value = "/testplan/reportid/last")
+    public String testPlanReportId(@RequestParam BigInteger timestamp, @RequestParam String workspaceName,
+                                   @RequestParam String projectName, @RequestParam String testPlanName) {
+
+        CodeCoverageBindRequest codeCoverageBindRequest = new CodeCoverageBindRequest();
+        codeCoverageBindRequest.setTimestamp(timestamp);
+        codeCoverageBindRequest.setWorkspaceName(workspaceName);
+        codeCoverageBindRequest.setProjectName(projectName);
+        codeCoverageBindRequest.setTestPlanName(testPlanName);
+
+        return tuhuService.getTestReportByTimestamp(codeCoverageBindRequest);
+    }
+
+    @GetMapping(value = "/testplan/report")
+    public void testPlanReport(@RequestParam String appId, @RequestParam String branchName,
+                               @RequestParam String commitId, @RequestParam String stage,
+                               @RequestParam(value="zip",required=false) Boolean zip,
+                               HttpServletResponse response) throws IOException {
+
+        tuhuService.redirectReportUrl(response, appId, branchName, commitId, stage, zip);
+    }
 }

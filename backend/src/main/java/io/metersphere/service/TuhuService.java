@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import io.metersphere.commons.utils.LogUtil;
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import io.metersphere.base.domain.TuhuCodeCoverageRateMapping;
@@ -26,8 +28,8 @@ import org.springframework.web.client.RestTemplate;
 @Transactional(rollbackFor = Exception.class)
 public class TuhuService {
 
-    @Value("${coverage.rate.fetch.url}")
-    private String codeCoverageRateServerUrl;
+    @Value("${coverage.rate.server.url.prefix}")
+    private String codeCoverageRateServerUrlPrefix;
 
     @Resource
     private TuhuCodeCoverageRateMappingMapper tuhuCodeCoverageRateMappingMapper;
@@ -52,8 +54,8 @@ public class TuhuService {
     }
 
     public List<TuhuCodeCoverageRateResultDTO> getCodeCoverageRateList(CodeCoverageRequest codeCoverageRequests) {
-        if (codeCoverageRateServerUrl.isEmpty()) {
-            throw new ValueException("未配置代码覆盖率服务URL");
+        if (codeCoverageRateServerUrlPrefix.isEmpty()) {
+            throw new ValueException("未配置代码覆盖率服务URL前缀");
         }
         List<TuhuCodeCoverageRateMapping> mappingList = null;
         String[] testPlanIds = codeCoverageRequests.getTestPlanIds();
@@ -77,6 +79,10 @@ public class TuhuService {
             tuhuCodeCoverageRateResultDTO.setTestPlanId(t.getString("testPlanId"));
             tuhuCodeCoverageRateResultDTO.setTestReportId(t.getString("testReportId"));
             tuhuCodeCoverageRateResultDTO.setCoverageRate(t.getFloat("coverageRate"));
+            tuhuCodeCoverageRateResultDTO.setAppId(t.getString("appId"));
+            tuhuCodeCoverageRateResultDTO.setBranchName(t.getString("branchName"));
+            tuhuCodeCoverageRateResultDTO.setCommitId(t.getString("commitId"));
+            tuhuCodeCoverageRateResultDTO.setStage(t.getString("stage"));
             lst.add(tuhuCodeCoverageRateResultDTO);
         }
 
@@ -84,6 +90,7 @@ public class TuhuService {
     }
 
     private String fetchCodeCoverageData(String js) {
+        String codeCoverageRateServerUrl = codeCoverageRateServerUrlPrefix + "/api/coverager/data";
         LogUtil.info("codeCoverageRateServerUrl: " + codeCoverageRateServerUrl);
         LogUtil.info("code coverage rate request json: " + js);
         RestTemplate client = new RestTemplate();
@@ -93,5 +100,31 @@ public class TuhuService {
         ResponseEntity<String> response = client.exchange(codeCoverageRateServerUrl, HttpMethod.POST, requestEntity, String.class);
 
         return response.getBody();
+    }
+
+    public String getTestReportByTimestamp(CodeCoverageBindRequest codeCoverageBind) {
+        return "9a286516-8515-4fca-8fc6-a1f47965804f";
+    }
+
+    public void redirectReportUrl(HttpServletResponse response, String appId, String branchName,
+                                  String commitId, String stage, Boolean zip) throws IOException {
+        StringBuilder sb = new StringBuilder(codeCoverageRateServerUrlPrefix);
+        if (zip != null && zip) {  // 打包报告
+            sb.append("/api/coverager/report");
+        } else {
+            sb.append("/api/coverager/report/html");
+        }
+        sb.append("?appId=");
+        sb.append(appId);
+        sb.append("&branchName=");
+        sb.append(branchName);
+        sb.append("&commitId=");
+        sb.append(commitId);
+        sb.append("&stage=");
+        sb.append(stage);
+        String url = sb.toString();
+
+        LogUtil.info("redirect report url: " + url);
+        response.sendRedirect(response.encodeRedirectURL(url));
     }
 }

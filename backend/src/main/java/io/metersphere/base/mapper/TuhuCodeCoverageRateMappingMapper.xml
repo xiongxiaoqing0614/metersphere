@@ -13,10 +13,12 @@
   </resultMap>
   <sql id="Where_Clause">
     <where>
-      testPlanId IN
+      id in
+      (select max(id) from tuhu_code_coverage_rate_mapping WHERE testPlanId IN
       <foreach open="(" separator="," close=")" collection="array" item="testPlanIds" >
         #{testPlanIds}
       </foreach>
+      group by testPlanId)
     </where>
   </sql>
   <sql id="Where_Clause_Report">
@@ -28,9 +30,6 @@
     </where>
   </sql>
   <sql id="Base_Column_List">
-    max(id) as id, `testPlanId`, `testReportId`, `appId`, `branchName`, `commitId`, `stage`, `coverageRate`, `create_time`
-  </sql>
-  <sql id="Report_Base_Column_List">
     id, `testPlanId`, `testReportId`, `appId`, `branchName`, `commitId`, `stage`, `coverageRate`, `create_time`
   </sql>
   <select id="queryByTestPlanIds" resultMap="BaseResultMap">
@@ -38,11 +37,10 @@
     <include refid="Base_Column_List" />
     from tuhu_code_coverage_rate_mapping
     <include refid="Where_Clause" />
-    group by testPlanId
   </select>
   <select id="queryByTestReportIds" resultMap="BaseResultMap">
     select
-    <include refid="Report_Base_Column_List" />
+    <include refid="Base_Column_List" />
     from tuhu_code_coverage_rate_mapping
     <include refid="Where_Clause_Report" />
   </select>
