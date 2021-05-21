@@ -23,5 +23,6 @@ public interface TuhuIntegrationMapper {
 
     String getOrgIdByWsId(String wsId);
 
+    String getUserIdByName(String userName);
 
 }
