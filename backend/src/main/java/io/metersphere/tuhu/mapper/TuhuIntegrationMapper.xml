@@ -25,13 +25,13 @@
     <select id="getOrgIdByName" resultType="java.lang.String">
         select id from organization where name = #{orgName};
     </select>
-    <select id="getWsIdByName" resultType="java.lang.String">
+    <select id="getWsIdsByName" resultType="java.lang.String">
         select id from workspace where name = #{wsName};
     </select>
     <select id="getWsIdByNameOrgId" resultType="java.lang.String">
         select id from workspace where name = #{wsName} and organization_id = #{orgId};
     </select>
-    <select id="getProjIdByName" resultType="java.lang.String">
+    <select id="getProjIdsByName" resultType="java.lang.String">
         select id from project where name = #{projName};
     </select>
     <select id="getProjIdByNameWsId" resultType="java.lang.String">
@@ -40,7 +40,7 @@
     <select id="getPlansByName" resultMap="BaseResultMap">
         select * from test_plan where name = #{planName};
     </select>
-    <select id="getPlanIdByName" resultType="java.lang.String">
+    <select id="getPlanIdsByName" resultType="java.lang.String">
         select id from test_plan where name = #{planName};
     </select>
     <select id="getPlanIdByNameProjId" resultType="java.lang.String">

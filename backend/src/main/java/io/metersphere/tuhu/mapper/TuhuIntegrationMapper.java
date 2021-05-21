@@ -17,7 +17,7 @@ public interface TuhuIntegrationMapper {
 
     List<TestPlan> getPlansByName(String planName);
 
-    List<String> getPlanIdByName(String planName);
+    List<String> getPlanIdsByName(String planName);
 
     String getPlanIdByNameProjId(String planName, String projId);
 
