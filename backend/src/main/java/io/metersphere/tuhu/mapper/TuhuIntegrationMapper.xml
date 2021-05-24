@@ -49,4 +49,7 @@
     <select id="getOrgIdByWsId" resultType="java.lang.String">
         select organization_id from workspace where id = #{wsId};
     </select>
+    <select id="getUserIdByName" resultType="java.lang.String">
+        select id from user where name = #{userName};
+    </select>
 </mapper>
