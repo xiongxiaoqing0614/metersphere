@@ -24,8 +24,9 @@ public class TuhuIntegrationController {
     public IDsInfoDTO getIDs(@RequestBody NamesRequest request) {
         return tuhuIntegrationService.getIdByName(request.getOrgName(), request.getWsName(), request.getProjName(), request.getPlanName());
     }
-    @PostMapping("/createbyname")
-    public IDsInfoDTO createByName(@RequestBody NamesRequest request) {
-        return tuhuIntegrationService.createByNames(request.getOrgName(), request.getWsName(), request.getProjName(), request.getPlanName());
+
+    @PostMapping("/createplanbyname")
+    public IDsInfoDTO createPlanByName(@RequestBody NamesRequest request) {
+        return tuhuIntegrationService.createPlanByNames(request.getOrgName(), request.getWsName(), request.getProjName(), request.getPlanName());
     }
 }

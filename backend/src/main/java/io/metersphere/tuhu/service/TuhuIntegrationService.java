@@ -1,20 +1,16 @@
 package io.metersphere.tuhu.service;
 
+import io.metersphere.base.domain.Project;
+import io.metersphere.base.domain.ProjectExample;
 import io.metersphere.base.domain.TestPlan;
-import io.metersphere.base.domain.TestPlanExample;
-import io.metersphere.base.domain.User;
-import io.metersphere.base.mapper.ApiScenarioReportDetailMapper;
-import io.metersphere.base.mapper.ApiTestMapper;
+import io.metersphere.base.mapper.ProjectMapper;
 import io.metersphere.base.mapper.TestPlanMapper;
 import io.metersphere.base.mapper.ext.ExtTestPlanMapper;
 import io.metersphere.commons.constants.TestPlanStatus;
 import io.metersphere.commons.exception.MSException;
-import io.metersphere.commons.utils.SessionUtils;
 import io.metersphere.i18n.Translator;
-import io.metersphere.service.OrganizationService;
-import io.metersphere.service.ProjectService;
-import io.metersphere.service.UserService;
-import io.metersphere.service.WorkspaceService;
+import io.metersphere.service.IssueTemplateService;
+import io.metersphere.service.TestCaseTemplateService;
 import io.metersphere.track.request.testplan.AddTestPlanRequest;
 import io.metersphere.track.service.TestPlanService;
 import io.metersphere.tuhu.dto.IDsInfoDTO;
@@ -30,14 +26,15 @@ import java.util.UUID;
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class TuhuIntegrationService {
-    @Resource
-    private OrganizationService organizationService;
 
     @Resource
-    private WorkspaceService workspaceService;
+    private ProjectMapper projectMapper;
 
     @Resource
-    private ProjectService projectService;
+    TestCaseTemplateService caseTemplateService;
+
+    @Resource
+    private IssueTemplateService issueTemplateService;
 
     @Resource
     private ExtTestPlanMapper extTestPlanMapper;
@@ -50,9 +47,6 @@ public class TuhuIntegrationService {
 
     @Resource
     TestPlanMapper testPlanMapper;
-
-    @Resource
-    private UserService userService;
 
     public String getOrgIdByName(String orgName)
     {
@@ -74,39 +68,46 @@ public class TuhuIntegrationService {
         return tuhuIntegrationMapper.getPlanIdsByName(planName);
     }
 
-    public List<TestPlan> getTestPlanByName(String orgName, String wsName, String projName, String planName) {
+    public boolean hasTestPlanByName(String orgName, String wsName, String projName, String planName) {
         List<TestPlan> plans = tuhuIntegrationMapper.getPlansByName(planName);
         if(plans.size() < 1)
-            return plans;
-
+            return false;
+        String projId;
+        String wsId;
         if(orgName != null) {
             String orgId = tuhuIntegrationMapper.getOrgIdByName(orgName);
             if(orgId == null)
-                return plans;
-            String wsId = tuhuIntegrationMapper.getWsIdByNameOrgId(wsName, orgId);
-            if(wsId == null)
-                return plans;
-            String projId = tuhuIntegrationMapper.getProjIdByNameWsId(projName, wsId);
-            if(projId == null)
-                return plans;
-            List<TestPlan> returnPlan = new ArrayList<>();
-            for (TestPlan plan : plans) {
-                if(plan.getProjectId().equalsIgnoreCase(projId))
-                    returnPlan.add(plan);
+            {
+                MSException.throwException(Translator.get("org_name_not_exist"));
             }
-            return returnPlan;
+            wsId = tuhuIntegrationMapper.getWsIdByNameOrgId(wsName, orgId);
+            if(wsId == null)
+            {
+                MSException.throwException(Translator.get("workspace_name_not_exist"));
+            }
+            projId = tuhuIntegrationMapper.getProjIdByNameWsId(projName, wsId);
+            if(projId == null)
+            {
+                return false;
+            }
         }else{
             List<String> wsIds = tuhuIntegrationMapper.getWsIdsByName(wsName);
             if(wsIds.size() != 1)
-                return plans;
-            String projId = tuhuIntegrationMapper.getProjIdByNameWsId(projName, wsIds.get(0));
-            List<TestPlan> returnPlan = new ArrayList<>();
-            for (TestPlan plan : plans) {
-                if(plan.getProjectId().equalsIgnoreCase(projId))
-                    returnPlan.add(plan);
+            {
+                MSException.throwException(Translator.get("multiple_workspace_found_with_same_name"));
             }
-            return returnPlan;
+            projId = tuhuIntegrationMapper.getProjIdByNameWsId(projName, wsIds.get(0));
+            if(projId == null)
+            {
+                return false;
+            }
         }
+
+        for (TestPlan plan : plans) {
+            if(plan.getProjectId().equalsIgnoreCase(projId))
+                return true;
+        }
+        return false;
     }
 
     public IDsInfoDTO getIdByName(String orgName, String wsName, String projName, String planName)
@@ -192,41 +193,65 @@ public class TuhuIntegrationService {
         return returnInfo;
     }
 
-    public IDsInfoDTO createByNames(String orgName, String wsName, String projName, String planName){
-
-        if (getTestPlanByName(orgName, wsName, projName, planName).size() > 0) {
-            MSException.throwException(Translator.get("plan_name_already_exists"));
-        }
-
+    public IDsInfoDTO createPlanByNames(String orgName, String wsName, String projName, String planName){
         IDsInfoDTO returnInfo = new IDsInfoDTO();
         AddTestPlanRequest testPlanRequest = new AddTestPlanRequest();
-        String orgId;
-        String wsId;
-        String projId;
+        String orgId = null;
+        String wsId = null;
+        String projId = null;
         if(orgName != null) {
             orgId = getOrgIdByName(orgName);
             if(orgId == null){
-                returnInfo.setOrgId("error, organization not found in given org name.");
-                return returnInfo;
+                MSException.throwException(Translator.get("org_name_not_exist"));
             }
             returnInfo.setOrgId(orgId);
             wsId = tuhuIntegrationMapper.getWsIdByNameOrgId(wsName, orgId);
             if(wsId == null){
-                returnInfo.setWsId("error, workspace not found in given org.");
-                return returnInfo;
+                MSException.throwException(Translator.get("ws_name_not_exist"));
             }
-            projId = tuhuIntegrationMapper.getProjIdByNameWsId(projName, wsId);
         }else{
             List<String> wsIds = getWsIdByName(wsName);
-            if(wsIds.size() != 1){
-                returnInfo.setWsId("error, workspace not found or multiple workspace found");
-                return returnInfo;
+            if(wsIds.size() > 1){
+                MSException.throwException(Translator.get("multi_ws_found"));
+            }else if(wsIds.size() == 0){
+                MSException.throwException(Translator.get("ws_name_not_exist"));
             }else{
                 wsId = wsIds.get(0);
-                projId = tuhuIntegrationMapper.getProjIdByNameWsId(projName, wsId);
             }
         }
 
+        projId = tuhuIntegrationMapper.getProjIdByNameWsId(projName, wsId);
+        //create proj if it does not exist
+        if(projId == null){
+            Project project = new Project();
+            ProjectExample example = new ProjectExample();
+            example.createCriteria()
+                    .andWorkspaceIdEqualTo(wsId)
+                    .andNameEqualTo(projName);
+            if (projectMapper.countByExample(example) > 0) {
+                MSException.throwException(Translator.get("project_name_already_exists"));
+            }
+            project.setId(UUID.randomUUID().toString());
+            long createTime = System.currentTimeMillis();
+            project.setCreateTime(createTime);
+            project.setUpdateTime(createTime);
+            // set workspace id
+            project.setWorkspaceId(wsId);
+
+            project.setCaseTemplateId(caseTemplateService.getDefaultTemplate(wsId).getId());
+            project.setIssueTemplateId(issueTemplateService.getDefaultTemplate(wsId).getId());
+            project.setProtocal("http");
+            project.setName(projName);
+            projectMapper.insertSelective(project);
+            projId = project.getId();
+        }else{
+            //check if exist plan
+            List<TestPlan> plans = tuhuIntegrationMapper.getPlansByName(planName);
+            for (TestPlan plan : plans) {
+                if(plan.getProjectId().equalsIgnoreCase(projId))
+                    MSException.throwException(Translator.get("plan_name_already_exists"));
+            }
+        }
 
         String testPlanId = UUID.randomUUID().toString();
         testPlanRequest.setId(testPlanId);
