@@ -12,8 +12,7 @@
       :background-color="displayColor.backgroundColor"
       :is-max="isMax"
       :show-btn="showBtn"
-      :title="displayTitle"
-      :apiImport="apiImport()">
+      :title="displayTitle">
 
       <template v-slot:behindHeaderLeft>
         <el-tag size="mini" class="ms-tag" v-if="request.referenced==='Deleted'" type="danger">{{$t('api_test.automation.reference_deleted')}}</el-tag>
@@ -46,7 +45,7 @@
                                  :request="request"
                                  :showScript="false"/>
         <ms-sql-basis-parameters v-if="request.protocol==='SQL'|| request.type==='JDBCSampler'"
-                                 :request="request" :is-scenario="true" :environment="environment"
+                                 :request="request" :is-scenario="false" :environment="environment"
                                  :showScript="false"/>
         <ms-dubbo-basis-parameters v-if="request.protocol==='DUBBO' || request.protocol==='dubbo://'|| request.type==='DubboSampler'"
                                    :request="request"
@@ -59,7 +58,7 @@
           <el-tabs v-model="request.activeName" closable class="ms-tabs">
             <el-tab-pane :label="item.name" :name="item.name" v-for="(item,index) in request.result.scenarios" :key="index">
               <div v-for="(result,i) in item.requestResults" :key="i" style="margin-bottom: 5px">
-                <api-response-component v-if="result.name===request.name" :result="result"/>
+                <api-response-component v-if="result.id===request.id" :result="result"/>
               </div>
             </el-tab-pane>
           </el-tabs>
@@ -95,7 +94,6 @@
   import ApiResponseComponent from "./ApiResponseComponent";
   import CustomizeReqInfo from "@/business/components/api/automation/scenario/common/CustomizeReqInfo";
 
-
   const requireComponent = require.context('@/business/components/xpack/', true, /\.vue$/);
   const esbDefinition = (requireComponent != null && requireComponent.keys().length) > 0 ? requireComponent("./apidefinition/EsbDefinition.vue") : {};
   const esbDefinitionResponse = (requireComponent != null && requireComponent.keys().length) > 0 ? requireComponent("./apidefinition/EsbDefinitionResponse.vue") : {};
@@ -120,7 +118,7 @@
       },
       currentEnvironmentId: String,
       projectList: Array,
-      envMap: Map,
+      envMap: Map
     },
     components: {
       CustomizeReqInfo,
@@ -147,6 +145,7 @@
       if (!this.request.projectId) {
         this.request.projectId = getCurrentProjectID();
       }
+      this.request.customizeReq = this.isCustomizeReq;
       // 加载引用对象数据
       this.getApiInfo();
       if (this.request.protocol === 'HTTP') {
@@ -170,7 +169,7 @@
     watch: {
       envMap() {
         this.getEnvironments();
-      }
+      },
     },
     computed: {
       displayColor() {
@@ -247,8 +246,10 @@
           this.request.url = url;
         } catch (e) {
           if (url && (!url.startsWith("http://") || !url.startsWith("https://"))) {
-            this.request.path = url;
-            this.request.url = undefined;
+            if (!this.isCustomizeReq) {
+              this.request.path = url;
+              this.request.url = undefined;
+            }
           }
         }
       },
@@ -309,15 +310,17 @@
         this.reload();
       },
       run() {
-        if (this.isApiImport) {
+        if (this.isApiImport || this.request.isRefEnvironment) {
           if (this.request.type && (this.request.type === "HTTPSamplerProxy" || this.request.type === "JDBCSampler" || this.request.type === "TCPSampler")) {
-            this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
-            return false;
-          } else if (this.envMap && this.envMap.size > 0) {
-            const env = this.envMap.get(this.request.projectId);
-            if (!env) {
+            if (!this.envMap || this.envMap.size === 0) {
               this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
               return false;
+            } else if (this.envMap && this.envMap.size > 0) {
+              const env = this.envMap.get(this.request.projectId);
+              if (!env) {
+                this.$warning("请在环境配置中为该步骤所属项目选择运行环境！");
+                return false;
+              }
             }
           }
         }
@@ -325,13 +328,15 @@
         this.loading = true;
         this.runData = [];
         this.runData.projectId = this.request.projectId;
-        //最新版currentEnvironmentId值为undefined
-        // this.request.useEnvironment = this.currentEnvironmentId;
+        this.request.useEnvironment = this.currentEnvironmentId;
         this.request.customizeReq = this.isCustomizeReq;
+        let requestParam = JSON.parse(JSON.stringify(this.request));
+        // 禁用调试报错
+        requestParam.enable = true;
         let debugData = {
           id: this.currentScenario.id, name: this.currentScenario.name, type: "scenario",
           variables: this.currentScenario.variables, referenced: 'Created', headers: this.currentScenario.headers,
-          enableCookieShare: this.enableCookieShare, environmentId: this.currentEnvironmentId, hashTree: [this.request],
+          enableCookieShare: this.enableCookieShare, environmentId: this.currentEnvironmentId, hashTree: [requestParam],
         };
         this.runData.push(debugData);
         /*触发执行操作*/
@@ -348,12 +353,6 @@
         this.$nextTick(() => {
           this.loading = false
         })
-      },
-      apiImport() {
-        if (this.request.referenced != undefined && this.request.referenced === 'Deleted' || this.request.referenced == 'REF' || this.request.referenced === 'Copy') {
-          return true
-        }
-        return false;
       },
       getProjectName(id) {
         const project = this.projectList.find(p => p.id === id);

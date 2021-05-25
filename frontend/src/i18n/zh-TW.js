@@ -1,5 +1,8 @@
 export default {
   commons: {
+    yes: "是",
+    no: "否",
+    default: "默認值",
     please_select_import_mode: '請選擇導入模式',
     please_select_import_module: '請選擇導入模塊',
     pass_rate: '通過率',
@@ -15,6 +18,7 @@ export default {
     import_user: '導入用戶',
     export: '導出',
     please_fill_in_the_template: '請填寫模版內容',
+    please_fill_content: '請填寫內容',
     cut_back_old_version: '切回舊版',
     cut_back_new_version: '切回新版',
     comment: '評論',
@@ -154,8 +158,18 @@ export default {
     node_name_tip: "名稱不能包含'\\'",
     more_operator: "更多操作",
     mock: "Mock 設置",
+    all_module_title: "全部模塊",
     table: {
       select_tip: "已選中 {0} 條數據"
+    },
+    ssl: {
+      config: "證書配置",
+      files: "證書文件",
+      entry: "證書條目",
+      original_as_name: "原有別名",
+      new_as_name: "新别名",
+      source: "來源",
+      default: "是否默認"
     },
     date: {
       select_date: '選擇日期',
@@ -273,7 +287,28 @@ export default {
     issue_creator: '創建人',
     issue_processor: '處理人',
     issue_status: '狀態',
-    issue_severity: '嚴重程度'
+    issue_severity: '嚴重程度',
+    create: '創建字段',
+    name: '自定義字段',
+    system_field: '系統字段',
+    scene: '使用場景',
+    attribute_type: '屬性類型',
+    field_name: '字段名',
+    field_remark: '字段備註',
+    field_type: '字段類型',
+    field_option: '選項值',
+    add_field: '添加字段',
+    api_field_name: 'API字段名',
+    template_setting: '模板設置',
+    custom_field_setting: '設置自定義字段',
+    create_issue_template: '創建缺陷模版',
+    issue_template: '缺陷模版',
+    issue_platform: '缺陷平臺',
+    issue_content: '缺陷內容',
+    template_create: '創建模板',
+    case_template: '測試用例模板',
+    default_template: '默認模板',
+    system_template: '系統模板',
   },
   workspace: {
     create: '創建工作空間',
@@ -452,9 +487,9 @@ export default {
     test_log_details: '日誌詳情',
     test_monitor_details: '監控詳情',
     test_details: '測試詳情',
-    test_duration: '當前執行時長：{0} 分鐘 {1} 秒',
-    test_start_time: '開始執行時間',
-    test_end_time: '計劃結束時間',
+    test_duration: '執行時長：{0} 分鐘 {1} 秒',
+    test_start_time: '開始時間',
+    test_end_time: '結束時間',
     test_stop_now: '立即停止',
     test_stop_now_confirm: '確定要立即停止當前測試嗎？',
     test_rerun_confirm: '確定要再次執行當前測試嗎？',
@@ -777,6 +812,7 @@ export default {
       wait_controller: "等待控制器",
       if_controller: "條件控制器",
       loop_controller: "循環控制器",
+      transcation_controller:"事務控制器",
       scenario_import: "場景導入",
       customize_script: "自定義腳本",
       customize_req: "自定義請求",
@@ -1137,7 +1173,8 @@ export default {
           case_type: {
             api: "接口用例",
             scene: "場景用例",
-            load: "性能用例"
+            load: "性能用例",
+            functional: "功能用例"
           }
         }
       },
@@ -1210,7 +1247,8 @@ export default {
   },
   test_kanban: {
     test_kanban: "看板報表",
-    testcase_summary: "用例統計"
+    testcase_summary: "用例統計",
+    execution_summary: "執行統計"
   },
   test_track: {
     related_requirements: '關聯需求',
@@ -1236,6 +1274,13 @@ export default {
     case: {
       list: "列表",
       minder: "腦圖",
+      step_info: "步驟信息",
+      other_info: "其他信息",
+      step_describe: "步驟描述",
+      step_describe_tip: "適用於需要每一個步驟進行測試的場景，有明確的測試步驟、預期結果",
+      text_describe: "文本描述",
+      text_describe_tip: "使用於簡單的測試場景，沒有明確的測試步驟",
+      change_type: "更改類型",
       minder_create_tip: "失敗, 無法在腦圖創建其父模塊",
       check_select: "請勾選用例",
       export_all_cases: '確定要導出全部用例嗎?',
@@ -1278,6 +1323,9 @@ export default {
       please_create_project: "暫無項目，請先創建項目",
       create_module_first: "請先新建模塊",
       relate_test: "關聯測試",
+      relate_issue: "關聯缺陷",
+      demand_name_id: "需求ID/名稱",
+      please_select_relate_test: "請選擇要關聯的測試",
       relate_test_not_find: '關聯的測試不存在,請檢查用例',
       other_relate_test_not_find: '關聯的測試名，請前往第三方平臺執行',
       batch_handle: '批量處理 (選中{0}項)',
@@ -1320,6 +1368,8 @@ export default {
         xmind_title: "思維導圖",
         import_desc: "導入說明",
         import_file: "上傳文件",
+        ignore_error: "忽略錯誤",
+        continue_upload: "繼續上傳",
       },
       export: {
         export: "導出用例"
@@ -1496,6 +1546,10 @@ export default {
     },
     issue: {
       issue: "缺陷",
+      create_issue: "創建缺陷",
+      add_issue: "添加缺陷",
+      issue_list: "缺陷列表",
+      search_name: "根據標題搜索",
       platform_tip: "在系統設置-組織-服務集成中集成缺陷管理平臺可以自動提交缺陷到指定缺陷管理平臺",
       input_title: "請輸入標題",
       id: "缺陷ID",

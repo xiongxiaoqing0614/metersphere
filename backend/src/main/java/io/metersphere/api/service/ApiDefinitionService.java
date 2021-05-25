@@ -173,7 +173,7 @@ public class ApiDefinitionService {
         FileUtils.createBodyFiles(bodyUploadIds, bodyFiles);
     }
 
-    public void update(SaveApiDefinitionRequest request, List<MultipartFile> bodyFiles) {
+    public ApiDefinitionWithBLOBs update(SaveApiDefinitionRequest request, List<MultipartFile> bodyFiles) {
         if (request.getRequest() != null) {
             deleteFileByTestId(request.getRequest().getId());
         }
@@ -182,8 +182,9 @@ public class ApiDefinitionService {
         if (StringUtils.equals(request.getProtocol(), "DUBBO")) {
             request.setMethod("dubbo://");
         }
-        updateTest(request);
+        ApiDefinitionWithBLOBs returnModel = updateTest(request);
         FileUtils.createBodyFiles(bodyUploadIds, bodyFiles);
+        return returnModel;
     }
 
     public void delete(String apiId) {
@@ -225,11 +226,15 @@ public class ApiDefinitionService {
     private void checkNameExist(SaveApiDefinitionRequest request) {
         ApiDefinitionExample example = new ApiDefinitionExample();
         if (request.getProtocol().equals(RequestType.HTTP)) {
-            example.createCriteria().andMethodEqualTo(request.getMethod()).andStatusNotEqualTo("Trash")
+            ApiDefinitionExample.Criteria criteria = example.createCriteria();
+            criteria.andMethodEqualTo(request.getMethod()).andStatusNotEqualTo("Trash")
                     .andProtocolEqualTo(request.getProtocol()).andPathEqualTo(request.getPath())
                     .andProjectIdEqualTo(request.getProjectId()).andIdNotEqualTo(request.getId());
             Project project = projectMapper.selectByPrimaryKey(request.getProjectId());
-            if (apiDefinitionMapper.countByExample(example) > 0 && (project == null || project.getRepeatable() == null || !project.getRepeatable())) {
+            if (project != null && project.getRepeatable() != null && project.getRepeatable()) {
+                criteria.andNameEqualTo(request.getName());
+            }
+            if (apiDefinitionMapper.countByExample(example) > 0) {
                 MSException.throwException(Translator.get("api_definition_url_not_repeating"));
             }
         } else {
@@ -270,7 +275,7 @@ public class ApiDefinitionService {
 
     }
 
-    private ApiDefinition updateTest(SaveApiDefinitionRequest request) {
+    private ApiDefinitionWithBLOBs updateTest(SaveApiDefinitionRequest request) {
         checkNameExist(request);
         if (StringUtils.equals(request.getMethod(), "ESB")) {
             //ESB的接口类型数据，采用TCP方式去发送。并将方法类型改为TCP。 并修改发送数据
@@ -296,7 +301,7 @@ public class ApiDefinitionService {
         if (StringUtils.isNotEmpty(request.getTags()) && !StringUtils.equals(request.getTags(), "[]")) {
             test.setTags(request.getTags());
         } else {
-            test.setTags(null);
+            test.setTags("");
         }
         this.setModule(test);
         apiDefinitionMapper.updateByPrimaryKeySelective(test);
@@ -344,7 +349,7 @@ public class ApiDefinitionService {
         if (StringUtils.isNotEmpty(request.getTags()) && !StringUtils.equals(request.getTags(), "[]")) {
             test.setTags(request.getTags());
         } else {
-            test.setTags(null);
+            test.setTags("");
         }
         apiDefinitionMapper.insert(test);
         return test;
@@ -542,6 +547,8 @@ public class ApiDefinitionService {
      * @return
      */
     public String run(RunDefinitionRequest request, List<MultipartFile> bodyFiles) {
+        //检查是否是ESB请求：ESB请求需要根据数据结构更换参数
+        request = esbApiParamService.checkIsEsbRequest(request);
         int count = 100;
         BaseSystemConfigDTO dto = systemParameterService.getBaseInfo();
         if (StringUtils.isNotEmpty(dto.getConcurrency())) {
@@ -579,8 +586,8 @@ public class ApiDefinitionService {
     public void addResult(TestResult res) {
         if (res != null && CollectionUtils.isNotEmpty(res.getScenarios()) && res.getScenarios().get(0) != null && CollectionUtils.isNotEmpty(res.getScenarios().get(0).getRequestResults())) {
             RequestResult result = res.getScenarios().get(0).getRequestResults().get(0);
-            if (result.getName().indexOf("<->") != -1) {
-                result.setName(result.getName().substring(0, result.getName().indexOf("<->")));
+            if (result.getName().indexOf(DelimiterConstants.SEPARATOR.toString()) != -1) {
+                result.setName(result.getName().substring(0, result.getName().indexOf(DelimiterConstants.SEPARATOR.toString())));
             }
             cache.put(res.getTestId(), result);
         } else {
@@ -997,7 +1004,15 @@ public class ApiDefinitionService {
                 List<ApiDefinition> apiList = apiDefinitionMapper.selectByExample(example);
 
                 List<String> apiIdList = new ArrayList<>();
+                boolean urlSuffixEndEmpty = false;
+                if (urlSuffix.endsWith("/")) {
+                    urlSuffixEndEmpty = true;
+                    urlSuffix = urlSuffix + "testMock";
+                }
                 String[] urlParams = urlSuffix.split("/");
+                if (urlSuffixEndEmpty) {
+                    urlParams[urlParams.length - 1] = "";
+                }
                 for (ApiDefinition api : apiList) {
                     String path = api.getPath();
                     if (path.startsWith("/")) {
@@ -1007,7 +1022,7 @@ public class ApiDefinitionService {
                         String[] pathArr = path.split("/");
                         if (pathArr.length == urlParams.length) {
                             boolean isFetch = true;
-                            for (int i = 0; i < pathArr.length; i++) {
+                            for (int i = 0; i < urlParams.length; i++) {
                                 String pathItem = pathArr[i];
                                 if (!(pathItem.startsWith("{") && pathItem.endsWith("}"))) {
                                     if (!StringUtils.equals(pathArr[i], urlParams[i])) {

@@ -3,8 +3,19 @@
     <el-scrollbar>
       <el-form :model="form" :rules="rules" label-position="right" label-width="140px" ref="form">
 
-        <el-form-item :label="'标题'" prop="title">
+        <el-form-item :label="$t('commons.title')" prop="title">
           <el-input v-model="form.title" autocomplete="off"></el-input>
+        </el-form-item>
+
+        <el-form-item :label="$t('custom_field.issue_creator')" prop="title">
+          <el-select filterable v-model="form.creator" :placeholder="$t('custom_field.issue_creator')">
+            <el-option
+              v-for="(item) in memberOptions"
+              :key="item.id"
+              :label="item.id + ' (' + item.name + ')'"
+              :value="item.id">
+            </el-option>
+          </el-select>
         </el-form-item>
 
         <!-- 自定义字段 -->
@@ -20,7 +31,7 @@
           </el-row>
         </el-form>
 
-        <form-rich-text-item :title="$t('缺陷内容')" :data="form" prop="description"/>
+        <form-rich-text-item :title="$t('custom_field.issue_content')" :data="form" prop="description"/>
 
         <el-row class="custom-field-row">
           <el-col :span="8" v-if="hasTapdId">
@@ -76,6 +87,7 @@ import {buildCustomFields, getTemplate, parseCustomField} from "@/common/js/cust
 import CustomFiledComponent from "@/business/components/settings/workspace/template/CustomFiledComponent";
 import TestCaseIssueList from "@/business/components/track/issue/TestCaseIssueList";
 import IssueEditDetail from "@/business/components/track/issue/IssueEditDetail";
+import {getCurrentUserId, getCurrentWorkspaceId} from "@/common/js/utils";
 
 export default {
   name: "IssueEditDetail",
@@ -100,24 +112,26 @@ export default {
       customFieldRules: {},
       rules: {
         title: [
-          {required: true, message: this.$t('请填写标题'), trigger: 'blur'},
+          {required: true, message: this.$t('commons.please_fill_content'), trigger: 'blur'},
           {max: 64, message: this.$t('test_track.length_less_than') + '64', trigger: 'blur'}
         ],
         description: [
-          {required: true, message: this.$t('请填写内容'), trigger: 'blur'},
+          {required: true, message: this.$t('commons.please_fill_content'), trigger: 'blur'},
         ]
       },
       testCaseContainIds: new Set(),
       url: '',
       form: {
         title: '',
-        description: ''
+        description: '',
+        creator: null
       },
       tapdUsers: [],
       zentaoUsers: [],
       Builds: [],
       hasTapdId: false,
-      hasZentaoId: false
+      hasZentaoId: false,
+      memberOptions: []
     };
   },
   props: {
@@ -143,12 +157,18 @@ export default {
   methods: {
     open(data) {
       let initAddFuc = this.initEdit;
+      this.getMemberOptions();
       getTemplate('field/template/issue/get/relate/', this)
         .then((template) => {
           this.issueTemplate = template;
           this.getThirdPartyInfo();
           initAddFuc(data);
         });
+    },
+    getMemberOptions() {
+      this.$post('/user/ws/member/tester/list', {workspaceId: getCurrentWorkspaceId()}, response => {
+        this.memberOptions = response.data;
+      });
     },
     getThirdPartyInfo() {
       let platform = this.issueTemplate.platform;
@@ -180,6 +200,7 @@ export default {
         } else {
           //copy
           this.url = 'issues/add';
+          this.form.title = data.title + '_copy';
         }
       } else {
         this.form = {
@@ -187,6 +208,9 @@ export default {
           description: this.issueTemplate.content
         }
         this.url = 'issues/add';
+      }
+      if (!this.form.creator) {
+        this.form.creator = getCurrentUserId();
       }
       parseCustomField(this.form, this.issueTemplate, this.customFieldForm, this.customFieldRules, null);
       this.$nextTick(() => {

@@ -2,21 +2,26 @@ package io.metersphere.api.service;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import io.metersphere.api.dto.ApiTestEnvironmentDTO;
 import io.metersphere.api.dto.mockconfig.MockConfigStaticData;
 import io.metersphere.base.domain.ApiTestEnvironmentExample;
 import io.metersphere.base.domain.ApiTestEnvironmentWithBLOBs;
 import io.metersphere.base.mapper.ApiTestEnvironmentMapper;
 import io.metersphere.commons.exception.MSException;
+import io.metersphere.commons.utils.FileUtils;
+import io.metersphere.commons.utils.CommonBeanFactory;
+import io.metersphere.controller.request.EnvironmentRequest;
+import io.metersphere.dto.BaseSystemConfigDTO;
 import io.metersphere.i18n.Translator;
+import io.metersphere.service.SystemParameterService;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -28,6 +33,20 @@ public class ApiTestEnvironmentService {
     public List<ApiTestEnvironmentWithBLOBs> list(String projectId) {
         ApiTestEnvironmentExample example = new ApiTestEnvironmentExample();
         example.createCriteria().andProjectIdEqualTo(projectId);
+        return apiTestEnvironmentMapper.selectByExampleWithBLOBs(example);
+    }
+
+    public List<ApiTestEnvironmentWithBLOBs> listByConditions(EnvironmentRequest environmentRequest) {
+        if (CollectionUtils.isEmpty(environmentRequest.getProjectIds())) {
+            return new ArrayList<>();
+        }
+        ApiTestEnvironmentExample example = new ApiTestEnvironmentExample();
+        ApiTestEnvironmentExample.Criteria criteria = example.createCriteria();
+        criteria.andProjectIdIn(environmentRequest.getProjectIds());
+        if (StringUtils.isNotBlank(environmentRequest.getName())) {
+            environmentRequest.setName(StringUtils.wrapIfMissing(environmentRequest.getName(), '%'));    //使搜索文本变成数据库中的正则表达式
+            criteria.andNameLike(environmentRequest.getName());
+        }
         return apiTestEnvironmentMapper.selectByExampleWithBLOBs(example);
     }
 
@@ -56,6 +75,19 @@ public class ApiTestEnvironmentService {
         return apiTestEnvironmentWithBLOBs.getId();
     }
 
+    public String add(ApiTestEnvironmentDTO request, List<MultipartFile> sslFiles) {
+        request.setId(UUID.randomUUID().toString());
+        checkEnvironmentExist(request);
+        FileUtils.createFiles(request.getUploadIds(), sslFiles, FileUtils.BODY_FILE_DIR + "/ssl");
+        apiTestEnvironmentMapper.insert(request);
+        return request.getId();
+    }
+
+    public void update(ApiTestEnvironmentDTO apiTestEnvironment,List<MultipartFile> sslFiles) {
+        checkEnvironmentExist(apiTestEnvironment);
+        FileUtils.createFiles(apiTestEnvironment.getUploadIds(), sslFiles, FileUtils.BODY_FILE_DIR + "/ssl");
+        apiTestEnvironmentMapper.updateByPrimaryKeyWithBLOBs(apiTestEnvironment);
+    }
     private void checkEnvironmentExist(ApiTestEnvironmentWithBLOBs environment) {
         if (environment.getName() != null) {
             ApiTestEnvironmentExample example = new ApiTestEnvironmentExample();
@@ -77,24 +109,36 @@ public class ApiTestEnvironmentService {
      * @param projectId
      * @return
      */
-    public synchronized ApiTestEnvironmentWithBLOBs getMockEnvironmentByProjectId(String projectId, String baseUrl) {
+    public synchronized ApiTestEnvironmentWithBLOBs getMockEnvironmentByProjectId(String projectId, String protocal, String baseUrl) {
+        //创建的时候检查当前站点
+        SystemParameterService systemParameterService = CommonBeanFactory.getBean(SystemParameterService.class);
+        BaseSystemConfigDTO baseSystemConfigDTO = systemParameterService.getBaseInfo();
+        if (baseSystemConfigDTO != null && StringUtils.isNotEmpty(baseSystemConfigDTO.getUrl())) {
+            baseUrl = baseSystemConfigDTO.getUrl();
+            if (baseUrl.startsWith("http:")) {
+                protocal = "http";
+            } else if (baseUrl.startsWith("https:")) {
+                protocal = "https";
+            }
+        }
+
         String apiName = MockConfigStaticData.MOCK_EVN_NAME;
         ApiTestEnvironmentWithBLOBs returnModel = null;
         ApiTestEnvironmentExample example = new ApiTestEnvironmentExample();
         example.createCriteria().andProjectIdEqualTo(projectId).andNameEqualTo(apiName);
         List<ApiTestEnvironmentWithBLOBs> list = this.selectByExampleWithBLOBs(example);
         if (list.isEmpty()) {
-            returnModel = this.genHttpApiTestEnvironmentByUrl(projectId, apiName, baseUrl);
+            returnModel = this.genHttpApiTestEnvironmentByUrl(projectId, protocal, apiName, baseUrl);
             this.add(returnModel);
         } else {
             returnModel = list.get(0);
-            returnModel = this.checkMockEvnIsRightful(returnModel, projectId, apiName, baseUrl);
+            returnModel = this.checkMockEvnIsRightful(returnModel, protocal, projectId, apiName, baseUrl);
         }
         return returnModel;
     }
 
-    private ApiTestEnvironmentWithBLOBs checkMockEvnIsRightful(ApiTestEnvironmentWithBLOBs returnModel, String projectId, String name, String url) {
-        boolean needUpdate = true;
+    private ApiTestEnvironmentWithBLOBs checkMockEvnIsRightful(ApiTestEnvironmentWithBLOBs returnModel, String protocal, String projectId, String name, String url) {
+        boolean needUpdate = false;
         if (returnModel.getConfig() != null) {
             try {
                 JSONObject configObj = JSONObject.parseObject(returnModel.getConfig());
@@ -105,6 +149,21 @@ public class ApiTestEnvironmentService {
                             JSONArray conditions = httpObj.getJSONArray("conditions");
                             if (conditions.isEmpty()) {
                                 needUpdate = true;
+                            } else {
+                                for (int i = 0; i < conditions.size(); i++) {
+                                    JSONObject obj = conditions.getJSONObject(i);
+                                    String socket = url;
+                                    if (socket.startsWith("http://")) {
+                                        socket = socket.substring(7);
+                                    } else if (socket.startsWith("https://")) {
+                                        socket = socket.substring(8);
+                                    }
+                                    if (!obj.containsKey("socket") || !StringUtils.equals(socket, String.valueOf(obj.get("socket")))) {
+                                        needUpdate = true;
+                                    } else if (!obj.containsKey("protocol") || !StringUtils.equals(protocal, String.valueOf(obj.get("protocol")))) {
+                                        needUpdate = true;
+                                    }
+                                }
                             }
                         }
                     }
@@ -115,27 +174,24 @@ public class ApiTestEnvironmentService {
         }
         if (needUpdate) {
             String id = returnModel.getId();
-            returnModel = this.genHttpApiTestEnvironmentByUrl(projectId, name, url);
+            returnModel = this.genHttpApiTestEnvironmentByUrl(projectId, protocal, name, url);
             returnModel.setId(id);
             apiTestEnvironmentMapper.updateByPrimaryKeyWithBLOBs(returnModel);
         }
         return returnModel;
     }
 
-    private ApiTestEnvironmentWithBLOBs genHttpApiTestEnvironmentByUrl(String projectId, String name, String url) {
-        String protocol = "";
+    private ApiTestEnvironmentWithBLOBs genHttpApiTestEnvironmentByUrl(String projectId, String protocal, String name, String url) {
         String socket = "";
         if (url.startsWith("http://")) {
-            protocol = "http";
             url = url.substring(7);
         } else if (url.startsWith("https://")) {
-            protocol = "https";
             url = url.substring(8);
         }
         socket = url;
 
         String portStr = "";
-        String ipStr = protocol;
+        String ipStr = url;
         if (url.contains(":") && !url.endsWith(":")) {
             String[] urlArr = url.split(":");
             int port = -1;
@@ -159,13 +215,6 @@ public class ApiTestEnvironmentService {
         commonConfigObj.put("hosts", new String[]{});
 
         JSONObject httpConfig = new JSONObject();
-//        httpConfig.put("socket", url);
-//        httpConfig.put("domain", ipStr);
-//        httpConfig.put("headers", variablesArr);
-//        httpConfig.put("protocol", protocol);
-//        if (StringUtils.isNotEmpty(portStr)) {
-//            httpConfig.put("port", portStr);
-//        }
         httpConfig.put("socket", null);
         httpConfig.put("isMock", true);
         httpConfig.put("domain", null);
@@ -181,7 +230,7 @@ public class ApiTestEnvironmentService {
         httpItem.put("id", UUID.randomUUID().toString());
         httpItem.put("type", "NONE");
         httpItem.put("socket", socket);
-        httpItem.put("protocol", protocol);
+        httpItem.put("protocol", protocal);
         JSONArray protocolVariablesArr = new JSONArray();
         Map<String, Object> protocolMap = new HashMap<>();
         protocolMap.put("enable", true);
@@ -225,5 +274,21 @@ public class ApiTestEnvironmentService {
         blobs.setConfig(object.toString());
 
         return blobs;
+    }
+
+    public void checkMockEvnInfoByBaseUrl(String baseUrl) {
+        List<ApiTestEnvironmentWithBLOBs> allEvnList = this.selectByExampleWithBLOBs(null);
+        for (ApiTestEnvironmentWithBLOBs model : allEvnList) {
+            if (StringUtils.equals(model.getName(), MockConfigStaticData.MOCK_EVN_NAME)) {
+                String protocal = "";
+                if (baseUrl.startsWith("http:")) {
+                    protocal = "http";
+                } else if (baseUrl.startsWith("https:")) {
+                    protocal = "https";
+                }
+
+                model = this.checkMockEvnIsRightful(model, protocal, model.getProjectId(), model.getName(), baseUrl);
+            }
+        }
     }
 }

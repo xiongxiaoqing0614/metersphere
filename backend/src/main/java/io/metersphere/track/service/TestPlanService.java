@@ -329,7 +329,7 @@ public class TestPlanService {
         testPlanTestCaseMapper.deleteByExample(testPlanTestCaseExample);
     }
 
-    private void calcTestPlanRate(List<TestPlanDTOWithMetric> testPlans) {
+    public void calcTestPlanRate(List<TestPlanDTOWithMetric> testPlans) {
         testPlans.forEach(testPlan -> {
             testPlan.setTested(0);
             testPlan.setPassed(0);
@@ -841,8 +841,10 @@ public class TestPlanService {
                 for (IssuesDao i : issue) {
                     i.setModel(testCase.getNodePath());
                     i.setProjectName(testCase.getProjectName());
-                    String des = i.getDescription().replaceAll("<p>", "").replaceAll("</p>", "");
-                    i.setDescription(des);
+                    if (StringUtils.isNotBlank(i.getDescription())) {
+                        String des = i.getDescription().replaceAll("<p>", "").replaceAll("</p>", "");
+                        i.setDescription(des);
+                    }
                     if (i.getLastmodify() == null || i.getLastmodify() == "") {
                         if (i.getReporter() != null || i.getReporter() != "") {
                             i.setLastmodify(i.getReporter());

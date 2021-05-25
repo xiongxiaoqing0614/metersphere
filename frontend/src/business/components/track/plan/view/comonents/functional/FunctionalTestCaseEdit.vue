@@ -63,6 +63,7 @@
                     </el-row>
 
                     <el-form ref="customFieldForm"
+                             v-if="isCustomFiledActive"
                              class="case-form">
                       <el-row>
                         <el-col :span="7" v-for="(item, index) in testCaseTemplate.customFields" :key="index">
@@ -80,7 +81,7 @@
                     <form-rich-text-item :label-width="formLabelWidth" v-if="testCase.stepModel === 'TEXT'" :disabled="true" :title="$t('test_track.case.expected_results')" :data="testCase" prop="expectedResult"/>
                     <form-rich-text-item :label-width="formLabelWidth" v-if="testCase.stepModel === 'TEXT'" :title="$t('test_track.plan_view.actual_result')" :data="testCase" prop="actualResult"/>
 
-                    <test-case-edit-other-info @openTest="openTest" :read-only="true" :is-test-plan="true" :project-id="projectId" :form="testCase" :case-id="testCase.caseId" ref="otherInfo"/>
+                    <test-case-edit-other-info v-if="otherInfoActive" @openTest="openTest" :read-only="true" :is-test-plan="true" :project-id="projectId" :form="testCase" :case-id="testCase.caseId" ref="otherInfo"/>
                   </el-form>
                 </div>
 
@@ -181,6 +182,8 @@ export default {
       comments: [],
       testCaseTemplate: {},
       formLabelWidth: "100px",
+      isCustomFiledActive: false,
+      otherInfoActive: true
     };
   },
   props: {
@@ -227,7 +230,7 @@ export default {
     },
     statusChange(status) {
       this.testCase.status = status;
-      this.saveCase();
+      this.saveCase(true);
     },
     getOption(param) {
       let formData = new FormData();
@@ -271,6 +274,7 @@ export default {
       param.results = [];
       param.remark = this.testCase.remark;
       param.projectId = this.projectId;
+      param.nodeId = this.testCase.nodeId;
       let option = this.getOption(param);
       for (let i = 0; i < this.testCase.steptResults.length; i++) {
         let result = {};
@@ -311,10 +315,18 @@ export default {
     handleNext() {
       this.index++;
       this.getTestCase(this.index);
+      this.reloadOtherInfo();
+    },
+    reloadOtherInfo() {
+      this.otherInfoActive = false;
+      this.$nextTick(() => {
+        this.otherInfoActive = true;
+      })
     },
     handlePre() {
       this.index--;
       this.getTestCase(this.index);
+      this.reloadOtherInfo();
     },
     getTestCase(index) {
       this.testCase = {};
@@ -352,6 +364,7 @@ export default {
         }
         this.testCase = item;
         parseCustomField(this.testCase, this.testCaseTemplate, null, null, buildTestCaseOldFields(this.testCase));
+        this.isCustomFiledActive = true;
         if (!this.testCase.actualResult) {
           // 如果没值,使用模板的默认值
           this.testCase.actualResult = this.testCaseTemplate.actualResult;
@@ -431,16 +444,6 @@ export default {
 </script>
 
 <style scoped>
-
-.border-hidden >>> .el-textarea__inner {
-  border-style: hidden;
-  background-color: white;
-  color: #060505;
-}
-
-.border-hidden >>> *[disabled] {
-  opacity: 0.7;
-}
 
 .cast_label {
   color: dimgray;

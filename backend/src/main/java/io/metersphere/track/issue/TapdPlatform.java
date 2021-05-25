@@ -14,6 +14,7 @@ import io.metersphere.track.dto.DemandDTO;
 import io.metersphere.track.issue.domain.PlatformUser;
 import io.metersphere.track.request.testcase.IssuesRequest;
 import io.metersphere.track.request.testcase.IssuesUpdateRequest;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -120,7 +121,7 @@ public class TapdPlatform extends AbstractIssuePlatform {
         return demandList;
     }
 
-    private IssuesDao getTapdIssues(String projectId, String issuesId) {
+    public IssuesDao getTapdIssues(String projectId, String issuesId) {
         String url = "https://api.tapd.cn/bugs?workspace_id=" + projectId + "&id=" + issuesId;
         ResultHolder call = call(url);
         String listJson = JSON.toJSONString(call.getData());
@@ -157,8 +158,11 @@ public class TapdPlatform extends AbstractIssuePlatform {
             MSException.throwException("未关联Tapd 项目ID");
         }
 
-        List<String> PlatformUsers = issuesRequest.getTapdUsers();
-        String usersStr = String.join(";", PlatformUsers);
+        String usersStr = "";
+        List<String> platformUsers = issuesRequest.getTapdUsers();
+        if (CollectionUtils.isNotEmpty(platformUsers)) {
+            usersStr = String.join(";", platformUsers);
+        }
 
         String username = SessionUtils.getUser().getName();
 
@@ -214,6 +218,9 @@ public class TapdPlatform extends AbstractIssuePlatform {
     public List<PlatformUser> getPlatformUser() {
         List<PlatformUser> users = new ArrayList<>();
         String id = getProjectId(projectId);
+        if (StringUtils.isBlank(id)) {
+            MSException.throwException("未关联Tapd项目ID");
+        }
         String url = "https://api.tapd.cn/workspaces/users?workspace_id=" + id;
         ResultHolder call = call(url);
         String listJson = JSON.toJSONString(call.getData());

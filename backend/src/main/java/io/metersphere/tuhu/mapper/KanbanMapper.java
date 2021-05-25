@@ -1,6 +1,6 @@
-package io.metersphere.kanban.mapper;
+package io.metersphere.tuhu.mapper;
 
-import io.metersphere.kanban.dto.TestCaseSummaryDTO;
+import io.metersphere.tuhu.dto.TestCaseSummaryDTO;
 import java.util.List;
 
 public interface KanbanMapper {

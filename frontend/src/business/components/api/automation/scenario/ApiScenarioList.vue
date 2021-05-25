@@ -29,14 +29,25 @@
           </template>
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
-          <el-table-column v-if="item.id == 'num'" prop="num" label="ID"
+          <el-table-column v-if="item.id == 'num' && !customNum" prop="num" label="ID"
                            sortable="custom"
                            min-width="120px"
                            show-overflow-tooltip :key="index">
             <template slot-scope="scope">
-              <span style="cursor:pointer" v-if="isReadOnly"> {{ scope.row.num }} </span>
-              <el-tooltip v-else content="编辑">
+              <!--<span style="cursor:pointer" v-if="isReadOnly"> {{ scope.row.num }} </span>-->
+              <el-tooltip content="编辑">
                 <a style="cursor:pointer" @click="edit(scope.row)"> {{ scope.row.num }} </a>
+              </el-tooltip>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="item.id == 'num' && customNum" prop="customNum" label="ID"
+                           sortable="custom"
+                           min-width="120px"
+                           show-overflow-tooltip :key="index">
+            <template slot-scope="scope">
+              <!--<span style="cursor:pointer" v-if="isReadOnly"> {{ scope.row.customNum }} </span>-->
+              <el-tooltip content="编辑">
+                <a style="cursor:pointer" @click="edit(scope.row)"> {{ scope.row.customNum }} </a>
               </el-tooltip>
             </template>
           </el-table-column>
@@ -44,14 +55,14 @@
                            sortable="custom"
                            :label="$t('api_test.automation.scenario_name')"
                            show-overflow-tooltip
-                           min-width="120px"
+                           min-width="150px"
                            :key="index"
           />
           <el-table-column v-if="item.id == 'level'" prop="level"
                            sortable="custom"
                            column-key="level"
                            :filters="levelFilters"
-                           min-width="120px"
+                           min-width="130px"
                            :label="$t('api_test.automation.case_level')"
                            show-overflow-tooltip :key="index">
             <template v-slot:default="scope">
@@ -70,14 +81,22 @@
           <el-table-column v-if="item.id == 'tags'" prop="tags" min-width="120px"
                            :label="$t('api_test.automation.tag')" :key="index">
             <template v-slot:default="scope">
-              <ms-tag v-for="(itemName,index)  in scope.row.tags" :key="index" type="success" effect="plain" :content="itemName" :show-tooltip="true"
+              <ms-tag v-for="(itemName,index)  in scope.row.tags" :key="index" type="success" effect="plain"
+                      :content="itemName" :show-tooltip="true"
                       tooltip style="margin-left: 0px; margin-right: 2px"/>
             </template>
           </el-table-column>
+          <el-table-column v-if="item.id == 'principal'" prop="principal" min-width="120px"
+                           :label="$t('api_test.definition.api_principal')"
+                           :filters="userFilters"
+                           column-key="principal"
+                           sortable="custom"
+                           show-overflow-tooltip
+                           :key="index"/>
           <el-table-column v-if="item.id == 'userId'" prop="userId" min-width="120px"
                            :label="$t('api_test.automation.creator')"
                            :filters="userFilters"
-                           column-key="user_id"
+                           column-key="userId"
                            sortable="custom"
                            show-overflow-tooltip
                            :key="index"/>
@@ -95,7 +114,7 @@
                            :label="$t('api_test.automation.last_result')"
                            :filters="resultFilters"
 
-                           sortable="custom" column-key="last_result" min-width="120px" :key="index">
+                           sortable="custom" column-key="last_result" min-width="130px" :key="index">
             <template v-slot:default="{row}">
               <el-link type="success" @click="showReport(row)" v-if="row.lastResult === 'Success'">
                 {{ $t('api_test.automation.success') }}
@@ -154,9 +173,7 @@
       </div>
     </el-card>
 
-    <batch-edit ref="batchEdit" @batchEdit="batchEdit" :typeArr="typeArr" :value-arr="valueArr" :dialog-title="$t('test_track.case.batch_edit_case')">
-    </batch-edit>
-
+    <batch-edit ref="batchEdit" @batchEdit="batchEdit" :typeArr="typeArr" :value-arr="valueArr" :dialog-title="$t('test_track.case.batch_edit_case')"/>
     <batch-move @refresh="search" @moveSave="moveSave" ref="testBatchMove"/>
     <ms-run-mode @handleRunBatch="handleRunBatch" ref="runMode"/>
   </div>
@@ -249,6 +266,10 @@
       isReadOnly: {
         type: Boolean,
         default: false,
+      },
+      customNum: {
+        type: Boolean,
+        default: false
       }
     },
     data() {
@@ -499,8 +520,21 @@
         this.planVisible = true;
       },
       handleBatchEdit() {
-        this.$refs.batchEdit.open(this.selectDataCounts);
         this.$refs.batchEdit.setScenarioSelectRows(this.selectRows, "scenario");
+        if(this.condition.selectAll){
+          this.condition.ids = [];
+          let param = {};
+          this.buildBatchParam(param);
+          this.$post('/api/automation/listWithIds/all', param, response => {
+            let dataRows = response.data;
+            this.$refs.batchEdit.open(dataRows.size);
+            this.$refs.batchEdit.setAllDataRows(dataRows);
+            this.$refs.batchEdit.open(this.selectDataCounts);
+          });
+        }else {
+          this.$refs.batchEdit.setAllDataRows(new Set());
+          this.$refs.batchEdit.open(this.selectDataCounts);
+        }
       },
       handleBatchMove() {
         this.$refs.testBatchMove.open(this.moduleTree, [], this.moduleOptions);
@@ -593,12 +627,27 @@
         this.$refs.runMode.open();
 
       },
+      orderBySelectRows(rows) {
+        let selectIds = Array.from(rows).map(row => row.id);
+        let array = [];
+        for (let i in this.tableData) {
+          if (selectIds.indexOf(this.tableData[i].id) !== -1) {
+            array.push(this.tableData[i].id);
+          }
+        }
+        return array;
+      },
+
       handleRunBatch(config) {
         this.infoDb = false;
         let url = "/api/automation/run/batch";
         let run = {config: config};
         run.id = getUUID();
-        this.buildBatchParam(run);
+        //按照列表排序
+        let ids = this.orderBySelectRows(this.selectRows);
+        run.ids = ids;
+        run.projectId = this.projectId;
+        run.condition = this.condition;
         this.$post(url, run, response => {
           let data = response.data;
           this.runVisible = false;
@@ -696,6 +745,7 @@
         let rowParam = JSON.parse(JSON.stringify(row));
         rowParam.copy = true;
         rowParam.name = 'copy_' + rowParam.name;
+        rowParam.customNum = '';
         this.$emit('edit', rowParam);
       },
       showReport(row) {

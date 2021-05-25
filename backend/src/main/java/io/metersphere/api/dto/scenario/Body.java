@@ -1,11 +1,10 @@
 package io.metersphere.api.dto.scenario;
 
 import com.alibaba.fastjson.JSONObject;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.metersphere.api.dto.scenario.request.BodyFile;
 import io.metersphere.commons.json.JSONSchemaGenerator;
 import io.metersphere.commons.utils.FileUtils;
+import io.metersphere.commons.utils.LogUtil;
 import io.metersphere.commons.utils.ScriptEngineUtils;
 import lombok.Data;
 import org.apache.commons.collections4.CollectionUtils;
@@ -70,17 +69,7 @@ public class Body {
                 sampler.setDoMultipart(true);
             }
         } else {
-            if (StringUtils.isNotEmpty(this.format) && this.getJsonSchema() != null) {
-                if("JSON-SCHEMA".equals(this.format)) {
-                    this.raw = JSONSchemaGenerator.getJson(com.alibaba.fastjson.JSON.toJSONString(this.getJsonSchema()));
-                } else {    //  json 文本也支持 mock 参数
-                    JSONObject jsonObject = com.alibaba.fastjson.JSON.parseObject(this.getRaw());
-                    jsonMockParse(jsonObject);
-                    // 格式化 json
-                    Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
-                    this.raw = gson.toJson(jsonObject);
-                }
-            }
+            parseJonBodyMock();
             KeyValue keyValue = new KeyValue("", "JSON-SCHEMA", this.getRaw(), true, true);
             sampler.setPostBodyRaw(true);
             keyValue.setEnable(true);
@@ -90,13 +79,30 @@ public class Body {
         return body;
     }
 
+    private void parseJonBodyMock() {
+        if (StringUtils.isNotBlank(this.type) && StringUtils.equals(this.type, "JSON")) {
+            if(StringUtils.isNotEmpty(this.format) && this.getJsonSchema() != null
+                    && "JSON-SCHEMA".equals(this.format)) {
+                this.raw = JSONSchemaGenerator.getJson(com.alibaba.fastjson.JSON.toJSONString(this.getJsonSchema()));
+            } else {    //  json 文本也支持 mock 参数
+                try {
+                    JSONObject jsonObject = com.alibaba.fastjson.JSON.parseObject(this.getRaw());
+                    jsonMockParse(jsonObject);
+                    this.raw = JSONObject.toJSONString(jsonObject);
+                } catch (Exception e) {}
+            }
+        }
+    }
+
     private void jsonMockParse(JSONObject jsonObject) {
         for(String key : jsonObject.keySet()) {
             Object value = jsonObject.get(key);
             if(value instanceof JSONObject) {
                 jsonMockParse((JSONObject) value);
             } else if(value instanceof String) {
-                value = ScriptEngineUtils.calculate((String) value);
+                if (StringUtils.isNotBlank((String) value)) {
+                    value = ScriptEngineUtils.calculate((String) value);
+                }
                 jsonObject.put(key, value);
             }
         }

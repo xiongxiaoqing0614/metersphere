@@ -25,7 +25,7 @@
         <template v-for="(item, index) in tableLabel">
           <el-table-column
             v-if="item.id == 'num'"
-            prop="num"
+            prop="customNum"
             min-width="80px"
             label="ID"
             :key="index"/>
@@ -217,6 +217,7 @@ export default {
   },
   watch: {
     selectNodeIds() {
+      this.condition.selectAll = false;
       this.search();
     },
     planId() {
