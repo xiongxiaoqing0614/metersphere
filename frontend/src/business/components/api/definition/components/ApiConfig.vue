@@ -173,7 +173,8 @@ export default {
         } else {
           this.response = {headers: [], body: new Body(), statusCode: [], type: "HTTP"};
         }
-        if (this.currentApi != null && this.currentApi.id != null) {
+
+        if (this.currentApi !== null && this.currentApi.id !== null && this.currentApi.isCopy !== true) {
           this.reqUrl = "/api/definition/update";
         } else {
           this.reqUrl = "/api/definition/create";
@@ -203,9 +204,11 @@ export default {
       saveApi(data) {
         this.setParameters(data);
         let bodyFiles = this.getBodyUploadFiles(data);
+        data.requestId = data.request.id;
         this.$fileUpload(this.reqUrl, null, bodyFiles, data, () => {
           this.$success(this.$t('commons.save_success'));
           this.reqUrl = "/api/definition/update";
+          this.currentApi.isCopy = false;
           this.$emit('saveApi', data);
         });
       },
@@ -220,7 +223,12 @@ export default {
         } else {
           data.request.protocol = this.currentProtocol;
         }
-        data.id = data.request.id;
+        if (data.isCopy) {
+          data.id = getUUID();
+        } else {
+          data.id = data.request.id;
+        }
+
         if (!data.method) {
           data.method = this.currentProtocol;
         }
@@ -236,10 +244,10 @@ export default {
               if (param.files) {
                 param.files.forEach(item => {
                   if (item.file) {
-                    let fileId = getUUID().substring(0, 8);
+                    // let fileId = getUUID().substring(0, 8);
                     item.name = item.file.name;
-                    item.id = fileId;
-                    data.bodyUploadIds.push(fileId);
+                    // item.id = fileId;
+                    // data.bodyUploadIds.push(fileId);
                     bodyUploadFiles.push(item.file);
                   }
                 });

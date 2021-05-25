@@ -204,6 +204,9 @@ public class MsHTTPSamplerProxy extends MsTestElement {
                 if (httpConfig == null && !isURL(this.getUrl())) {
                     MSException.throwException("未匹配到环境，请检查环境配置");
                 }
+                if (StringUtils.isEmpty(this.useEnvironment)) {
+                    this.useEnvironment = config.getConfig().get(this.getProjectId()).getApiEnvironmentid();
+                }
                 String url = httpConfig.getProtocol() + "://" + httpConfig.getSocket();
                 // 补充如果是完整URL 则用自身URL
 
@@ -229,7 +232,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
                             sampler.setPort(urlObject.getPort());
                         }
                         sampler.setProtocol(urlObject.getProtocol());
-                        sampler.setPath(urlObject.getPath());
+                        sampler.setPath(URLDecoder.decode(urlObject.getPath(), "UTF-8"));
                     } catch (Exception e) {
                         LogUtil.error(e.getMessage(), e);
                     }
@@ -252,14 +255,14 @@ public class MsHTTPSamplerProxy extends MsTestElement {
                             envPath += this.getPath();
                         }
                         if (StringUtils.isNotEmpty(httpConfig.getDomain())) {
-                            sampler.setDomain(httpConfig.getDomain());
+                            sampler.setDomain(URLDecoder.decode(httpConfig.getDomain(), "UTF-8"));
                             sampler.setProtocol(httpConfig.getProtocol());
                         } else {
                             sampler.setDomain("");
                             sampler.setProtocol("");
                         }
                         sampler.setPort(httpConfig.getPort());
-                        sampler.setPath(envPath);
+                        sampler.setPath(URLDecoder.decode(envPath, "UTF-8"));
                     }
                 }
                 String envPath = sampler.getPath();
@@ -280,7 +283,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
                         }
                         path = sampler.getProtocol() + "://" + sampler.getDomain() + port + path;
                     }
-                    sampler.setProperty("HTTPSampler.path", path);
+                    sampler.setProperty("HTTPSampler.path", URLDecoder.decode(path, "UTF-8"));
                 }
             } else {
                 String url = this.getUrl();
@@ -291,7 +294,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
                     url.replaceAll(this.getPort(), "10990");
                 }
                 if (url == null) {
-                    MSException.throwException("请填写请求地址");
+                    MSException.throwException("请重新选择环境");
                 }
                 URL urlObject = new URL(url);
                 sampler.setDomain(URLDecoder.decode(urlObject.getHost(), "UTF-8"));
@@ -407,6 +410,7 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         }
         if (CollectionUtils.isNotEmpty(hashTree)) {
             for (MsTestElement el : hashTree) {
+                el.setUseEnviroment(useEnvironment);
                 el.toHashTree(httpSamplerTree, el.getHashTree(), config);
             }
         }
@@ -443,6 +447,41 @@ public class MsHTTPSamplerProxy extends MsTestElement {
                 }
             }
         }
+
+        // 数据兼容处理
+        if (config.getConfig() != null && config.getConfig().containsKey(getParentProjectId())) {
+            // 1.8 前后 混合数据
+            this.setProjectId(getParentProjectId());
+        } else if (config.getConfig() != null && StringUtils.isNotEmpty(this.getProjectId()) && config.getConfig().containsKey(this.getProjectId())) {
+            // 1.8 之后 当前正常数据
+        } else {
+            // 1.8 之前 数据
+            if (config.getConfig() != null) {
+                if (!config.getConfig().containsKey(RunModeConstants.HIS_PRO_ID.toString())) {
+                    // 测试计划执行
+                    Iterator<String> it = config.getConfig().keySet().iterator();
+                    if (it.hasNext()) {
+                        this.setProjectId(it.next());
+                    }
+                } else {
+                    this.setProjectId(RunModeConstants.HIS_PRO_ID.toString());
+                }
+            }
+        }
+    }
+
+    private boolean isUrl() {
+        // 自定义字段没有引用环境则非url
+        if (this.isCustomizeReq()) {
+            if (this.isRefEnvironment) {
+                return false;
+            }
+            return true;
+        }
+        if (StringUtils.isNotEmpty(this.getUrl()) && isURL(this.getUrl())) {
+            return true;
+        }
+        return false;
     }
 
     private boolean isUrl() {
@@ -648,6 +687,25 @@ public class MsHTTPSamplerProxy extends MsTestElement {
 
     private boolean isRest() {
         return this.getRest().stream().filter(KeyValue::isEnable).filter(KeyValue::isValid).toArray().length > 0;
+    }
+
+    public static List<MsHTTPSamplerProxy> findHttpSampleFromHashTree(MsTestElement hashTree, List<MsHTTPSamplerProxy> requests) {
+        if (requests == null) {
+            requests = new ArrayList<>();
+        }
+        if (hashTree instanceof MsHTTPSamplerProxy) {
+            requests.add((MsHTTPSamplerProxy) hashTree);
+        } else {
+            if (hashTree != null) {
+                LinkedList<MsTestElement> childHashTree = hashTree.getHashTree();
+                if (CollectionUtils.isNotEmpty(childHashTree)) {
+                    for (MsTestElement item : childHashTree) {
+                        findHttpSampleFromHashTree(item, requests);
+                    }
+                }
+            }
+        }
+        return requests;
     }
 }
 

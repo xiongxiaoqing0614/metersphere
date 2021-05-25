@@ -5,7 +5,10 @@
 
         <!--操作按钮-->
         <div class="ms-opt-btn">
-          <el-button id="inputDelay" type="primary" size="small" v-prevent-re-click @click="editScenario" title="ctrl + s" v-tester>
+          <el-link type="primary" style="margin-right: 20px" @click="openHis" v-if="path === '/api/automation/update'">{{$t('operating_log.change_history')}}</el-link>
+
+          <el-button id="inputDelay" type="primary" size="small" v-prevent-re-click @click="editScenario"
+                     title="ctrl + s">
             {{ $t('commons.save') }}
           </el-button>
         </div>
@@ -117,19 +120,24 @@
                 <el-col :span="3" class="ms-col-one ms-font">
                   {{$t('api_test.automation.step_total')}}：{{scenarioDefinition.length}}
                 </el-col>
-                <el-col :span="3" class="ms-col-one ms-font" v-tester>
-                  <el-link class="head" @click="showScenarioParameters">{{$t('api_test.automation.scenario_total')}}</el-link>
+                <el-col :span="3" class="ms-col-one ms-font">
+                  <el-link class="head" @click="showScenarioParameters">{{ $t('api_test.automation.scenario_total') }}
+                  </el-link>
                   ：{{ getVariableSize() }}
                 </el-col>
                 <el-col :span="3" class="ms-col-one ms-font">
                   <el-checkbox v-model="enableCookieShare">共享cookie</el-checkbox>
                 </el-col>
                 <el-col :span="5">
-                  <env-popover :disabled="scenarioDefinition.length < 1" :env-map="projectEnvMap" :project-ids="projectIds" @setProjectEnvMap="setProjectEnvMap" :result="envResult"
-                               :isReadOnly="scenarioDefinition.length < 1" @showPopover="showPopover" :project-list="projectList" ref="envPopover" v-tester/>
+                  <env-popover :disabled="scenarioDefinition.length < 1" :env-map="projectEnvMap"
+                               :project-ids="projectIds" @setProjectEnvMap="setProjectEnvMap" :result="envResult"
+                               :isReadOnly="scenarioDefinition.length < 1" @showPopover="showPopover"
+                               :project-list="projectList" ref="envPopover"/>
                 </el-col>
                 <el-col :span="4">
-                  <el-button :disabled="scenarioDefinition.length < 1" size="mini" type="primary" v-prevent-re-click @click="runDebug" v-tester>{{$t('api_test.request.debug')}}</el-button>
+                  <el-button :disabled="scenarioDefinition.length < 1" size="mini" type="primary" v-prevent-re-click
+                             @click="runDebug">{{ $t('api_test.request.debug') }}
+                  </el-button>
                   <el-tooltip class="item" effect="dark" :content="$t('commons.refresh')" placement="right-start">
                     <el-button :disabled="scenarioDefinition.length < 1" size="mini" icon="el-icon-refresh" v-prevent-re-click @click="getApiScenario"></el-button>
                   </el-tooltip>
@@ -224,6 +232,7 @@
         <maximize-scenario :scenario-definition="scenarioDefinition" :envMap="projectEnvMap" :moduleOptions="moduleOptions"
                            :currentScenario="currentScenario" :type="type" ref="maximizeScenario" @openScenario="openScenario"/>
       </ms-drawer>
+      <ms-change-history ref="changeHistory"/>
 
     </div>
   </el-card>
@@ -261,6 +270,8 @@
   import ScenarioHeader from "./maximize/ScenarioHeader";
   import MsDrawer from "../../../common/components/MsDrawer";
   import MsSelectTree from "../../../common/select-tree/SelectTree";
+  import {saveScenario} from "@/business/components/api/automation/api-automation";
+  import MsChangeHistory from "../../../history/ChangeHistory";
 
   let jsonPath = require('jsonpath');
   export default {
@@ -288,7 +299,8 @@
       MaximizeScenario,
       ScenarioHeader,
       MsDrawer,
-      MsSelectTree
+      MsSelectTree,
+      MsChangeHistory
     },
     data() {
       return {
@@ -493,6 +505,9 @@
       },
     },
     methods: {
+      openHis() {
+        this.$refs.changeHistory.open(this.currentScenario.id);
+      },
       setModule(id, data) {
         this.currentScenario.apiScenarioModuleId = id;
         this.currentScenario.modulePath = data.path;
@@ -913,81 +928,6 @@
           this.expandedNode.splice(this.expandedNode.indexOf(data.resourceId), 1);
         }
       },
-      setFiles(item, bodyUploadFiles, obj) {
-        if (item.body) {
-          if (item.body.kvs) {
-            item.body.kvs.forEach(param => {
-              if (param.files) {
-                param.files.forEach(item => {
-                  if (item.file) {
-                    if (!item.id) {
-                      let fileId = getUUID().substring(0, 12);
-                      item.name = item.file.name;
-                      item.id = fileId;
-                    }
-                    obj.bodyUploadIds.push(item.id);
-                    bodyUploadFiles.push(item.file);
-                  }
-                });
-              }
-            });
-          }
-          if (item.body.binary) {
-            item.body.binary.forEach(param => {
-              if (param.files) {
-                param.files.forEach(item => {
-                  if (item.file) {
-                    if (!item.id) {
-                      let fileId = getUUID().substring(0, 12);
-                      item.name = item.file.name;
-                      item.id = fileId;
-                    }
-                    obj.bodyUploadIds.push(item.id);
-                    bodyUploadFiles.push(item.file);
-                  }
-                });
-              }
-            });
-          }
-        }
-      },
-      recursiveFile(arr, bodyUploadFiles, obj) {
-        arr.forEach(item => {
-          this.setFiles(item, bodyUploadFiles, obj);
-          if (item.hashTree != undefined && item.hashTree.length > 0) {
-            this.recursiveFile(item.hashTree, bodyUploadFiles, obj);
-          }
-        });
-      },
-      getBodyUploadFiles(obj) {
-        let bodyUploadFiles = [];
-        obj.bodyUploadIds = [];
-        this.scenarioDefinition.forEach(item => {
-          this.setFiles(item, bodyUploadFiles, obj);
-          if (item.hashTree != undefined && item.hashTree.length > 0) {
-            this.recursiveFile(item.hashTree, bodyUploadFiles, obj);
-          }
-        })
-        // 场景变量csv 文件
-        if (this.currentScenario.variables) {
-          this.currentScenario.variables.forEach(param => {
-            if (param.type === 'CSV' && param.files) {
-              param.files.forEach(item => {
-                if (item.file) {
-                  if (!item.id) {
-                    let fileId = getUUID().substring(0, 12);
-                    item.name = item.file.name;
-                    item.id = fileId;
-                  }
-                  obj.bodyUploadIds.push(item.id);
-                  bodyUploadFiles.push(item.file);
-                }
-              })
-            }
-          })
-        }
-        return bodyUploadFiles;
-      },
       editScenario() {
         if (!document.getElementById("inputDelay")) {
           return;
@@ -997,8 +937,7 @@
           this.$refs['currentScenario'].validate((valid) => {
             if (valid) {
               this.setParameter();
-              let bodyFiles = this.getBodyUploadFiles(this.currentScenario);
-              this.$fileUpload(this.path, null, bodyFiles, this.currentScenario, response => {
+              saveScenario(this.path, this.currentScenario, this.scenarioDefinition, (response) => {
                 this.$success(this.$t('commons.save_success'));
                 this.path = "/api/automation/update";
                 if (response.data) {
@@ -1009,7 +948,7 @@
                 }
                 this.$emit('refresh', this.currentScenario);
                 resolve();
-              })
+              });
             }
           })
         });

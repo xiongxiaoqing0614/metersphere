@@ -12,14 +12,22 @@
             </el-input>
           </el-col>
           <el-col :span="12" :offset="2">
-            <el-button :disabled="isReadOnly" type="primary" plain @click="save">{{ $t('commons.save') }}</el-button>
-            <el-button :disabled="isReadOnly" type="primary" plain @click="saveAndRun">
+            <el-link type="primary" style="margin-right: 20px" @click="openHis" v-if="test.id">
+              {{ $t('operating_log.change_history') }}
+            </el-link>
+            <el-button :disabled="isReadOnly" type="primary" plain @click="save"
+                       v-permission="['PROJECT_PERFORMANCE_TEST:READ+EDIT']"
+            >{{ $t('commons.save') }}
+            </el-button>
+            <el-button :disabled="isReadOnly" type="primary" plain @click="saveAndRun"
+                       v-permission="['PROJECT_PERFORMANCE_TEST:READ+RUN']">
               {{ $t('load_test.save_and_run') }}
             </el-button>
             <el-button :disabled="isReadOnly" type="warning" plain @click="cancel">{{ $t('commons.cancel') }}
             </el-button>
 
             <ms-schedule-config :schedule="test.schedule" :save="saveCronExpression" @scheduleChange="saveSchedule"
+                                v-permission="['PROJECT_PERFORMANCE_TEST:READ+SCHEDULE']"
                                 :check-open="checkScheduleEdit" :test-id="testId" :custom-validate="durationValidate"/>
           </el-col>
         </el-row>
@@ -41,6 +49,9 @@
           </el-tab-pane>
         </el-tabs>
       </el-card>
+
+      <ms-change-history ref="changeHistory"/>
+
     </ms-main-container>
   </ms-container>
 </template>
@@ -51,9 +62,10 @@ import PerformancePressureConfig from "./components/PerformancePressureConfig";
 import PerformanceAdvancedConfig from "./components/PerformanceAdvancedConfig";
 import MsContainer from "../../common/components/MsContainer";
 import MsMainContainer from "../../common/components/MsMainContainer";
-import {checkoutTestManagerOrTestUser, getCurrentProjectID} from "@/common/js/utils";
+import {getCurrentProjectID} from "@/common/js/utils";
 import MsScheduleConfig from "../../common/components/MsScheduleConfig";
 import {LIST_CHANGE, PerformanceEvent} from "@/business/components/common/head/ListEvent";
+import MsChangeHistory from "../../history/ChangeHistory";
 
 export default {
   name: "EditPerformanceTest",
@@ -63,7 +75,8 @@ export default {
     PerformanceBasicConfig,
     PerformanceAdvancedConfig,
     MsContainer,
-    MsMainContainer
+    MsMainContainer,
+    MsChangeHistory
   },
   data() {
     return {
@@ -89,7 +102,7 @@ export default {
         id: '2',
         component: 'PerformanceAdvancedConfig'
       }]
-    }
+    };
   },
   watch: {
     '$route'(to) {
@@ -104,24 +117,21 @@ export default {
       }
 
       this.isReadOnly = false;
-      if (!checkoutTestManagerOrTestUser()) {
-        this.isReadOnly = true;
-      }
       this.getTest(to.params.testId);
     }
 
   },
   created() {
     this.isReadOnly = false;
-    if (!checkoutTestManagerOrTestUser()) {
-      this.isReadOnly = true;
-    }
     this.getTest(this.$route.params.testId);
   },
   mounted() {
     this.importAPITest();
   },
   methods: {
+    openHis() {
+      this.$refs.changeHistory.open(this.test.id);
+    },
     importAPITest() {
       let apiTest = this.$store.state.test;
       if (apiTest && apiTest.name) {
@@ -169,7 +179,7 @@ export default {
       this.result = this.$request(options, () => {
         this.$success(this.$t('commons.save_success'));
         this.$refs.advancedConfig.cancelAllEdit();
-        this.$router.push({path: '/performance/test/all'})
+        this.$router.push({path: '/performance/test/all'});
         // 发送广播，刷新 head 上的最新列表
         PerformanceEvent.$emit(LIST_CHANGE);
       });
@@ -186,10 +196,10 @@ export default {
         this.$success(this.$t('commons.save_success'));
         this.result = this.$post(this.runPath, {id: this.test.id, triggerMode: 'MANUAL'}, (response) => {
           let reportId = response.data;
-          this.$router.push({path: '/performance/report/view/' + reportId})
+          this.$router.push({path: '/performance/report/view/' + reportId});
           // 发送广播，刷新 head 上的最新列表
           PerformanceEvent.$emit(LIST_CHANGE);
-        })
+        });
       });
     },
     getSaveOption() {
@@ -213,7 +223,7 @@ export default {
 
       // file属性不需要json化
       let requestJson = JSON.stringify(this.test, function (key, value) {
-        return key === "file" ? undefined : value
+        return key === "file" ? undefined : value;
       });
 
       formData.append('request', new Blob([requestJson], {
@@ -230,7 +240,7 @@ export default {
       };
     },
     cancel() {
-      this.$router.push({path: '/performance/test/all'})
+      this.$router.push({path: '/performance/test/all'});
     },
     validTest() {
       let currentProjectId = getCurrentProjectID();
@@ -299,11 +309,11 @@ export default {
         return {
           pass: false,
           info: this.$t('load_test.schedule_tip')
-        }
+        };
       }
       return {
         pass: true
-      }
+      };
     },
     fileChange(threadGroups) {
       let handler = this.$refs.pressureConfig;
@@ -331,7 +341,7 @@ export default {
       handler.calculateTotalChart();
     }
   }
-}
+};
 </script>
 
 <style scoped>

@@ -46,7 +46,7 @@
       </el-form-item>
     </div>
     <div class="ms-border">
-      <el-table :data="httpConfig.conditions" highlight-current-row @current-change="selectRow" v-if="!loading">
+      <el-table :data="httpConfig.conditions" highlight-current-row @current-change="selectRow">
         <el-table-column prop="socket" :label="$t('load_test.domain')" show-overflow-tooltip width="180">
           <template v-slot:default="{row}">
             {{getUrl(row)}}
@@ -72,7 +72,7 @@
             <ms-table-operator-button :tip="$t('api_test.automation.copy')"
                                       icon="el-icon-document-copy" @exec="copy(row)"/>
             <ms-table-operator-button :tip="$t('api_test.automation.remove')"
-                                      icon="el-icon-delete" @exec="remove(row)" type="danger" v-tester/>
+                                      icon="el-icon-delete" @exec="remove(row)" type="danger"/>
           </template>
         </el-table-column>
       </el-table>
@@ -203,6 +203,7 @@
           }
         }
         this.beforeCondition = JSON.parse(JSON.stringify(this.condition));
+        this.reload();
       },
       typeChange() {
         if (this.condition.type === "NONE" && this.condition.id  &&  this.checkNode(this.condition.id)) {

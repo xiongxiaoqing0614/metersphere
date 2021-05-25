@@ -1,6 +1,7 @@
 <template>
   <div>
     <el-button class="add-btn" :disabled="readOnly" type="primary" size="mini" @click="appIssue">{{ $t('test_track.issue.add_issue') }}</el-button>
+    <el-button class="add-btn" :disabled="readOnly" type="primary" size="mini" @click="relateIssue">{{ $t('test_track.case.relate_issue') }}</el-button>
     <el-tooltip class="item" effect="dark"
                 :content="$t('test_track.issue.platform_tip')"
                 placement="right">
@@ -16,7 +17,11 @@
 
       <ms-table-column
         :label="$t('test_track.issue.id')"
-        prop="id">
+        prop="id" v-if="false">
+      </ms-table-column>
+      <ms-table-column
+        :label="$t('test_track.issue.id')"
+        prop="num">
       </ms-table-column>
 
       <ms-table-column
@@ -60,7 +65,8 @@
 
     </ms-table>
 
-    <test-plan-issue-edit :case-id="caseId" @refresh="getIssues" ref="issueEdit"/>
+    <test-plan-issue-edit :plan-id="planId" :case-id="caseId" @refresh="getIssues" ref="issueEdit"/>
+    <IssueRelateList :case-id="caseId"  @refresh="getIssues" ref="issueRelate"/>
   </div>
 </template>
 
@@ -70,16 +76,23 @@ import MsTable from "@/business/components/common/components/table/MsTable";
 import MsTableColumn from "@/business/components/common/components/table/Ms-table-column";
 import IssueDescriptionTableItem from "@/business/components/track/issue/IssueDescriptionTableItem";
 import {ISSUE_STATUS_MAP} from "@/common/js/table-constants";
+import IssueRelateList from "@/business/components/track/case/components/IssueRelateList";
 export default {
   name: "TestCaseIssueRelate",
-  components: {IssueDescriptionTableItem, MsTableColumn, MsTable, TestPlanIssueEdit},
+  components: {IssueRelateList, IssueDescriptionTableItem, MsTableColumn, MsTable, TestPlanIssueEdit},
   data() {
     return {
       issues: [],
       result: {},
     }
   },
+<<<<<<< HEAD
   props: ['caseId', 'readOnly'],
+||||||| c8c9c4460
+  props: ['caseId'],
+=======
+  props: ['caseId', 'readOnly','planId'],
+>>>>>>> dev
   computed: {
     issueStatusMap() {
       return ISSUE_STATUS_MAP;
@@ -99,6 +112,13 @@ export default {
         return;
       }
       this.$refs.issueEdit.open();
+    },
+    relateIssue() {
+      if (!this.caseId) {
+        this.$warning(this.$t('api_test.automation.save_case_info'));
+        return;
+      }
+      this.$refs.issueRelate.open();
     },
     closeIssue(row) {
       if (row.status === 'closed') {

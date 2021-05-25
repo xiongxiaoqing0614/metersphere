@@ -3,16 +3,17 @@
     <el-card>
 
       <template v-slot:header>
-        <ms-table-header :is-tester-permission="true" :condition.sync="condition" @search="getIssues" @create="handleCreate"
-                         :create-tip="$t('test_track.issue.create_issue')" :title="$t('test_track.issue.issue_list')"  :tip="$t('issue.search_name')" :have-search="false"/>
+        <ms-table-header :condition.sync="page.condition" @search="getIssues" @create="handleCreate"
+                         :create-tip="$t('test_track.issue.create_issue')" :title="$t('test_track.issue.issue_list')"
+                         :tip="$t('issue.search_name')" :have-search="false"/>
       </template>
 
       <ms-table
-        v-loading="result.loading"
-        :data="tableData"
-        :condition="condition"
-        :total="total"
-        :page-size.sync="pageSize"
+        v-loading="page.result.loading"
+        :data="page.data"
+        :condition="page.condition"
+        :total="page.total"
+        :page-size.sync="page.pageSize"
         :operators="operators"
         :show-select-all="false"
         @handlePageChange="getIssues"
@@ -20,7 +21,11 @@
 
         <ms-table-column
           :label="$t('test_track.issue.id')"
-          prop="id">
+          prop="id" v-if="false">
+        </ms-table-column>
+        <ms-table-column
+          :label="$t('test_track.issue.id')"
+          prop="num">
         </ms-table-column>
 
         <ms-table-column
@@ -46,11 +51,24 @@
           prop="creatorName">
         </ms-table-column>
 
+        <ms-table-column
+          :label="$t('test_track.issue.issue_resource')"
+          prop="resourceName">
+          <template v-slot="scope">
+            <el-link v-if="scope.row.resourceName" @click="$router.push('/track/plan/view/' + scope.row.resourceId)">
+              {{scope.row.resourceName}}
+            </el-link>
+            <span v-else>
+              --
+            </span>
+          </template>
+        </ms-table-column>
+
         <issue-description-table-item/>
 
       </ms-table>
 
-      <ms-table-pagination :change="getIssues" :current-page.sync="currentPage" :page-size.sync="pageSize" :total="total"/>
+      <ms-table-pagination :change="getIssues" :current-page.sync="page.currentPage" :page-size.sync="page.pageSize" :total="page.total"/>
 
       <issue-edit @refresh="getIssues" ref="issueEdit"/>
 
@@ -74,6 +92,8 @@ import {
 import MsTableHeader from "@/business/components/common/components/MsTableHeader";
 import IssueDescriptionTableItem from "@/business/components/track/issue/IssueDescriptionTableItem";
 import IssueEdit from "@/business/components/track/issue/IssueEdit";
+import {getIssues} from "@/network/Issue";
+import {getPageInfo} from "@/common/js/tableUtils";
 export default {
   name: "CustomFieldList",
   components: {
@@ -83,12 +103,7 @@ export default {
     MsTablePagination, MsTableButton, MsTableOperators, MsTableColumn, MsTable},
   data() {
     return {
-      tableData: [],
-      condition: {},
-      total: 0,
-      pageSize: 10,
-      currentPage: 1,
-      result: {},
+      page: getPageInfo(),
       operators: [
         {
           tip: this.$t('commons.edit'), icon: "el-icon-edit",
@@ -131,31 +146,8 @@ export default {
   },
   methods: {
     getIssues() {
-      this.condition.projectId = this.projectId;
-      this.result = this.$post('issues/list/' + this.currentPage + '/' + this.pageSize,
-        this.condition, (response) => {
-        let data = response.data;
-        this.total = data.itemCount;
-        this.tableData = data.listObject;
-        for (let i = 0; i < this.tableData.length; i++) {
-          if (this.tableData[i]) {
-            if (this.tableData[i].platform !== 'Local') {
-              this.$post("issues/get/platform/issue", this.tableData[i]).then(response => {
-                let issues = response.data.data;
-                if (issues) {
-                  this.$set(this.tableData[i], "title", issues.title ? issues.title : "--");
-                  this.$set(this.tableData[i], "description", issues.description ? issues.description : "--");
-                  this.$set(this.tableData[i], "status", issues.status ? issues.status : 'delete');
-                }
-              }).catch(() => {
-                this.$set(this.tableData[i], "title", "--");
-                this.$set(this.tableData[i], "description", "--");
-                this.$set(this.tableData[i], "status", "--");
-              });
-            }
-          }
-        }
-      });
+      this.page.condition.projectId = this.projectId;
+      this.page.result = getIssues(this.page);
     },
     handleEdit(data) {
       this.$refs.issueEdit.open(data);
@@ -171,7 +163,7 @@ export default {
       this.$refs.issueEdit.open(copyData);
     },
     handleDelete(data) {
-      this.result = this.$get('issues/delete/' + data.id,  () => {
+      this.page.result = this.$get('issues/delete/' + data.id,  () => {
         this.$success(this.$t('commons.delete_success'));
         this.getIssues();
       });

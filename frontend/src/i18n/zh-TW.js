@@ -159,6 +159,7 @@ export default {
     more_operator: "更多操作",
     mock: "Mock 設置",
     all_module_title: "全部模塊",
+    create_user: "創建人",
     table: {
       select_tip: "已選中 {0} 條數據"
     },
@@ -281,6 +282,7 @@ export default {
     }
   },
   custom_field: {
+    add_option: '添加選項',
     case_status: '用例狀態',
     case_maintainer: '責任人',
     case_priority: '用例等級',
@@ -294,9 +296,12 @@ export default {
     scene: '使用場景',
     attribute_type: '屬性類型',
     field_name: '字段名',
+    field: '字段名',
     field_remark: '字段備註',
     field_type: '字段類型',
     field_option: '選項值',
+    field_text: '選項內容',
+    field_value: '選項值',
     add_field: '添加字段',
     api_field_name: 'API字段名',
     template_setting: '模板設置',
@@ -385,7 +390,7 @@ export default {
       use_tip_tapd: 'Tapd Basic Auth 賬號信息在"公司管理-安全與集成-開放平臺"中查詢',
       use_tip_jira: 'Jira software server 認證信息為 賬號密碼，Jira software cloud 認證信息為 賬號+令牌(賬戶設置-安全-創建API令牌)',
       use_tip_zentao: '賬號密碼為具有相應權限的Zentao賬號，賬號需要具有 超級model調用接口權限',
-      use_tip_two: '保存 Basic Auth 賬號信息後，需要在 MeterSphere 項目中手動關聯 ID/key',
+      use_tip_two: '保存 Basic Auth 賬號信息後，需要在 MeterSphere 項目中手動關聯 ID/key 和缺陷模板',
       link_the_project_now: '馬上關聯項目',
       cancel_edit: '取消編輯',
       cancel_integration: '取消集成',
@@ -488,6 +493,7 @@ export default {
     test_monitor_details: '監控詳情',
     test_details: '測試詳情',
     test_duration: '執行時長：{0} 分鐘 {1} 秒',
+    test_execute_time: '執行時長',
     test_start_time: '開始時間',
     test_end_time: '結束時間',
     test_stop_now: '立即停止',
@@ -1008,7 +1014,11 @@ export default {
         code_template_get_response_code: "獲取響應碼",
         code_template_get_response_result: "獲取響應結果",
         code_add_report_length: "報文頭添加長度",
-        code_hide_report_length: "隱藏報文長度"
+        code_hide_report_length: "隱藏報文長度",
+        param_environment_get_global_variable: "獲取環境參數",
+        param_environment_set_global_variable: "設置環境參數",
+        param_environment_delete_global_variable: "刪除環境參數",
+        param_environment_show_global_variable: "獲取所有環境參數",
       },
       dubbo: {
         protocol: "協議",
@@ -1339,6 +1349,7 @@ export default {
       batch_move_case: '批量移動',
       batch_delete_case: '批量刪除',
       batch_unlink: '批量取消關聯',
+      unlink: '取消關聯',
       project_name: '所屬項目',
       status: '評審結果',
       status_prepare: '未開始',
@@ -1546,6 +1557,7 @@ export default {
     },
     issue: {
       issue: "缺陷",
+      issue_resource: "缺陷來源",
       create_issue: "創建缺陷",
       add_issue: "添加缺陷",
       issue_list: "缺陷列表",
@@ -1678,6 +1690,7 @@ export default {
     running_task: '運行中的任務',
     next_execution_time: "下次執行時間",
     edit_timer_task: "編輯定時任務",
+    task_config: "任務配置",
     please_input_cron_expression: "請輸入 Cron 表達式",
     generate_expression: "生成表達式",
     cron_expression_format_error: "Cron 表達式格式錯誤",
@@ -1819,5 +1832,20 @@ export default {
     idd_report: "獨立報告",
     set_report: "集合報告",
     report_name: "報告名稱",
+    run_with_resource_pool: "資源池運行",
+  },
+  operating_log: {
+    title: "操作日誌",
+    time: "操作時間",
+    user: "操作人",
+    type: "操作類型",
+    object: "操作對象",
+    name: "標題",
+    info: "查看詳情",
+    change_field: "變更字段",
+    before_change: "變更前",
+    after_change: "變更後",
+    share: "分享",
+    change_history: "變更歷史",
   }
 };

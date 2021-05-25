@@ -3,14 +3,16 @@
     <ms-main-container>
       <el-card class="table-card" v-loading="result.loading">
         <template v-slot:header>
-          <ms-table-header :is-tester-permission="true" :condition.sync="condition" @search="search"
+          <ms-table-header :condition.sync="condition" @search="search"
                            :title="$t('commons.test')"
+                           v-permission="['PROJECT_PERFORMANCE_TEST:READ+CREATE']"
                            @create="create" :createTip="$t('load_test.create')"/>
         </template>
 
         <el-table border :data="tableData" class="adjust-table test-content"
                   @sort-change="sort"
                   @filter-change="filter"
+                  :height="screenHeight"
         >
           <el-table-column
             prop="num"
@@ -128,13 +130,16 @@ export default {
       buttons: [
         {
           tip: this.$t('commons.edit'), icon: "el-icon-edit",
-          exec: this.handleEdit
+          exec: this.handleEdit,
+          permissions: ['PROJECT_PERFORMANCE_TEST:READ+EDIT']
         }, {
           tip: this.$t('commons.copy'), icon: "el-icon-copy-document", type: "success",
-          exec: this.handleCopy
+          exec: this.handleCopy,
+          permissions: ['PROJECT_PERFORMANCE_TEST:READ+COPY']
         }, {
           tip: this.$t('commons.delete'), icon: "el-icon-delete", type: "danger",
-          exec: this.handleDelete
+          exec: this.handleDelete,
+          permissions: ['PROJECT_PERFORMANCE_TEST:READ+DELETE']
         }
       ],
       statusFilters: [
@@ -146,6 +151,7 @@ export default {
         {text: 'Error', value: 'Error'}
       ],
       userFilters: [],
+      screenHeight: 'calc(100vh - 295px)',
     };
   },
   watch: {

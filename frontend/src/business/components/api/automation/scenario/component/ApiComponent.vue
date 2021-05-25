@@ -45,7 +45,7 @@
                                  :request="request"
                                  :showScript="false"/>
         <ms-sql-basis-parameters v-if="request.protocol==='SQL'|| request.type==='JDBCSampler'"
-                                 :request="request" :is-scenario="false" :environment="environment"
+                                 :request="request"
                                  :showScript="false"/>
         <ms-dubbo-basis-parameters v-if="request.protocol==='DUBBO' || request.protocol==='dubbo://'|| request.type==='DubboSampler'"
                                    :request="request"
@@ -215,24 +215,45 @@
       },
       isCustomizeReq() {
         if (this.request.referenced == undefined || this.request.referenced === 'Created') {
-          return true
+          return true;
         }
         return false;
       },
       isDeletedOrRef() {
         if (this.request.referenced != undefined && this.request.referenced === 'Deleted' || this.request.referenced === 'REF') {
-          return true
+          return true;
         }
         return false;
       },
+      projectId() {
+        return this.$store.state.projectId;
+      },
     },
     methods: {
+      initDataSource() {
+        let databaseConfigsOptions = [];
+        if (this.request.protocol === 'SQL' || this.request.type === 'JDBCSampler') {
+          if (this.environment.config) {
+            let config = JSON.parse(this.environment.config);
+            config.databaseConfigs.forEach(item => {
+              databaseConfigsOptions.push(item);
+            });
+          }
+        }
+        if (databaseConfigsOptions.length > 0) {
+          this.request.dataSourceId = databaseConfigsOptions[0].id;
+          this.request.environmentId = this.environment.id;
+        }
+      },
       getEnvironments() {
         this.environment = {};
         let id = this.envMap.get(this.request.projectId);
-        this.$get('/api/environment/get/' + id, response => {
-          this.environment = response.data;
-        });
+        if (id) {
+          this.$get('/api/environment/get/' + id, response => {
+            this.environment = response.data;
+            this.initDataSource();
+          });
+        }
       },
       remove() {
         this.$emit('remove', this.request, this.node);
@@ -355,8 +376,11 @@
         })
       },
       getProjectName(id) {
-        const project = this.projectList.find(p => p.id === id);
-        return project ? project.name : "";
+        if (this.projectId !== id) {
+          const project = this.projectList.find(p => p.id === id);
+          return project ? project.name : "";
+        }
+
       }
     }
   }
