@@ -86,13 +86,7 @@ export default {
       result: {},
     }
   },
-<<<<<<< HEAD
-  props: ['caseId', 'readOnly'],
-||||||| c8c9c4460
-  props: ['caseId'],
-=======
   props: ['caseId', 'readOnly','planId'],
->>>>>>> dev
   computed: {
     issueStatusMap() {
       return ISSUE_STATUS_MAP;
