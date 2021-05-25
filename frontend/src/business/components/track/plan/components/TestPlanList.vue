@@ -26,7 +26,7 @@
         </el-table-column>
         <el-table-column
           v-if="item.id == 'userName'"
-          prop="principal"
+          prop="userName"
           :label="$t('test_track.plan.plan_principal')"
           show-overflow-tooltip
           :key="index">
@@ -86,7 +86,7 @@
           show-overflow-tooltip
           :key="index">
           <template v-slot:default="scope">
-            <el-progress :percentage="calPassRate(scope)"></el-progress>
+            <el-progress :percentage="scope.row.testRate"></el-progress>
           </template>
         </el-table-column>
         <el-table-column
@@ -314,10 +314,6 @@ export default {
   methods: {
     inite() {
       this.initTableData()
-    },
-    calPassRate(scope) {
-      let passRate = scope.row.passRate.substring(0, scope.row.passRate.length - 1);
-      return Number.parseInt(passRate, 10);
     },
     customHeader() {
       this.$refs.headerCustom.open(this.tableLabel)

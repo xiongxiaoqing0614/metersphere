@@ -5,8 +5,8 @@
       <el-form :model="httpForm" :rules="rule" ref="httpForm" label-width="80px" label-position="right">
         <!-- 操作按钮 -->
         <div style="float: right;margin-right: 20px">
-          <el-button type="primary" size="small" @click="saveApi" title="ctrl + s">{{ $t('commons.save') }}</el-button>
-          <el-button type="primary" size="small" @click="runTest">{{ $t('commons.test') }}</el-button>
+          <el-button type="primary" size="small" @click="saveApi" title="ctrl + s" v-tester>{{ $t('commons.save') }}</el-button>
+          <el-button type="primary" size="small" @click="runTest" v-tester>{{ $t('commons.test') }}</el-button>
         </div>
         <br/>
         <p class="tip">{{ $t('test_track.plan_view.base_info') }} </p>
@@ -294,8 +294,10 @@
         this.httpForm.modulePath = data.path;
       },
       initMockEnvironment() {
+        var protocol = document.location.protocol;
+        protocol = protocol.substring(0, protocol.indexOf(":"));
         let url = "/api/definition/getMockEnvironment/";
-        this.$get(url + this.projectId, response => {
+        this.$get(url + this.projectId + "/" + protocol, response => {
           this.mockEnvironment = response.data;
           let httpConfig = JSON.parse(this.mockEnvironment.config);
           if (httpConfig != null) {

@@ -1,6 +1,6 @@
 <template>
-  <div v-loading="result.loading">
-    <el-card class="table-card">
+  <div>
+    <el-card class="table-card" v-loading="result.loading">
       <!-- 表头 -->
       <template v-slot:header>
         <ms-table-header :title="$t('api_test.environment.environment_list')" :create-tip="btnTips"
@@ -14,11 +14,10 @@
         </ms-table-header>
       </template>
       <!-- 环境列表内容 -->
-      <!-- 实现搜索,根据搜索内容变换显示的环境列表 -->
-      <el-table border :data="environments.filter(env => !searchText || env.name.toLowerCase().includes(searchText.toLowerCase()))"
-                @selection-change="handleSelectionChange" max-height="515" class="adjust-table" style="width: 100%" ref="table">
+      <el-table border :data="environments" @filter-change="filter"
+                @selection-change="handleSelectionChange" class="adjust-table" style="width: 100%" ref="table">
         <el-table-column type="selection"></el-table-column>
-        <el-table-column :label="$t('commons.project')" width="250" show-overflow-tooltip>
+        <el-table-column :label="$t('commons.project')" width="250" :filters="projectFilters" column-key="projectId" show-overflow-tooltip>
           <template v-slot="scope">
             <span>{{idNameMap.get(scope.row.projectId)}}</span>
           </template>
@@ -42,9 +41,8 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-row type="flex" justify="end">
-        <el-pagination layout="total" :total="total"></el-pagination>
-      </el-row>
+      <ms-table-pagination :change="list" :current-page.sync="currentPage" :page-size.sync="pageSize"
+                           :total="total"/>
     </el-card>
 
     <!-- 创建、编辑、复制环境时的对话框 -->
@@ -126,7 +124,7 @@
       return {
         btnTips: this.$t('api_test.environment.create'),
         projectList: [],
-        condition: {envName: ''},   //用于搜索框
+        condition: {},   //封装传递给后端的查询条件
         environments: [],
         currentEnvironment: new Environment(),
         result: {},
@@ -138,20 +136,22 @@
         isTesterPermission: false,
         domainVisible: false,
         conditions: [],
+        currentPage: 1,
+        pageSize: 10,
+        total: 0,
+        projectIds: [],   //当前工作空间所拥有的所有项目id
+        projectFilters: [],
       }
     },
-    computed: {
-      searchText() {    //搜索框的文本
-        return this.condition.name;
-      },
-      /*
-      搜索后对应的总条目。搜索内容为空的话就是全部记录条数；搜索内容不为空的话就是匹配的记录条数
-       */
-      total() {
-        return this.environments
-          .filter(env => !this.searchText || env.name.toLowerCase().includes(this.searchText.toLowerCase())).length;
-      },
+    created() {
+      this.isTesterPermission = checkoutTestManagerOrTestUser();
+
     },
+
+    activated() {
+      this.list();
+    },
+
     watch: {
       //当创建及复制环境所选择的项目变化时，改变当前环境对应的projectId
       currentProjectId() {
@@ -203,22 +203,34 @@
         }
       },
       list() {
-        this.environments = [];
-        let url = "/project/listAll";
-        this.result = this.$get(url, (response) => {   //请求未成功怎么办？
-          this.projectList = response.data;  //获取当前工作空间所拥有的项目,
-          this.projectList.forEach(project => {
-            this.idNameMap.set(project.id, project.name);
-          });
-          //获取每个项目所对应的环境列表
-          this.projectList.map((project) => {
-            this.$get('/api/environment/list/' + project.id, response => {
-              let envData = response.data;
-              envData.forEach(env => {
-                this.environments.push(env);
+        if (!this.projectList || this.projectList.length === 0) {   //没有项目数据的话请求项目数据
+          this.$get("/project/listAll", (response) => {
+            this.projectList = response.data;  //获取当前工作空间所拥有的项目,
+            this.projectList.forEach(project => {
+              this.idNameMap.set(project.id, project.name);
+              this.projectIds.push(project.id);
+              this.projectFilters.push({
+                text: project.name,
+                value: project.id,
               })
-            })
+            });
+            this.getEnvironments();
           })
+        } else {
+          this.getEnvironments()
+        }
+      },
+      getEnvironments(projectIds){
+        this.environments = [];
+        if (projectIds && projectIds.length > 0) {
+          this.condition.projectIds = projectIds;
+        } else {
+          this.condition.projectIds = this.projectIds;
+        }
+        let url = '/api/environment/list/' + this.currentPage + '/' + this.pageSize;
+        this.result = this.$post(url, this.condition, response => {
+          this.environments = response.data.listObject;
+          this.total = response.data.itemCount;
         })
       },
       createEnv() {
@@ -227,7 +239,8 @@
         this.dialogVisible = true;
         this.currentEnvironment = new Environment();
       },
-      search(searchText) {
+      search() {
+        this.list()
       },
       editEnv(environment) {
         this.dialogTitle = this.$t('api_test.environment.config_environment');
@@ -254,10 +267,18 @@
       },
       deleteEnv(environment) {
         if (environment.id) {
-          this.result = this.$get('/api/environment/delete/' + environment.id, () => {
-            this.$success(this.$t('commons.delete_success'));
-            this.list();
-          });
+          this.$confirm(this.$t('commons.confirm_delete') + environment.name,  {
+            confirmButtonText: this.$t('commons.confirm'),
+            cancelButtonText: this.$t('commons.cancel'),
+            type: "warning"
+          }).then(() => {
+            this.result = this.$get('/api/environment/delete/' + environment.id, () => {
+              this.$success(this.$t('commons.delete_success'));
+              this.list();
+            });
+          }).catch(() => {
+            this.$info(this.$t('commons.delete_cancelled'));
+          })
         }
       },
       getNoRepeatName(name) {
@@ -267,6 +288,11 @@
           }
         }
         return name;
+      },
+
+      //筛选指定项目下的环境
+      filter(filters) {
+        this.getEnvironments(filters.projectId)
       },
 
       //对话框取消按钮
@@ -290,11 +316,13 @@
         }
         //拷贝一份选中的数据，不然下面删除id和projectId的时候会影响原数据
         const envs = JSON.parse(JSON.stringify(this.selectRows));
-        envs.map(env => {  //不导出id和projectId和启用条件
+        envs.map(env => {  //不导出id和projectId和模块启用条件
           if (env.config){  //旧环境可能没有config数据
             let tempConfig = JSON.parse(env.config);
-            if (tempConfig.httpConfig.conditions) {
-              delete tempConfig.httpConfig.conditions;  //删除”启用条件“，因为导入导出环境对应的项目不同，模块也就不同，
+            if (tempConfig.httpConfig.conditions && tempConfig.httpConfig.conditions.length > 0) {
+              tempConfig.httpConfig.conditions = tempConfig.httpConfig.conditions.filter(condition => {   //删除”模块启用条件“，因为导入导出环境对应的项目不同，模块也就不同，
+                return condition.type !== 'MODULE';
+              });
               env.config = JSON.stringify(tempConfig);
             }
           }
@@ -302,8 +330,8 @@
           delete env.projectId;
         })
         downloadFile('MS_' + envs.length + '_Environments.json', JSON.stringify(envs));
-
       },
+
       handleProjectChange() {   //项目选择下拉框选择其他项目后清空“启用条件”,因为项目变了模块也就变了。
         this.currentEnvironment.config.httpConfig.conditions = [];
       },
@@ -334,13 +362,7 @@
       }
 
     },
-    created() {
-      this.isTesterPermission = checkoutTestManagerOrTestUser();
-    },
 
-    activated() {
-      this.list();
-    },
 
 
   }

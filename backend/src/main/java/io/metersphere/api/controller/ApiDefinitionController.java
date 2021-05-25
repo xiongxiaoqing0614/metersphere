@@ -16,6 +16,7 @@ import io.metersphere.api.service.ApiTestEnvironmentService;
 import io.metersphere.api.service.EsbApiParamService;
 import io.metersphere.api.service.EsbImportService;
 import io.metersphere.base.domain.ApiDefinition;
+import io.metersphere.base.domain.ApiDefinitionWithBLOBs;
 import io.metersphere.base.domain.ApiTestEnvironmentWithBLOBs;
 import io.metersphere.base.domain.Schedule;
 import io.metersphere.commons.constants.RoleConstants;
@@ -100,9 +101,9 @@ public class ApiDefinitionController {
 
     @PostMapping(value = "/update", consumes = {"multipart/form-data"})
     @RequiresRoles(value = {RoleConstants.TEST_MANAGER, RoleConstants.TEST_USER}, logical = Logical.OR)
-    public void update(@RequestPart("request") SaveApiDefinitionRequest request, @RequestPart(value = "files") List<MultipartFile> bodyFiles) {
+    public ApiDefinitionWithBLOBs update(@RequestPart("request") SaveApiDefinitionRequest request, @RequestPart(value = "files") List<MultipartFile> bodyFiles) {
         checkPermissionService.checkProjectOwner(request.getProjectId());
-        apiDefinitionService.update(request, bodyFiles);
+        return apiDefinitionService.update(request, bodyFiles);
     }
 
     @GetMapping("/delete/{id}")
@@ -276,14 +277,14 @@ public class ApiDefinitionController {
         esbImportService.templateExport(response);
     }
 
-    @GetMapping("/getMockEnvironment/{projectId}")
-    public ApiTestEnvironmentWithBLOBs getMockEnvironment(@PathVariable String projectId, HttpServletRequest request) {
+    @GetMapping("/getMockEnvironment/{projectId}/{protocal}")
+    public ApiTestEnvironmentWithBLOBs getMockEnvironment(@PathVariable String projectId, @PathVariable String protocal, HttpServletRequest request) {
         String requestUrl = request.getRequestURL().toString();
         String baseUrl = "";
         if (requestUrl.contains("/api/definition")) {
             baseUrl = requestUrl.split("/api/definition")[0];
         }
-        return apiTestEnvironmentService.getMockEnvironmentByProjectId(projectId, baseUrl);
+        return apiTestEnvironmentService.getMockEnvironmentByProjectId(projectId, protocal, baseUrl);
     }
 
 }

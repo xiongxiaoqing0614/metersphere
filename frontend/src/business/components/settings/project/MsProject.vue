@@ -87,6 +87,9 @@
         <el-form-item label="测试用例自定义ID" prop="customNum">
           <el-switch v-model="form.customNum"></el-switch>
         </el-form-item>
+        <el-form-item label="场景自定义ID" prop="scenarioCustomNum">
+          <el-switch v-model="form.scenarioCustomNum"></el-switch>
+        </el-form-item>
       </el-form>
       <template v-slot:footer>
         <div class="dialog-footer">
@@ -241,8 +244,11 @@ export default {
         if (valid) {
           let saveType = "add";
           if (this.form.id) {
-            saveType = "update"
+            saveType = "update";
           }
+          var protocol = document.location.protocol;
+          protocol = protocol.substring(0, protocol.indexOf(":"));
+          this.form.protocal = protocol;
           this.result = this.$post("/project/" + saveType, this.form, () => {
             this.createVisible = false;
             this.list();

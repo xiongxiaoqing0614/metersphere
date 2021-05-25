@@ -22,11 +22,16 @@
             </template>
           </el-table-column>
           <el-table-column
+            prop="testName"
+            :label="$t('report.test_name')"
+            show-overflow-tooltip>
+          </el-table-column>
+          <el-table-column
             prop="name"
             :label="$t('commons.name')"
             show-overflow-tooltip>
             <template v-slot:default="scope">
-              <span @click="handleEdit(scope.row)" style="cursor: pointer;">{{ scope.row.name }}</span>
+              <span @click="handleView(scope.row)" style="cursor: pointer;">{{ scope.row.name }}</span>
             </template>
           </el-table-column>
           <el-table-column
@@ -73,11 +78,13 @@
             </template>
           </el-table-column>
           <el-table-column
-            width="150"
+            width="180"
             :label="$t('commons.operating')">
             <template v-slot:default="scope">
+              <ms-table-operator-button :tip="$t('test_track.module.rename')" icon="el-icon-edit"
+                                        @exec="handleRename(scope.row)" type="success"/>
               <ms-table-operator-button :tip="$t('api_report.detail')" icon="el-icon-s-data"
-                                        @exec="handleEdit(scope.row)" type="primary"/>
+                                        @exec="handleView(scope.row)" type="primary"/>
               <ms-table-operator-button :tip="$t('load_test.report.diff')" icon="el-icon-s-operation"
                                         @exec="handleDiff(scope.row)" type="warning"/>
               <ms-table-operator-button :is-tester-permission="true" :tip="$t('api_report.delete')"
@@ -193,11 +200,15 @@ export default {
 
         this.tableData.forEach(report => {
           if (report.status === 'Completed' && !report.maxUsers) {
-            this.result = this.$get('/performance/report/content/testoverview/' + report.id, response => {
-              this.$set(report, 'maxUsers', response.data.maxUsers);
-              this.$set(report, 'avgResponseTime', response.data.avgResponseTime);
-              this.$set(report, 'tps', response.data.avgTransactions);
-            });
+            this.result = this.$get('/performance/report/content/testoverview/' + report.id)
+              .then(response => {
+                let data = response.data.data;
+                this.$set(report, 'maxUsers', data.maxUsers);
+                this.$set(report, 'avgResponseTime', data.avgResponseTime);
+                this.$set(report, 'tps', data.avgTransactions);
+              })
+              .catch(() => {
+              });
           }
         });
       });
@@ -211,7 +222,20 @@ export default {
     handleSelectionChange(val) {
       this.multipleSelection = val;
     },
-    handleEdit(report) {
+    handleRename(report) {
+      this.$prompt(this.$t('commons.input_name'), '', {
+        confirmButtonText: this.$t('commons.confirm'),
+        cancelButtonText: this.$t('commons.cancel'),
+        inputValue: report.name,
+      }).then(({value}) => {
+        this.$post('/performance/report/rename', {id: report.id, name: value}, response => {
+          this.initTableData();
+        });
+      }).catch(() => {
+
+      });
+    },
+    handleView(report) {
       this.$router.push({
         path: '/performance/report/view/' + report.id
       });

@@ -1,5 +1,8 @@
 export default {
   commons: {
+    yes: "yes",
+    no: "no",
+    default: "default",
     please_select_import_mode: 'Please select import mode',
     please_select_import_module: 'Please select import module',
     pass_rate: 'Pass rate',
@@ -14,6 +17,7 @@ export default {
     import_module: 'Import module',
     import_user: 'Import user',
     export: 'Export',
+    please_fill_content: 'Please fill content',
     please_fill_in_the_template: 'Please fill in the template',
     cut_back_old_version: 'Cut back to old version',
     cut_back_new_version: 'Switch back to new version',
@@ -153,8 +157,18 @@ export default {
     node_name_tip: "The name cannot contain'\\'",
     more_operator: "More operator",
     mock: "Mock settings",
+    all_module_title: "All module",
     table: {
       select_tip: "Item {0} data is selected"
+    },
+    ssl: {
+      config: "Config",
+      files: "Files",
+      entry: "Entry",
+      original_as_name: "Original as name",
+      new_as_name: "New name",
+      source: "Source",
+      default: "Default"
     },
     date: {
       select_date: 'Select date',
@@ -272,7 +286,28 @@ export default {
     issue_creator: 'Creator',
     issue_processor: 'Processor',
     issue_status: 'Status',
-    issue_severity: 'Severity'
+    issue_severity: 'Severity',
+    create: 'Create Field',
+    name: 'Custom Field',
+    system_field: 'System Field',
+    scene: 'Use Scene',
+    attribute_type: 'Attribute Type',
+    field_name: 'Field Name',
+    field_remark: 'Field Remark',
+    field_type: 'Field Type',
+    field_option: 'Options',
+    add_field: 'Add Field',
+    api_field_name: 'API Field Name',
+    template_setting: 'Template Setting',
+    custom_field_setting: 'Custom Field Setting',
+    create_issue_template: 'Create Issue Template',
+    issue_template: 'Issue Template',
+    issue_platform: 'Issue Platform',
+    issue_content: 'Issue Content',
+    template_create: 'Template Create',
+    case_template: 'Test Case Template',
+    default_template: 'Default Template',
+    system_template: 'System Template',
   },
   workspace: {
     create: 'Create Workspace',
@@ -454,9 +489,9 @@ export default {
     test_log_details: 'Test Log Details',
     test_monitor_details: 'Test Monitor Details',
     test_details: 'Test Details',
-    test_duration: 'Current Execution Time：{0} minutes {1} seconds',
-    test_start_time: 'Start Execution Time',
-    test_end_time: 'Plan End Time',
+    test_duration: 'Execution Time：{0} minutes {1} seconds',
+    test_start_time: 'Start Time',
+    test_end_time: 'End Time',
     test_stop_now: 'Test Stop Now',
     test_stop_now_confirm: 'Are you sure you want to stop the current test immediately?',
     test_rerun_confirm: 'Are you sure you want to rerun the current test immediately?',
@@ -776,6 +811,7 @@ export default {
       wait_controller: "Wait controller",
       if_controller: "If controller",
       loop_controller: "Loop Controller",
+      transcation_controller:"Transcation controller",
       scenario_import: "Scenario import",
       customize_script: "Customize script",
       customize_req: "Customize req",
@@ -1132,7 +1168,8 @@ export default {
           case_type: {
             api: "Api case",
             scene: "Scenario case",
-            load: "Load case"
+            load: "Load case",
+            functional: "Functional case"
           }
         }
       },
@@ -1205,7 +1242,8 @@ export default {
   },
   test_kanban: {
     test_kanban: "Kanban",
-    testcase_summary: "TestCase Summary"
+    testcase_summary: "TestCase Summary",
+    execution_summary: "Execution Summary"
   },
   test_track: {
     related_requirements: 'Related requirements',
@@ -1231,6 +1269,13 @@ export default {
     case: {
       list: "List",
       minder: "Minder",
+      step_info: "Step Info",
+      other_info: "Other Info",
+      step_describe: "Step Describe",
+      step_describe_tip: "Applicable to every step of the test scenario, there are clear test steps, expected results",
+      text_describe: "Text Describe",
+      text_describe_tip: "For simple test scenarios, there are no clear test steps",
+      change_type: "Change Type",
       minder_create_tip: "failed, unable to create its parent module in minder",
       check_select: "Please check the case",
       export_all_cases: 'Are you sure you want to export all use cases?',
@@ -1273,6 +1318,9 @@ export default {
       please_create_project: "No project available, please create the project first",
       create_module_first: "Please create module first",
       relate_test: "Relate test",
+      relate_issue: "Relate Issue",
+      demand_name_id: "Demand ID/Name",
+      please_select_relate_test: "请选择要关联的测试",
       relate_test_not_find: 'The associated test does not exist, please check the test case',
       other_relate_test_not_find: 'Associated test name, please go to the third party platform to execute',
       batch_handle: 'Batch processing (select {0} item)',
@@ -1315,6 +1363,8 @@ export default {
         xmind_title: "Xmind",
         import_desc: "Import instructions",
         import_file: "upload files",
+        ignore_error: "Ignore errors ",
+        continue_upload: "Upload continue",
       },
       export: {
         export: "Export cases"
@@ -1490,6 +1540,10 @@ export default {
     },
     issue: {
       issue: "Issue",
+      create_issue: "Create Issue",
+      add_issue: "Add Issue",
+      issue_list: "Issue List",
+      search_name: "Search for title",
       platform_tip: "Integrated defect management platform in the system setting-organization-service integration can automatically submit defects to the designated defect management platform",
       input_title: "Please enter title",
       id: "Issue ID",

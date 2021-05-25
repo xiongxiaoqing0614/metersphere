@@ -166,7 +166,6 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
             } else {
                 scenarioResult = scenarios.get(scenarioId);
             }
-
             if (result.isSuccessful()) {
                 scenarioResult.addSuccess();
                 testResult.addSuccess();
@@ -286,7 +285,7 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
             String executionEnvironment = apiScenario.getScenarioDefinition();
             JSONObject json = JSONObject.parseObject(executionEnvironment);
             String name = "";
-            if (json.getString("environmentMap").length() > 2) {
+            if (json != null && json.getString("environmentMap") != null && json.getString("environmentMap").length() > 2) {
                 JSONObject environment = JSONObject.parseObject(json.getString("environmentMap"));
                 String environmentId = environment.get(apiScenario.getProjectId()).toString();
                 name = apiAutomationService.get(environmentId).getName();
@@ -421,6 +420,7 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
         requestResult.setTotalAssertions(result.getAssertionResults().length);
         requestResult.setSuccess(result.isSuccessful());
         requestResult.setError(result.getErrorCount());
+        requestResult.setScenario(result.getScenario());
         if (result instanceof HTTPSampleResult) {
             HTTPSampleResult res = (HTTPSampleResult) result;
             requestResult.setCookies(res.getCookies());

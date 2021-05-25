@@ -41,4 +41,8 @@ public interface ExtApiScenarioMapper {
     ApiScenario getNextNum(@Param("projectId") String projectId);
 
     List<String> selectIdsByQuery(@Param("request") ApiScenarioRequest request);
+
+    void updateCustomNumByProjectId(@Param("projectId") String projectId);
+
+    List<ApiScenarioWithBLOBs> listWithIds(@Param("ids") List<String> ids);
 }

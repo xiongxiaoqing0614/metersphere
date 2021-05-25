@@ -8,6 +8,9 @@
           <el-menu-item :index="'/kanban/home'">
             {{ $t("test_kanban.testcase_summary") }}
           </el-menu-item>
+          <el-menu-item :index="'/kanban/exeSummary'">
+            {{ $t("test_kanban.execution_summary") }}
+          </el-menu-item>
         </el-menu>
       </el-col>
       <el-col :span="8"/>
