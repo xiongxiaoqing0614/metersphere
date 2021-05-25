@@ -36,23 +36,6 @@
       <template v-for="(item, index) in tableLabel">
 
         <el-table-column
-<<<<<<< HEAD
-          v-if="item.id === 'num' && !customNum"
-          prop="num"
-          sortable="custom"
-          :label="$t('commons.id')"
-          :key="index"
-          min-width="80"
-          show-overflow-tooltip>
-||||||| c8c9c4460
-          v-if="item.id === 'num' && !customNum"
-          prop="num"
-          sortable="custom"
-          :label="$t('commons.id')"
-          :key="index"
-          width="80"
-          show-overflow-tooltip>
-=======
             v-if="item.id === 'num' && !customNum"
             prop="num"
             sortable="custom"
@@ -60,26 +43,8 @@
             :key="index"
             min-width="80"
             show-overflow-tooltip>
->>>>>>> dev
         </el-table-column>
         <el-table-column
-<<<<<<< HEAD
-          v-if="item.id === 'num' && customNum"
-          prop="customNum"
-          sortable="custom"
-          :label="$t('commons.id')"
-          :key="index"
-          min-width="80"
-          show-overflow-tooltip>
-||||||| c8c9c4460
-          v-if="item.id === 'num' && customNum"
-          prop="customNum"
-          sortable="custom"
-          :label="$t('commons.id')"
-          :key="index"
-          width="80"
-          show-overflow-tooltip>
-=======
             v-if="item.id === 'num' && customNum"
             prop="customNum"
             sortable="custom"
@@ -87,31 +52,14 @@
             :key="index"
             min-width="80"
             show-overflow-tooltip>
->>>>>>> dev
         </el-table-column>
         <el-table-column
-<<<<<<< HEAD
-          v-if="item.id == 'name'"
-          prop="name"
-          :label="$t('commons.name')"
-          show-overflow-tooltip
-          :key="index"
-          min-width="120"
-||||||| c8c9c4460
-          v-if="item.id == 'name'"
-          prop="name"
-          :label="$t('commons.name')"
-          show-overflow-tooltip
-          :key="index"
-          width="120"
-=======
             v-if="item.id == 'name'"
             prop="name"
             :label="$t('commons.name')"
             show-overflow-tooltip
             :key="index"
             min-width="120"
->>>>>>> dev
         >
         </el-table-column>
         <el-table-column

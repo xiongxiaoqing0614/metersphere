@@ -55,9 +55,6 @@
             <span class="ms-report-time-desc" v-else>
               {{ $t('report.test_end_time') }}：-
             </span>
-            <span class="ms-report-time-desc" v-else>
-              {{ $t('report.test_end_time') }}：-
-            </span>
           </el-col>
           <el-col :span="2">
             <el-select v-model="refreshTime"

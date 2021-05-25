@@ -64,24 +64,6 @@
         >
         </el-table-column>
         <el-table-column
-<<<<<<< HEAD
-          v-if="item.id == 'priority'"
-          prop="priority"
-          :filters="priorityFilters"
-          column-key="priority"
-          sortable="custom"
-          min-width="120px"
-          :label="$t('test_track.case.priority')"
-          :key="index">
-||||||| c8c9c4460
-          v-if="item.id == 'priority'"
-          prop="priority"
-          :filters="priorityFilters"
-          column-key="priority"
-          min-width="100"
-          :label="$t('test_track.case.priority')"
-          :key="index">
-=======
             v-if="item.id == 'priority'"
             prop="priority"
             :filters="priorityFilters"
@@ -90,7 +72,6 @@
             min-width="120px"
             :label="$t('test_track.case.priority')"
             :key="index">
->>>>>>> dev
           <template v-slot:default="scope">
             <priority-table-item :value="scope.row.priority" ref="priority"/>
           </template>
