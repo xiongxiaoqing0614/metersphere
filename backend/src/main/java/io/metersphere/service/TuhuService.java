@@ -1,7 +1,6 @@
 package io.metersphere.service;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import io.metersphere.base.domain.TestPlan;
 import io.metersphere.base.mapper.TestPlanMapper;
@@ -20,6 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import io.metersphere.commons.utils.LogUtil;
 import io.metersphere.base.domain.TuhuCodeCoverageRateMapping;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
@@ -66,10 +66,13 @@ public class TuhuService {
         String[] testPlanIds = codeCoverageRequests.getTestPlanIds();
         String[] testReportIds = codeCoverageRequests.getTestReportIds();
         if (testPlanIds != null && testPlanIds.length > 0) {
+            LogUtil.info("test plan id length: " + testPlanIds.length);
             mappingList = tuhuCodeCoverageRateMappingMapper.queryByTestPlanIds(testPlanIds);
         } else if (testReportIds != null && testReportIds.length > 0) {
+            LogUtil.info("test report id length: " + testReportIds.length);
             mappingList = tuhuCodeCoverageRateMappingMapper.queryByTestReportIds(testReportIds);
         } else {
+            LogUtil.info("testPlanIds or testReportIds is null");
             return null;
         }
         String rjs = fetchCodeCoverageData(JSON.toJSONString(mappingList));
