@@ -29,29 +29,98 @@
       </el-table-column>
       <el-table-column
         align="center"
-        prop="name"
-        sortable
-        label="测试计划">
+        prop="okrapitotal"
+        label="季度OKR-接口总数">
       </el-table-column>
       <el-table-column
         align="center"
-        prop="executionTimes"
-        label="执行次数">
+        prop="okrp0api"
+        label="季度OKR-P0接口数">
       </el-table-column>
       <el-table-column
         align="center"
-        prop="passRate"
-        label="用例最后通过率">
+        prop="okrnp0api"
+        label="季度OKR-非P0接口数">
       </el-table-column>
-            <el-table-column
+      <el-table-column
         align="center"
-        prop="total"
-        label="测试计划用例总数">
+        prop="okrp0case"
+        label="季度OKR-P0接口用例数">
       </el-table-column>
-            <el-table-column
+      <el-table-column
         align="center"
-        prop="passed"
-        label="执行通过用例总数">
+        prop="okrnp0case"
+        label="季度OKR-非P0接口用例数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="okrcase"
+        label="季度OKR-接口用例总数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="okrscenario"
+        label="季度OKR-场景用例总数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="apicompleted"
+        label="已完成接口总数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="p0apicompleted"
+        label="已完成P0接口总数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="casecompleted"
+        label="已完成接口用例数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="scenariocompleted"
+        label="已完成场景用例数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="apiaddedweek"
+        label="本周新增接口总数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="p0apiaddedweek"
+        label="本周新增P0接口总数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="caseaddedweek"
+        label="本周新增接口用例数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="scenarioaddedweek"
+        label="本周新增场景用例数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="apicompleterate"
+        label="接口总数完成率">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="p0apicompleterate"
+        label="P0接口总数完成率">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="casecompleterate"
+        label="接口用例数完成率">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="scenariocompleterate"
+        label="场景用例数完成率">
       </el-table-column>
     </el-table>
   </div>
@@ -66,7 +135,7 @@ require('echarts/lib/component/legend');
 
 
 export default {
-  name: "KanbanExeSummary",
+  name: "KanbanOKR",
   components: {
     MsMainContainer,
     MsContainer,

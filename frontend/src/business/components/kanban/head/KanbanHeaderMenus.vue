@@ -11,6 +11,9 @@
           <el-menu-item :index="'/kanban/exeSummary'">
             {{ $t("test_kanban.execution_summary") }}
           </el-menu-item>
+          <el-menu-item :index="'/kanban/okr'">
+            {{ $t("test_kanban.okr") }}
+          </el-menu-item>
         </el-menu>
       </el-col>
       <el-col :span="8"/>

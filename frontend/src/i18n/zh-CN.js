@@ -1246,7 +1246,8 @@ export default {
   test_kanban: {
     test_kanban: "看板报表",
     testcase_summary: "用例统计",
-    execution_summary: "执行统计"
+    execution_summary: "执行统计",
+    okr: "OKR"
   },
   test_track: {
     related_requirements: '关联需求',
