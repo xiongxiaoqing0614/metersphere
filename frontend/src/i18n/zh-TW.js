@@ -6,6 +6,7 @@ export default {
     please_select_import_mode: '請選擇導入模式',
     please_select_import_module: '請選擇導入模塊',
     pass_rate: '通過率',
+    coverage_rate: "代码覆蓋率",
     execution_times: '執行次數',
     cover: '覆蓋',
     module_title: '默認模塊',
