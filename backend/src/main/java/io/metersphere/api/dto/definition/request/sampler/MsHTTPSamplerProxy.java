@@ -488,20 +488,6 @@ public class MsHTTPSamplerProxy extends MsTestElement {
         return false;
     }
 
-    private boolean isUrl() {
-        // 自定义字段没有引用环境则非url
-        if (this.isCustomizeReq()) {
-            if (this.isRefEnvironment) {
-                return false;
-            }
-            return true;
-        }
-        if (StringUtils.isNotEmpty(this.getUrl()) && isURL(this.getUrl())) {
-            return true;
-        }
-        return false;
-    }
-
     private boolean isVariable(String path, String value) {
         Pattern p = Pattern.compile("(\\$\\{)([\\w]+)(\\})");
         Matcher m = p.matcher(path);
