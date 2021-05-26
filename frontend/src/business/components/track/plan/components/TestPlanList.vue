@@ -118,21 +118,6 @@
           :key="index">
         </el-table-column>
         <el-table-column
-          v-if="item.id == 'coverageRate'"
-          prop="coverageRate"
-          :label="$t('commons.coverage_rate')"
-          show-overflow-tooltip
-          :key="index">
-          <template v-slot:default="scope">
-            <el-button
-              @click="showCoverageRateReport(scope.row, $event)"
-              type="text"
-              size="small">
-              {{scope.row.coverageRate}}
-            </el-button>
-          </template>
-        </el-table-column>
-        <el-table-column
           v-if="item.id == 'plannedStartTime'"
           sortable
           prop="plannedStartTime"
@@ -178,7 +163,22 @@
         </el-table-column>
       </template>
       <el-table-column
-        min-width="180"
+        prop="coverageRate"
+        min-width="100"
+        :label="$t('commons.coverage_rate')"
+        show-overflow-tooltip
+        :key="index">
+        <template v-slot:default="scope">
+          <el-button
+            @click="showCoverageRateReport(scope.row, $event)"
+            type="text"
+            size="small">
+            {{scope.row.coverageRate}}
+          </el-button>
+        </template>
+      </el-table-column>
+      <el-table-column
+        min-width="170"
         :label="$t('commons.operating')">
         <template slot="header">
           <header-label-operate @exec="customHeader"/>

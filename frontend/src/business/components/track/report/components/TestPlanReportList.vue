@@ -29,7 +29,7 @@
       <el-table-column min-width="300" prop="name" :label="$t('test_track.report.list.name')" show-overflow-tooltip></el-table-column>
       <el-table-column prop="testPlanName" min-width="150" sortable :label="$t('test_track.report.list.test_plan')" show-overflow-tooltip></el-table-column>
       <el-table-column prop="creator" :label="$t('test_track.report.list.creator')" show-overflow-tooltip></el-table-column>
-      <el-table-column prop="createTime" sortable :label="$t('test_track.report.list.create_time' )" show-overflow-tooltip>
+      <el-table-column prop="createTime" min-width="100" sortable :label="$t('test_track.report.list.create_time' )" show-overflow-tooltip>
         <template v-slot:default="scope">
           <span>{{ scope.row.createTime | timestampFormatDate }}</span>
         </template>
@@ -46,7 +46,7 @@
           <ms-tag v-else type="effect" effect="plain" :content="scope.row.status"/>
         </template>
       </el-table-column>
-      <el-table-column prop="coverageRate" :label="$t('commons.coverage_rate')" show-overflow-tooltip>
+      <el-table-column prop="coverageRate" min-width="100" :label="$t('commons.coverage_rate')" show-overflow-tooltip>
         <template v-slot:default="scope">
           <el-button
             @click="showCoverageRateReport(scope.row, $event)"
