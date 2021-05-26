@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import io.metersphere.base.domain.TestPlan;
 import io.metersphere.base.mapper.TestPlanMapper;
+import io.metersphere.base.mapper.TestPlanReportMapper;
 import io.metersphere.base.mapper.TuhuCodeCoverageRateMappingMapper;
 import io.metersphere.controller.request.CodeCoverageBindRequest;
 import io.metersphere.controller.request.CodeCoverageRequest;
@@ -36,6 +37,10 @@ public class TuhuService {
 
     @Resource
     private TestPlanMapper testPlanMapper;
+
+    @Resource
+    private TestPlanReportMapper testPlanReportMapper;
+
 
     public Integer addCodeCoverageRateMapping(CodeCoverageBindRequest codeCoverageBind) {
         TuhuCodeCoverageRateMapping tuhuCodeCoverageRateMapping = new TuhuCodeCoverageRateMapping();
@@ -103,7 +108,7 @@ public class TuhuService {
     }
 
     public String getTestReportByTimestamp(CodeCoverageBindRequest codeCoverageBind) {
-        return "9a286516-8515-4fca-8fc6-a1f47965804f";
+        return testPlanReportMapper.queryTestPlanReportId(codeCoverageBind);
     }
 
     public void redirectReportUrl(HttpServletResponse response, String appId, String branchName,
