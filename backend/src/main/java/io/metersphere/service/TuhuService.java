@@ -65,10 +65,12 @@ public class TuhuService {
         List<TuhuCodeCoverageRateMapping> mappingList = null;
         String[] testPlanIds = codeCoverageRequests.getTestPlanIds();
         String[] testReportIds = codeCoverageRequests.getTestReportIds();
-        if (testPlanIds != null) {
+        if (testPlanIds != null && testPlanIds.length > 0) {
             mappingList = tuhuCodeCoverageRateMappingMapper.queryByTestPlanIds(testPlanIds);
-        } else if (testReportIds != null) {
+        } else if (testReportIds != null && testReportIds.length > 0) {
             mappingList = tuhuCodeCoverageRateMappingMapper.queryByTestReportIds(testReportIds);
+        } else {
+            return null;
         }
         String rjs = fetchCodeCoverageData(JSON.toJSONString(mappingList));
         LogUtil.info("code coverage rate result json: " + rjs);
