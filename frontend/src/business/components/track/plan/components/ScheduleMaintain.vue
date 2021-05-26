@@ -84,7 +84,7 @@
             </el-dialog>
           </el-tab-pane>
           <el-tab-pane :label="$t('schedule.task_notification')" name="second">
-            <ms-schedule-notification :is-tester-permission="isTesterPermission" :test-id="testId"
+            <ms-schedule-notification :test-id="testId"
                                       :schedule-receiver-options="scheduleReceiverOptions"/>
           </el-tab-pane>
         </el-tabs>
@@ -227,11 +227,9 @@ export default {
         organizationId: this.currentUser().lastOrganizationId
       };
 
-      if (this.isTesterPermission) {
-        this.result = this.$post('user/org/member/list/all', param, response => {
-          this.scheduleReceiverOptions = response.data;
-        });
-      }
+      this.result = this.$post('user/org/member/list/all', param, response => {
+        this.scheduleReceiverOptions = response.data;
+      });
 
     },
     buildParam() {
@@ -266,7 +264,9 @@ export default {
       this.result = this.$get("/schedule/findOne/" + scheduleResourceID + "/" + taskType, response => {
         if (response.data != null) {
           this.schedule = response.data;
-          this.runConfig = JSON.parse(response.data.config);
+          if(response.data.config){
+            this.runConfig = JSON.parse(response.data.config);
+          }
         } else {
           this.schedule = {};
         }
@@ -364,7 +364,7 @@ export default {
     },
     getResourcePools() {
       this.result = this.$get('/testresourcepool/list/quota/valid', response => {
-        this.resourcePools = response.data;
+        this.resourcePools = response.data.filter(p => p.type === 'NODE');
       });
     },
   },

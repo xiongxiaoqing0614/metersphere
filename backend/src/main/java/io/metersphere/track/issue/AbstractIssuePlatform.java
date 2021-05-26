@@ -170,12 +170,13 @@ public abstract class AbstractIssuePlatform implements IssuesPlatform {
         issues.setCreateTime(System.currentTimeMillis());
         issues.setUpdateTime(System.currentTimeMillis());
         issues.setNum(getNextNum(issuesRequest.getProjectId()));
+        issues.setResourceId(issuesRequest.getResourceId());
         issuesMapper.insert(issues);
     }
 
     protected int getNextNum(String projectId) {
         Issues issue = extIssuesMapper.getNextNum(projectId);
-        if (issue == null) {
+        if (issue == null || issue.getNum() == null) {
             return 100001;
         } else {
             return Optional.of(issue.getNum() + 1).orElse(100001);

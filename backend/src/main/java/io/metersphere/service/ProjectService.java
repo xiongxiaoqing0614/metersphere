@@ -38,6 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -110,6 +111,14 @@ public class ProjectService {
         return extProjectMapper.getProjectWithWorkspace(request);
     }
 
+    public List<ProjectDTO> getSwitchProject(ProjectRequest request) {
+        if (StringUtils.isNotBlank(request.getName())) {
+            request.setName(StringUtils.wrapIfMissing(request.getName(), "%"));
+        }
+        request.setOrders(ServiceUtils.getDefaultOrder(request.getOrders()));
+        return extProjectMapper.getSwitchProject(request);
+    }
+
     public List<Project> getProjectByIds(List<String> ids) {
         if (!CollectionUtils.isEmpty(ids)) {
             ProjectExample example = new ProjectExample();
@@ -128,8 +137,36 @@ public class ProjectService {
 
         // 删除项目下 接口测试 相关
         deleteAPIResourceByProjectId(projectId);
+
+        // User Group
+        deleteProjectUserGroup(projectId);
+
         // delete project
         projectMapper.deleteByPrimaryKey(projectId);
+    }
+
+    private void deleteProjectUserGroup(String projectId) {
+        UserGroupExample userGroupExample = new UserGroupExample();
+        userGroupExample.createCriteria().andSourceIdEqualTo(projectId);
+        userGroupMapper.deleteByExample(userGroupExample);
+    }
+
+    public void updateIssueTemplate(String originId, String templateId) {
+        Project project = new Project();
+        project.setIssueTemplateId(templateId);
+        ProjectExample example = new ProjectExample();
+        example.createCriteria()
+                .andIssueTemplateIdEqualTo(originId);
+        projectMapper.updateByExampleSelective(project, example);
+    }
+
+    public void updateCaseTemplate(String originId, String templateId) {
+        Project project = new Project();
+        project.setCaseTemplateId(templateId);
+        ProjectExample example = new ProjectExample();
+        example.createCriteria()
+                .andCaseTemplateIdEqualTo(originId);
+        projectMapper.updateByExampleSelective(project, example);
     }
 
     private void deleteLoadTestResourcesByProjectId(String projectId) {
@@ -217,6 +254,21 @@ public class ProjectService {
 
     public Project getProjectById(String id) {
         return projectMapper.selectByPrimaryKey(id);
+    }
+
+    public boolean useCustomNum(String projectId) {
+        Project project = this.getProjectById(projectId);
+        if (project != null) {
+            Boolean customNum = project.getCustomNum();
+            // 未开启自定义ID
+            if (!customNum) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            return false;
+        }
     }
 
     public List<Project> getByCaseTemplateId(String templateId) {
@@ -343,6 +395,21 @@ public class ProjectService {
                     .andGroupIdIn(allGroupIds);
             userGroupMapper.deleteByExample(userGroupExample);
         }
+    }
+
+    public String getLogDetails(WorkspaceMemberDTO memberDTO) {
+        String userId = memberDTO.getId();
+        // 已有角色
+        List<DetailColumn> columns = new LinkedList<>();
+        // 已有角色
+        List<Group> memberGroups = extUserGroupMapper.getProjectMemberGroups(memberDTO.getProjectId(), userId);
+        List<String> names = memberGroups.stream().map(Group::getName).collect(Collectors.toList());
+        List<String> ids = memberGroups.stream().map(Group::getId).collect(Collectors.toList());
+        DetailColumn column = new DetailColumn("成员角色", "userRoles", String.join(",", names), null);
+        columns.add(column);
+        OperatingLogDetails details = new OperatingLogDetails(JSON.toJSONString(ids), memberDTO.getProjectId(), "用户 " + userId + " 修改角色为：" + String.join(",", names), null, columns);
+        return JSON.toJSONString(details);
+
     }
 
     public Integer checkSourceRole(String workspaceId, String userId, String roleId) {

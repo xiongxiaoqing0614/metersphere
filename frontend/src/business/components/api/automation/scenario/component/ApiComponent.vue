@@ -23,7 +23,7 @@
 
       <template v-slot:button>
         <el-tooltip :content="$t('api_test.run')" placement="top">
-          <el-button @click="run" icon="el-icon-video-play" style="padding: 5px" class="ms-btn" size="mini" circle/>
+          <el-button :disabled="!request.enable" @click="run" icon="el-icon-video-play" style="padding: 5px" class="ms-btn" size="mini" circle/>
         </el-tooltip>
       </template>
 
@@ -77,7 +77,7 @@
       </template>
     </api-base-component>
     <ms-run :debug="true" :reportId="reportId" :run-data="runData" :env-map="envMap"
-            @runRefresh="runRefresh" ref="runTest"/>
+            @runRefresh="runRefresh" @errorRefresh="errorRefresh" ref="runTest"/>
 
   </div>
 </template>
@@ -118,6 +118,7 @@
       },
       currentEnvironmentId: String,
       projectList: Array,
+      expandedNode: Array,
       envMap: Map
     },
     components: {
@@ -328,6 +329,13 @@
         if (this.node) {
           this.node.expanded = this.request.active;
         }
+        if (this.node.expanded && this.expandedNode.indexOf(this.request.resourceId) === -1) {
+          this.expandedNode.push(this.request.resourceId);
+        } else {
+          if (this.expandedNode.indexOf(this.request.resourceId) !== -1) {
+            this.expandedNode.splice(this.expandedNode.indexOf(this.request.resourceId), 1);
+          }
+        }
         this.reload();
       },
       run() {
@@ -351,17 +359,17 @@
         this.runData.projectId = this.request.projectId;
         this.request.useEnvironment = this.currentEnvironmentId;
         this.request.customizeReq = this.isCustomizeReq;
-        let requestParam = JSON.parse(JSON.stringify(this.request));
-        // 禁用调试报错
-        requestParam.enable = true;
         let debugData = {
           id: this.currentScenario.id, name: this.currentScenario.name, type: "scenario",
           variables: this.currentScenario.variables, referenced: 'Created', headers: this.currentScenario.headers,
-          enableCookieShare: this.enableCookieShare, environmentId: this.currentEnvironmentId, hashTree: [requestParam],
+          enableCookieShare: this.enableCookieShare, environmentId: this.currentEnvironmentId, hashTree: [this.request],
         };
         this.runData.push(debugData);
         /*触发执行操作*/
         this.reportId = getUUID();
+      },
+      errorRefresh(){
+        this.loading = false;
       },
       runRefresh(data) {
         this.request.requestResult = data;
