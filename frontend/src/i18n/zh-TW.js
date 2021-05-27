@@ -6,6 +6,7 @@ export default {
     please_select_import_mode: '請選擇導入模式',
     please_select_import_module: '請選擇導入模塊',
     pass_rate: '通過率',
+    coverage_rate: "代码覆蓋率",
     execution_times: '執行次數',
     cover: '覆蓋',
     module_title: '默認模塊',
@@ -23,6 +24,7 @@ export default {
     comment: '評論',
     examples: '示例',
     help_documentation: '幫助文檔',
+    tuhu_wiki_documentation: '途虎Wiki文檔',
     api_help_documentation: 'API文檔',
     confirm_delete: '是否刪除',
     delete_cancelled: '已取消刪除',
@@ -1077,6 +1079,9 @@ export default {
       esb_export_tip: "暫時不支持ESB文件的導出",
       postman_tip: "只支持 Postman Collection v2.1 格式的 json 文件",
       swagger_tip: "支持 Swagger 2.0 與 3.0 版本的 json 文件",
+      forseti_tip: "從Forseti導入",
+      forseti_select: "請選擇AppName",
+      forseti_export_tip: "通過Forseti頁面導出",
       har_tip: "只支持 HAR 文件",
       esb_tip: "只支持 ESB 模版的xlsx文件",
       post_export_tip: "通過 Postman 導出測試集合",
@@ -1084,6 +1089,7 @@ export default {
       jmeter_export_tip: "通過 JMeter 生成JMX文件",
       jmeter_tip: "支持 JMeter 5.2版本的JMX 文件",
       suffixFormatErr: "文件格式不符合要求",
+      forseti_import: "通過Forseti導入",
       swagger_url_import: "使用URL導入",
       timing_synchronization: "定時同步",
       next_synchronization_time: "下次同步時間",
@@ -1251,6 +1257,11 @@ export default {
     this_mouth: "本月",
     please_search: "請搜索",
     date: "日期"
+  },
+  test_kanban: {
+    test_kanban: "看板報表",
+    testcase_summary: "用例統計",
+    execution_summary: "執行統計"
   },
   test_track: {
     related_requirements: '關聯需求',

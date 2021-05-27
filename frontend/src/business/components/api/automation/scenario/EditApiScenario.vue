@@ -141,7 +141,7 @@
                   <el-tooltip class="item" effect="dark" :content="$t('commons.refresh')" placement="right-start">
                     <el-button :disabled="scenarioDefinition.length < 1" size="mini" icon="el-icon-refresh" v-prevent-re-click @click="getApiScenario"></el-button>
                   </el-tooltip>
-                  <font-awesome-icon class="alt-ico" :icon="['fa', 'expand-alt']" size="lg" @click="fullScreen"/>
+                  <font-awesome-icon class="alt-ico" :icon="['fa', 'expand-alt']" size="lg" @click="fullScreen" v-tester/>
                 </el-col>
               </el-row>
             </div>
@@ -171,7 +171,7 @@
           </el-col>
           <!-- 按钮列表 -->
           <el-col :span="3">
-            <div @click="fabClick">
+            <div @click="fabClick" v-tester>
               <vue-fab id="fab" mainBtnColor="#783887" size="small" :global-options="globalOptions"
                        :click-auto-close="false" v-outside-click="outsideClick">
                 <fab-item

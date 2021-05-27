@@ -126,7 +126,7 @@
           </template>
         </el-table-column>
       </template>
-      <el-table-column fixed="right" min-width="150">
+      <el-table-column fixed="right" min-width="120">
         <template slot="header">
           <header-label-operate @exec="customHeader"/>
         </template>

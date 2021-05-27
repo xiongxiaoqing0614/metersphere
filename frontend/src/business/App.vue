@@ -113,6 +113,10 @@ export default {
 
 
 <style scoped>
+body .el-table th.gutter{
+    display: table-cell!important;
+}
+
 #header-top {
   width: 100%;
   padding: 0 10px;

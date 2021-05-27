@@ -6,6 +6,7 @@ export default {
     please_select_import_mode: 'Please select import mode',
     please_select_import_module: 'Please select import module',
     pass_rate: 'Pass rate',
+    coverage_rate: 'Code Coverage rate',
     execution_times: 'Execution times',
     cover: 'Cover',
     module_title: 'Default module',
@@ -23,6 +24,7 @@ export default {
     comment: 'comment',
     examples: 'examples',
     help_documentation: 'Help documentation',
+    tuhu_wiki_documentation: 'Tuhu Wiki documentation',
     confirm_delete: 'Whether to delete',
     delete_cancelled: 'Delete cancelled',
     option_cannot_spread_pages: 'This options not support spread pages.Do you want continue?',
@@ -1074,6 +1076,9 @@ export default {
       har_export_tip: "Export HAR files by browser dev-tool",
       esb_export_tip: "Can not export esb files now",
       swagger_tip: "Swagger 2.0 and 3.0 json files are supported",
+      forseti_tip: "Import from forseti.tuhu",
+      forseti_select: "Please Select AppName",
+      forseti_export_tip: "Export JSON from forseti.tuhu",
       har_tip: "Only HAR files are supported",
       esb_tip: "Only ESB xlsx files are supported",
       postman_tip: "Only Postman Collection V2.1 json files are supported",
@@ -1082,6 +1087,7 @@ export default {
       jmeter_export_tip: "Generating JMX file through JMeter",
       jmeter_tip: "JMX files supporting JMeter 5.2",
       suffixFormatErr: "The file format does not meet the requirements",
+      forseti_import: "Import from Forseti",
       swagger_url_import: "Import using URL",
       timing_synchronization: "Timing synchronization",
       next_synchronization_time: "Next synchronization time",
@@ -1247,6 +1253,11 @@ export default {
     this_mouth: "This Mouth",
     please_search: "Please Search",
     date: "Date"
+  },
+  test_kanban: {
+    test_kanban: "Kanban",
+    testcase_summary: "TestCase Summary",
+    execution_summary: "Execution Summary"
   },
   test_track: {
     related_requirements: 'Related requirements',

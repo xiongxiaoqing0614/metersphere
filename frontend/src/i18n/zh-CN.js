@@ -6,6 +6,7 @@ export default {
     please_select_import_mode: '请选择导入模式',
     please_select_import_module: '请选择导入模块',
     pass_rate: '通过率',
+    coverage_rate: "代码覆盖率",
     execution_times: '执行次数',
     cover: '覆盖',
     module_title: '默认模块',
@@ -23,6 +24,7 @@ export default {
     comment: '评论',
     examples: '示例',
     help_documentation: '帮助文档',
+    tuhu_wiki_documentation: '途虎Wiki文档',
     api_help_documentation: 'API文档',
     confirm_delete: '是否删除',
     delete_cancelled: '已取消删除',
@@ -1077,6 +1079,10 @@ export default {
       esb_export_tip: "暂时不支持ESB文件的导出",
       postman_tip: "只支持 Postman Collection v2.1 格式的 json 文件",
       swagger_tip: "支持 Swagger 2.0 与 3.0 版本的 json 文件",
+      forseti_tip: "从Forseti导入",
+      forseti_select: "请选择AppName",
+      forseti_export_tip: "通过Forseti页面导出",
+      forseti_import: "通过Forseti导入",
       har_tip: "只支持 HAR 文件",
       esb_tip: "只支持 ESB 模版的xlsx文件",
       post_export_tip: "通过 Postman 导出测试集合",
@@ -1251,6 +1257,11 @@ export default {
     this_mouth: "本月",
     please_search: "请搜索",
     date: "日期"
+  },
+  test_kanban: {
+    test_kanban: "看板报表",
+    testcase_summary: "用例统计",
+    execution_summary: "执行统计"
   },
   test_track: {
     related_requirements: '关联需求',
