@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.metersphere.tuhu.mapper.OKRMapper">
+    <select id="getOKR" resultType="io.metersphere.tuhu.dto.TuhuOKRDTO">
+        SELECT id, name, workspace_id, api_total, api_p0, api_test_total, api_test_p0, scenario_test_total from tuhu_okr;
+    </select>
+    <insert id="insert" parameterType="io.metersphere.tuhu.dto.TuhuOKRDTO">
+        insert into tuhu_okr (id, name, description, create_time, update_time, workspace_id, api_total,
+        api_p0, api_test_total, api_test_p0, scenario_test_total)
+        values (#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR},
+        #{create_time,jdbcType=BIGINT}, #{update_time,jdbcType=BIGINT}, #{workspace_id,jdbcType=VARCHAR},
+        #{customNum,jdbcType=VARCHAR}, #{stepModel,jdbcType=VARCHAR}, #{prerequisite,jdbcType=LONGVARCHAR},
+        #{api_total,jdbcType=LONGVARCHAR}, #{api_p0,jdbcType=LONGVARCHAR}, #{api_test_total,jdbcType=LONGVARCHAR},
+        #{api_test_p0,jdbcType=LONGVARCHAR}, #{scenario_test_total,jdbcType=LONGVARCHAR})
+    </insert>
+</mapper>

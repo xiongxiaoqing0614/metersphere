@@ -1244,7 +1244,7 @@ export default {
     test_kanban: "Kanban",
     testcase_summary: "TestCase Summary",
     execution_summary: "Execution Summary",
-    okr: "OKR",
+    okr: "OKR"
   },
   test_track: {
     related_requirements: 'Related requirements',

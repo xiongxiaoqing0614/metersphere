@@ -1,6 +1,7 @@
 <template>
   <div>
     <el-table
+      v-loading="result.loading"
       :data="tableData"
       height="700"
       border
@@ -73,6 +74,7 @@ export default {
   },
   data() {
     return {
+      result:{},
       tableData: null,
       orgList: null,
       wsList: null,
@@ -102,7 +104,7 @@ export default {
     },
     getSummary(){
       const _this = this;
-      this.$get("/tuhu/kanban/exeSummary", response => {
+      this.result = this.$get("/tuhu/kanban/exeSummary", response => {
         _this.tableData = response.data;
         console.info(_this.tableData);
         console.table(_this.tableData)

@@ -1,6 +1,7 @@
 <template>
   <div>
     <el-table
+      v-loading="result.loading"
       :data="tableData"
       height="700"
       border
@@ -23,18 +24,12 @@
       </el-table-column>
       <el-table-column
         align="center"
-        prop="projectName"
-        sortable
-        label="项目">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="okrapitotal"
+        prop="okrApiTotal"
         label="季度OKR-接口总数">
       </el-table-column>
       <el-table-column
         align="center"
-        prop="okrp0api"
+        prop="okrApiP0"
         label="季度OKR-P0接口数">
       </el-table-column>
       <el-table-column
@@ -44,7 +39,7 @@
       </el-table-column>
       <el-table-column
         align="center"
-        prop="okrp0case"
+        prop="okrApiTestP0"
         label="季度OKR-P0接口用例数">
       </el-table-column>
       <el-table-column
@@ -54,12 +49,12 @@
       </el-table-column>
       <el-table-column
         align="center"
-        prop="okrcase"
+        prop="okrApiTestTotal"
         label="季度OKR-接口用例总数">
       </el-table-column>
       <el-table-column
         align="center"
-        prop="okrscenario"
+        prop="okrScenarioTestTotal"
         label="季度OKR-场景用例总数">
       </el-table-column>
       <el-table-column
@@ -142,6 +137,7 @@ export default {
   },
   data() {
     return {
+      result:{},
       tableData: null,
       orgList: null,
       wsList: null,
@@ -171,7 +167,7 @@ export default {
     },
     getSummary(){
       const _this = this;
-      this.$get("/tuhu/kanban/exeSummary", response => {
+      this.result = this.$get("/tuhu/okr/getOKR", response => {
         _this.tableData = response.data;
         console.info(_this.tableData);
         console.table(_this.tableData)
