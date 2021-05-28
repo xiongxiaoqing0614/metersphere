@@ -1,4 +1,4 @@
-package io.metersphere.controller.request;
+package io.metersphere.tuhu.request;
 
 import lombok.Getter;
 import lombok.Setter;

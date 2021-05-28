@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="io.metersphere.base.mapper.TuhuCodeCoverageRateMappingMapper">
-  <resultMap id="BaseResultMap" type="io.metersphere.base.domain.TuhuCodeCoverageRateMapping">
+<mapper namespace="io.metersphere.tuhu.mapper.TuhuCodeCoverageRateMappingMapper">
+  <resultMap id="BaseResultMap" type="io.metersphere.tuhu.dto.TuhuCodeCoverageRateResultDTO">
     <id column="id" jdbcType="BIGINT" property="id" />
     <result column="testPlanId" jdbcType="VARCHAR" property="testPlanId" />
     <result column="testReportId" jdbcType="VARCHAR" property="testReportId" />
@@ -44,7 +44,7 @@
     from tuhu_code_coverage_rate_mapping
     <include refid="Where_Clause_Report" />
   </select>
-  <insert id="insert" parameterType="io.metersphere.base.domain.TuhuCodeCoverageRateMapping">
+  <insert id="insert" parameterType="io.metersphere.tuhu.dto.TuhuCodeCoverageRateResultDTO">
     insert into tuhu_code_coverage_rate_mapping (`testPlanId`, `testReportId`, `appId`,
       `branchName`, `commitId`, `stage`, `coverageRate`)
     values (#{testPlanId,jdbcType=VARCHAR}, #{testReportId,jdbcType=VARCHAR}, #{appId,jdbcType=VARCHAR},

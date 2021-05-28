@@ -4,7 +4,7 @@ import io.metersphere.base.domain.TestPlanReport;
 import io.metersphere.base.domain.TestPlanReportExample;
 import java.util.List;
 
-import io.metersphere.controller.request.CodeCoverageBindRequest;
+import io.metersphere.tuhu.request.CodeCoverageBindRequest;
 import org.apache.ibatis.annotations.Param;
 
 public interface TestPlanReportMapper {

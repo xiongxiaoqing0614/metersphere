@@ -1,10 +1,12 @@
-package io.metersphere.base.domain;
+package io.metersphere.tuhu.dto;
 
-import lombok.Data;
-import java.io.Serializable;
 
-@Data
-public class TuhuCodeCoverageRateMapping implements Serializable {
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class TuhuCodeCoverageRateResultDTO {
     private Long id;
 
     private String testPlanId;
@@ -20,4 +22,5 @@ public class TuhuCodeCoverageRateMapping implements Serializable {
     private String stage;
 
     private Float coverageRate;
+
 }
