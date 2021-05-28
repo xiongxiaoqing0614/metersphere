@@ -1,123 +1,55 @@
 <template>
   <div>
-    <el-table
-      v-loading="result.loading"
-      :data="tableData"
-      height="700"
+    <vxe-table
       border
-      stripe
-      ref=“table”
-      style="width: 100%">
-      <el-table-column
-        align="center"
-        prop="department"
-        sortable
-        :filters="orgList"
-        :filter-method="filterHandler"
-        label="部门">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="team"
-        sortable
-        label="团队">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="okrApiTotal"
-        label="季度OKR-接口总数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="okrApiP0"
-        label="季度OKR-P0接口数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="okrnp0api"
-        label="季度OKR-非P0接口数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="okrApiTestP0"
-        label="季度OKR-P0接口用例数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="okrnp0case"
-        label="季度OKR-非P0接口用例数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="okrApiTestTotal"
-        label="季度OKR-接口用例总数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="okrScenarioTestTotal"
-        label="季度OKR-场景用例总数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="apicompleted"
-        label="已完成接口总数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="p0apicompleted"
-        label="已完成P0接口总数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="casecompleted"
-        label="已完成接口用例数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="scenariocompleted"
-        label="已完成场景用例数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="apiaddedweek"
-        label="本周新增接口总数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="p0apiaddedweek"
-        label="本周新增P0接口总数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="caseaddedweek"
-        label="本周新增接口用例数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="scenarioaddedweek"
-        label="本周新增场景用例数">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="apicompleterate"
-        label="接口总数完成率">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="p0apicompleterate"
-        label="P0接口总数完成率">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="casecompleterate"
-        label="接口用例数完成率">
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="scenariocompleterate"
-        label="场景用例数完成率">
-      </el-table-column>
-    </el-table>
+      resizable
+      show-overflow
+      :loading="result.loading"
+      :data="tableData"
+      :footer-method="footerMethod"
+      :edit-config="{trigger: 'dblclick', mode: 'row'}">
+      <vxe-table-column type="seq" width="60"></vxe-table-column>
+      <vxe-table-column field="department" title="部门"></vxe-table-column>
+      <vxe-table-column field="team" title="团队"></vxe-table-column>
+      <vxe-table-column field="okrApiTotal" title="季度OKR-接口总数" :edit-render="{name: '$input', props: {type: 'number'}}"></vxe-table-column>
+      <vxe-table-column field="okrApiP0" title="季度OKR-P0接口数" :edit-render="{name: '$input', props: {type: 'number'}}"></vxe-table-column>
+      <vxe-table-column field="okrApiP0N" title="季度OKR-非P0接口数">
+            <template #default="{ row }">
+              <span>{{ countokrApiP0N(row) }}</span>
+            </template>
+      </vxe-table-column>
+      <vxe-table-column field="okrApiTestP0" title="季度OKR-P0接口用例数">
+            <template #default="{ row }">
+              <span>{{ countokrApiTestP0(row) }}</span>
+            </template>
+      </vxe-table-column>
+      <vxe-table-column field="okrApiTestP0N" title="季度OKR-非P0接口用例数">
+            <template #default="{ row }">
+              <span>{{ countokrApiTestP0N(row) }}</span>
+            </template>
+      </vxe-table-column>
+      <vxe-table-column field="okrApiTestTotal" title="季度OKR-接口用例总数">
+            <template #default="{ row }">
+              <span>{{ countokrApiTestTotal(row) }}</span>
+            </template>
+      </vxe-table-column>
+      <vxe-table-column field="okrScenarioTestTotal" title="季度OKR-场景用例总数" :edit-render="{name: '$input', props: {type: 'number'}}"></vxe-table-column>
+    
+      <vxe-table-column field="apicompleted" title="已完成接口总数"></vxe-table-column>
+      <vxe-table-column field="p0apicompleted" title="已完成P0接口总数"></vxe-table-column>
+      <vxe-table-column field="casecompleted" title="已完成接口用例数"></vxe-table-column>
+      <vxe-table-column field="scenariocompleted" title="已完成场景用例数"></vxe-table-column>
+
+      <vxe-table-column field="apiaddedweek" title="本周新增接口总数"></vxe-table-column>
+      <vxe-table-column field="p0apiaddedweek" title="本周新增P0接口总数"></vxe-table-column>
+      <vxe-table-column field="caseaddedweek" title="本周新增接口用例数"></vxe-table-column>
+      <vxe-table-column field="scenarioaddedweek" title="本周新增场景用例数"></vxe-table-column>
+    
+      <vxe-table-column field="apicompleterate" title="接口总数完成率"></vxe-table-column>
+      <vxe-table-column field="p0apicompleterate" title="P0接口总数完成率"></vxe-table-column>
+      <vxe-table-column field="casecompleterate" title="接口用例数完成率"></vxe-table-column>
+      <vxe-table-column field="scenariocompleterate" title="场景用例数完成率"></vxe-table-column>
+    </vxe-table>
   </div>
 </template>
 
@@ -127,7 +59,6 @@ import MsMainContainer from "@/business/components/common/components/MsMainConta
 import MsContainer from "@/business/components/common/components/MsContainer";
 
 require('echarts/lib/component/legend');
-
 
 export default {
   name: "KanbanOKR",
@@ -195,6 +126,50 @@ export default {
       }
       return false;
     },
+    sumNum (list, field) {
+      let count = 0
+      list.forEach(item => {
+        count += Number(item[field])
+      })
+      return count
+    },
+    countokrApiP0N (row) {
+      return row.okrApiTotal - row.okrApiP0
+    },
+    countokrApiTestP0 (row) {
+      return row.okrApiP0 * 4
+    },
+    countokrApiTestP0N (row) {
+      return row.okrApiTotal - row.okrApiP0
+    },
+    countokrApiTestTotal (row) {
+      return row.okrApiP0*3 + row.okrApiTotal *1
+    },
+    countAmount (row) {
+      return row.amount * row.number
+    },
+    countAllAmount (data) {
+      let count = 0
+      data.forEach(row => {
+        count += this.countAmount(row)
+      })
+      return count
+    },
+    footerMethod ({ columns, data }) {
+      return [
+        columns.map((column, columnIndex) => {
+          if (columnIndex === 0) {
+            return '合计'
+          }
+          if (columnIndex === 3) {
+            return `${this.sumNum(data, 'number')} 本`
+          } else if (columnIndex === 4) {
+            return `共 ${this.countAllAmount(data)} 元`
+          }
+          return '-'
+        })
+      ]
+    }
   }
 }
 </script>
@@ -219,4 +194,5 @@ export default {
 .track-card {
   height: 100%;
 }
+
 </style>
