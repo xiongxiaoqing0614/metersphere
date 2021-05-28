@@ -515,7 +515,7 @@
       execution_times = #{executionTimes,jdbcType=INTEGER}
     where id = #{id,jdbcType=VARCHAR}
   </update>
-  <select id="selectByConditions" parameterType="io.metersphere.controller.request.CodeCoverageBindRequest" resultMap="BaseResultMap">
+  <select id="selectByConditions" parameterType="io.metersphere.tuhu.request.CodeCoverageBindRequest" resultMap="BaseResultMap">
     select test_plan.id, test_plan.workspace_id, test_plan.project_id
     from test_plan, workspace, project
     where test_plan.workspace_id = workspace.id and test_plan.project_id = project.id

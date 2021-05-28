@@ -171,8 +171,7 @@
         <template v-slot:default="scope">
           <el-button
             @click="showCoverageRateReport(scope.row, $event)"
-            type="text"
-            size="small">
+            type="text">
             {{scope.row.coverageRate}}
           </el-button>
         </template>
