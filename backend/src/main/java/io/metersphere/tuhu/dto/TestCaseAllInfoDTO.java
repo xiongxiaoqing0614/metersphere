@@ -7,6 +7,7 @@ public class TestCaseAllInfoDTO extends TestCaseSummaryDTO {
     private long completedAPICount;
     private long nonP0APICount;
     private long apiCountThisWeek;
+    private long p0APICountThisWeek;
     private long singleCountThisWeek;
     private long scenarioCountThisWeek;
 }
