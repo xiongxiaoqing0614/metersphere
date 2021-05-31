@@ -4,6 +4,9 @@
       border
       resizable
       show-overflow
+      stripe
+      highlight-current-row
+      highlight-hover-row
       :loading="result.loading"
       :data="tableData"
       :footer-method="footerMethod"
@@ -35,20 +38,36 @@
       </vxe-table-column>
       <vxe-table-column field="okrScenarioTestTotal" title="季度OKR-场景用例总数" :edit-render="{name: '$input', props: {type: 'number'}}"></vxe-table-column>
     
-      <vxe-table-column field="apicompleted" title="已完成接口总数"></vxe-table-column>
-      <vxe-table-column field="p0apicompleted" title="已完成P0接口总数"></vxe-table-column>
-      <vxe-table-column field="casecompleted" title="已完成接口用例数"></vxe-table-column>
-      <vxe-table-column field="scenariocompleted" title="已完成场景用例数"></vxe-table-column>
+      <vxe-table-column field="apiCount" title="已完成接口总数"></vxe-table-column>
+      <vxe-table-column field="p0APICount" title="已完成P0接口总数"></vxe-table-column>
+      <vxe-table-column field="singleCount" title="已完成接口用例数"></vxe-table-column>
+      <vxe-table-column field="scenarioCount" title="已完成场景用例数"></vxe-table-column>
 
-      <vxe-table-column field="apiaddedweek" title="本周新增接口总数"></vxe-table-column>
-      <vxe-table-column field="p0apiaddedweek" title="本周新增P0接口总数"></vxe-table-column>
-      <vxe-table-column field="caseaddedweek" title="本周新增接口用例数"></vxe-table-column>
-      <vxe-table-column field="scenarioaddedweek" title="本周新增场景用例数"></vxe-table-column>
+      <vxe-table-column field="apiCountThisWeek" title="本周新增接口总数"></vxe-table-column>
+      <!--vxe-table-column field="p0APIAddedweek" title="本周新增P0接口总数"></!--vxe-table-column-->
+      <vxe-table-column field="singleCountThisWeek" title="本周新增接口用例数"></vxe-table-column>
+      <vxe-table-column field="scenarioCountThisWeek" title="本周新增场景用例数"></vxe-table-column>
     
-      <vxe-table-column field="apicompleterate" title="接口总数完成率"></vxe-table-column>
-      <vxe-table-column field="p0apicompleterate" title="P0接口总数完成率"></vxe-table-column>
-      <vxe-table-column field="casecompleterate" title="接口用例数完成率"></vxe-table-column>
-      <vxe-table-column field="scenariocompleterate" title="场景用例数完成率"></vxe-table-column>
+      <vxe-table-column field="apiCompleteRate" title="接口总数完成率">
+            <template #default="{ row }">
+              <span>{{ calapiCompleteRate (row) }} %</span>
+            </template>  
+      </vxe-table-column>
+      <vxe-table-column field="p0apiCompleteRate" title="P0接口总数完成率">
+            <template #default="{ row }">
+              <span>{{ calp0apiCompleteRate(row) }} %</span>
+            </template>    
+      </vxe-table-column>
+      <vxe-table-column field="caseCompleteRate" title="接口用例数完成率">
+            <template #default="{ row }">
+              <span>{{ calcaseCompleteRate(row) }} %</span>
+            </template>       
+      </vxe-table-column>
+      <vxe-table-column field="scenarioCompleteRate" title="场景用例数完成率">
+            <template #default="{ row }">
+              <span>{{ calscenarioCompleteRate(row) }} %</span>
+            </template>        
+      </vxe-table-column>
     </vxe-table>
   </div>
 </template>
@@ -144,6 +163,34 @@ export default {
     },
     countokrApiTestTotal (row) {
       return row.okrApiP0*3 + row.okrApiTotal *1
+    },
+    calapiCompleteRate (row) {
+      if(row.okrApiTotal == 0) {
+        return 0
+      }else{
+        return (row.apiCount/row.okrApiTotal) * 100 
+      }
+    },
+    calp0apiCompleteRate (row) {
+      if(row.okrApiP0 == 0) {
+        return 0
+      }else{
+        return (row.p0APICount/row.okrApiP0) * 100
+      }
+    },
+    calcaseCompleteRate (row) {
+      if(row.okrApiP0 == 0 && row.okrApiTotal == 0) {
+        return 0
+      }else{
+        return (row.singleCount/(row.okrApiP0*3 + row.okrApiTotal *1))*100
+      }
+    },
+    calscenarioCompleteRate (row) {
+      if(row.okrScenarioTestTotal == 0) {
+        return 0
+      }else{
+        return (row.scenarioCount/row.okrScenarioTestTotal)*100
+      }
     },
     countAmount (row) {
       return row.amount * row.number

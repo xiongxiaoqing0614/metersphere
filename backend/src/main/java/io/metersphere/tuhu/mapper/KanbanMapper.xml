@@ -14,7 +14,7 @@
                 group by atc2.project_id) stc2 on proj.id = stc2.atcid2
             left join (SELECT as2.project_id as2id, COUNT(*) 场景用例数量 from api_scenario as2 where as2.status != 'Trash' group by as2.project_id) stc3 on proj.id = stc3.as2id
             left join (SELECT as3.project_id as2id2, COUNT(*) 已完成场景用例数量 from api_scenario as3 where as3.status = 'Completed' group by as3.project_id) stc4 on proj.id = stc4.as2id2
-                where proj.name is not null and org.name != 'MeterSphere demo test' and org.name != '平台架构中心' and proj.name != '审核2.0' and proj.name != 'test' and not proj.name like '%demo%'
+                where proj.name is not null and org.name != 'MeterSphere demo test' and org.name != '平台架构中心' and org.name != '默认组织' and proj.name != '审核2.0' and proj.name != 'test' and not proj.name like '%demo%'
             order by department desc, team, project
     </select>
 </mapper>
