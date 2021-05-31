@@ -1,23 +1,23 @@
 <template>
   <div>
     <div>
-    <label>请选择需要展示的数据：</label>
-    <el-checkbox-group v-model="checkedTableColumns">
-      <el-checkbox
-        v-for="column in tableColumns"
-        :key="column.prop"
-        :label="column.prop"
-        >{{ column.label }}</el-checkbox>
-    </el-checkbox-group>
+      <label>请选择需要展示的数据：</label>
+      <el-checkbox-group v-model="checkedTableColumns" class="select-column">
+        <el-checkbox
+          v-for="column in tableColumns"
+          :key="column.prop"
+          :label="column.prop"
+          >{{ column.label }}</el-checkbox>
+      </el-checkbox-group>
     </div>
     <el-table
       :data="tableData"
-      height="700"
+      min-height="100"
       border
       stripe
       show-summary
       ref=“table”
-      style="width: 100%">
+      style="width: 100%; max-height: 700px;">
       <el-table-column
         align="center"
         prop="department"
@@ -321,5 +321,8 @@ export default {
 
 .track-card {
   height: 100%;
+}
+.select-column {
+  margin: 10px 5px;
 }
 </style>

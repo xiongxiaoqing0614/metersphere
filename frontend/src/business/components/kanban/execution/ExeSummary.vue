@@ -2,11 +2,10 @@
   <div>
     <el-table
       :data="tableData"
-      height="700"
       border
       stripe
       ref=“table”
-      style="width: 100%">
+      style="width: 100%; max-height: 700px;">
       <el-table-column
         align="center"
         prop="department"
@@ -37,6 +36,11 @@
         align="center"
         prop="executionTimes"
         label="执行次数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="dailyPassRate"
+        label="日均用例通过率">
       </el-table-column>
       <el-table-column
         align="center"

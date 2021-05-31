@@ -1,7 +1,7 @@
 <template>
   <el-col>
     <kanban-header-menus/>
-    <div>
+    <div class="table-container">
       <transition>
         <keep-alive>
           <router-view :baseUrl="baseUrl"/>
@@ -30,6 +30,14 @@
 <style>
   .node-tree {
     margin: 3%;
+  }
+  .table-container {
+    margin: 10px;
+  }
+  .el-table th.gutter{
+
+    display: table-cell!important;
+
   }
 </style>
 
