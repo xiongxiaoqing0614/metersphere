@@ -18,6 +18,8 @@ public class ApiDefinitionImportParserFactory {
             return new HarParser();
         }else if (StringUtils.equals(ApiImportPlatform.ESB.name(), platform)) {
             return new ESBParser();
+        }else if (StringUtils.equals(ApiImportPlatform.JmeterTuhu.name(), platform)) {
+            return new JmeterTuhuParser();
         }
         return null;
     }
