@@ -3,12 +3,13 @@ import lombok.Data;
 
 @Data
 public class OKRRequest {
+    private String id;
     private String name;
     private String description;
-    private String workspace_id;
-    private long api_total;
-    private long api_p0;
-    private long api_test_total;
-    private long api_test_p0;
-    private long scenario_test_total;
+    private String wsId;
+    private long okrApiTotal;
+    private long okrApiP0;
+    private long okrApiTestTotal;
+    private long okrApiTestP0;
+    private long okrScenarioTestTotal;
 }

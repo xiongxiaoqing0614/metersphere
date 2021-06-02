@@ -1,5 +1,6 @@
 package io.metersphere.tuhu.service;
 
+import io.metersphere.tuhu.controller.OKRRequest;
 import io.metersphere.tuhu.dto.TestCaseAllInfoDTO;
 import io.metersphere.tuhu.dto.TuhuOKRDTO;
 import io.metersphere.tuhu.dto.TuhuOKRDisplayDTO;
@@ -12,6 +13,7 @@ import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Calendar;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -23,10 +25,6 @@ public class OKRService {
     @Resource
     private OKRMapper okrMapper;
 
-    public List<TuhuOKRDTO> getOKR() {
-        return okrMapper.getOKR();
-    }
-
     public void addOKR(TuhuOKRDTO okrDto) {
         okrDto.setId(UUID.randomUUID().toString());
         okrDto.setCreateTime(System.currentTimeMillis());
@@ -34,10 +32,66 @@ public class OKRService {
         okrMapper.insert(okrDto);
     }
 
-    public List<TuhuOKRDisplayDTO> getAllOKR(){
+    private String getNameByCurrentTime() {
+        Calendar cal = Calendar.getInstance();
+        String year = String.valueOf(cal.get(Calendar.YEAR));
+        int month = cal.get(Calendar.MONTH) + 1;
+        if (month >= 1 && month <= 3) {
+            return year + "Q1";
+        } else if (month >= 4 && month <= 6) {
+            return year + "Q2";
+        } else if (month >= 7 && month <= 9) {
+            return year + "Q3";
+        } else {
+            return year + "Q4";
+        }
+    }
+
+    private String getNextQName() {
+        Calendar cal = Calendar.getInstance();
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH) + 1;
+        if (month >= 1 && month <= 3) {
+            return year + "Q2";
+        } else if (month >= 4 && month <= 6) {
+            return year + "Q3";
+        } else if (month >= 7 && month <= 9) {
+            return year + "Q4";
+        } else {
+            return year+1 + "Q1";
+        }
+    }
+
+    public String updateOKR(OKRRequest request) {
+        TuhuOKRDTO okrDto = new TuhuOKRDTO();
+        okrDto.setId(request.getId());
+        okrDto.setName(request.getName());
+        okrDto.setWsId(request.getWsId());
+        okrDto.setOkrApiP0(request.getOkrApiP0());
+        okrDto.setOkrApiTotal(request.getOkrApiTotal());
+        okrDto.setOkrApiTestP0(request.getOkrApiTestP0());
+        okrDto.setOkrApiTestTotal(request.getOkrApiTestTotal());
+        okrDto.setOkrScenarioTestTotal(request.getOkrScenarioTestTotal());
+        okrDto.setDescription(request.getDescription());
+        updateOKR(okrDto);
+        return okrDto.getId();
+    }
+
+    public void updateOKR(TuhuOKRDTO okrDto) {
+        if(okrDto.getName() == null){
+            okrDto.setName(getNameByCurrentTime());
+        }
+        if(okrDto.getId().equals("")) {
+            addOKR(okrDto);
+        }else{
+            okrDto.setUpdateTime(System.currentTimeMillis());
+            okrMapper.update(okrDto);
+        }
+    }
+
+    private List<TuhuOKRDisplayDTO> transferDisplayDTO(List<TestCaseAllInfoDTO> caseAllInfo, List<TuhuOKRDTO> tuhuOKR){
         List<TuhuOKRDisplayDTO> returnData = new ArrayList<TuhuOKRDisplayDTO>();
-        List<TestCaseAllInfoDTO> caseAllInfo = getSummaryByTeam();
-        List<TuhuOKRDTO> tuhuOKR = getOKR();
+
         for(TestCaseAllInfoDTO caseInfo : caseAllInfo) {
             TuhuOKRDisplayDTO displayOKR = new TuhuOKRDisplayDTO();
             BeanUtils.copyProperties(caseInfo, displayOKR);
@@ -48,12 +102,38 @@ public class OKRService {
                 displayOKR.setOkrScenarioTestTotal(0);
                 displayOKR.setOkrApiTestP0(0);
                 displayOKR.setOkrApiTestTotal(0);
+                displayOKR.setId("");
             }else{
                 BeanUtils.copyProperties(okrData, displayOKR);
             }
             returnData.add(displayOKR);
         }
         return returnData;
+    }
+
+    public List<TuhuOKRDTO> getOKR() {
+        return okrMapper.getOKR();
+    }
+
+    public List<TuhuOKRDisplayDTO> getOKRByName(String okrName) {
+        List<TestCaseAllInfoDTO> caseAllInfo = getSummaryByTeam();
+        List<TuhuOKRDTO> tuhuOKR = okrMapper.getOKRByName(okrName);
+        return transferDisplayDTO(caseAllInfo, tuhuOKR);
+    }
+
+    public List<TuhuOKRDTO> getOKRByNameAndWSId(String okrName, String wsId) {
+        return okrMapper.getOKRByNameAndWSId(okrName, wsId);
+    }
+
+    public List<TuhuOKRDisplayDTO> getAllOKR(){
+        List<TestCaseAllInfoDTO> caseAllInfo = getSummaryByTeam();
+        List<TuhuOKRDTO> tuhuOKR = getOKR();
+
+        return transferDisplayDTO(caseAllInfo, tuhuOKR);
+    }
+
+    public List<TuhuOKRDisplayDTO> getCurrentOKR(){
+        return getOKRByName(getNameByCurrentTime());
     }
 
     public List<TestCaseAllInfoDTO> getSummaryByTeam() {
@@ -102,5 +182,17 @@ public class OKRService {
                 return data;
         }
         return null;
+    }
+
+    public List<String> getOKRNames(){
+        List<String> existedOKRNames = okrMapper.getOKRNames();
+        String nextOKRName = getNextQName();
+        if(existedOKRNames.isEmpty()){
+            existedOKRNames.add(nextOKRName);
+        }else{
+            if(!existedOKRNames.contains(nextOKRName))
+                existedOKRNames.add(nextOKRName);
+        }
+        return existedOKRNames;
     }
 }

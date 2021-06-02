@@ -17,6 +17,8 @@ import lombok.Data;
  */
 @Data
 public class TuhuOKRDisplayDTO extends TestCaseAllInfoDTO{
+    private String id;
+    private String name;
     private long okrApiTotal;
     private long okrApiP0;
     private long okrApiTestTotal;

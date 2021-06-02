@@ -1,16 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="io.metersphere.tuhu.mapper.OKRMapper">
+    <select id="getOKRNames" resultType="java.lang.String">
+        SELECT name from tuhu_okr group by name;
+    </select>
     <select id="getOKR" resultType="io.metersphere.tuhu.dto.TuhuOKRDTO">
-        SELECT id, name, workspace_id, api_total, api_p0, api_test_total, api_test_p0, scenario_test_total from tuhu_okr;
+        SELECT id, name, description, create_time createTime, update_time updateTime, workspace_id wsId, api_total okrApiTotal, api_p0 okrApiP0, api_test_total okrApiTestTotal, api_test_p0 okrApiTestP0, scenario_test_total okrScenarioTestTotal from tuhu_okr;
+    </select>
+    <select id="getOKRById" resultType="io.metersphere.tuhu.dto.TuhuOKRDTO">
+        SELECT id, name, description, create_time createTime, update_time updateTime, workspace_id wsId, api_total okrApiTotal, api_p0 okrApiP0, api_test_total okrApiTestTotal, api_test_p0 okrApiTestP0, scenario_test_total okrScenarioTestTotal from tuhu_okr
+        where id = #{id};
+    </select>
+    <select id="getOKRByName" resultType="io.metersphere.tuhu.dto.TuhuOKRDTO">
+        SELECT id, name, description, create_time createTime, update_time updateTime, workspace_id wsId, api_total okrApiTotal, api_p0 okrApiP0, api_test_total okrApiTestTotal, api_test_p0 okrApiTestP0, scenario_test_total okrScenarioTestTotal from tuhu_okr
+        where name = #{okrName};
+    </select>
+    <select id="getOKRByNameAndWSId" resultType="io.metersphere.tuhu.dto.TuhuOKRDTO">
+        SELECT id, name, description, create_time createTime, update_time updateTime, workspace_id wsId, api_total okrApiTotal, api_p0 okrApiP0, api_test_total okrApiTestTotal, api_test_p0 okrApiTestP0, scenario_test_total okrScenarioTestTotal from tuhu_okr
+        where name = #{okrName} and wsId = #{wsId};
     </select>
     <insert id="insert" parameterType="io.metersphere.tuhu.dto.TuhuOKRDTO">
         insert into tuhu_okr (id, name, description, create_time, update_time, workspace_id, api_total,
         api_p0, api_test_total, api_test_p0, scenario_test_total)
         values (#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR},
-        #{create_time,jdbcType=BIGINT}, #{update_time,jdbcType=BIGINT}, #{workspace_id,jdbcType=VARCHAR},
-        #{customNum,jdbcType=VARCHAR}, #{stepModel,jdbcType=VARCHAR}, #{prerequisite,jdbcType=LONGVARCHAR},
-        #{api_total,jdbcType=LONGVARCHAR}, #{api_p0,jdbcType=LONGVARCHAR}, #{api_test_total,jdbcType=LONGVARCHAR},
-        #{api_test_p0,jdbcType=LONGVARCHAR}, #{scenario_test_total,jdbcType=LONGVARCHAR})
+        #{createTime,jdbcType=BIGINT}, #{updateTime,jdbcType=BIGINT}, #{wsId,jdbcType=VARCHAR},
+        #{okrApiTotal,jdbcType=LONGVARCHAR}, #{okrApiP0,jdbcType=LONGVARCHAR}, #{okrApiTestTotal,jdbcType=LONGVARCHAR},
+        #{okrApiTestP0,jdbcType=LONGVARCHAR}, #{okrScenarioTestTotal,jdbcType=LONGVARCHAR})
     </insert>
+    <update id="update" parameterType="io.metersphere.tuhu.dto.TuhuOKRDTO">
+        UPDATE tuhu_okr
+        SET description = #{record.id,jdbcType=VARCHAR},
+        api_total = #{record.okrApiTotal,jdbcType=LONGVARCHAR},
+        api_p0 = #{record.okrApiP0,jdbcType=LONGVARCHAR},
+        api_test_total = #{record.okrApiTestTotal,jdbcType=LONGVARCHAR},
+        api_test_p0 = #{record.okrApiTestP0,jdbcType=LONGVARCHAR},
+        scenario_test_total = #{record.okrScenarioTestTotal,jdbcType=LONGVARCHAR}
+        WHERE name = #{record.name,jdbcType=VARCHAR} AND workspace_id = #{record.wsId,jdbcType=VARCHAR}
+    </update>
 </mapper>

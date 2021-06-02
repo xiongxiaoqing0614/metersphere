@@ -19,22 +19,25 @@ public class OKRController {
     @Resource
     private OKRService okrService;
 
-    @GetMapping("/getOKR")
+    @GetMapping("/getCurrentOKR")
     public List<TuhuOKRDisplayDTO> getOKR() {
-        return okrService.getAllOKR();
+        return okrService.getCurrentOKR();
     }
 
-//    @PostMapping(value = "/create", consumes = {"multipart/form-data"})
-//    public void create(@RequestPart("request") OKRRequest request) {
-//        TuhuOKRDTO okrReqDTO = new TuhuOKRDTO();
-//        BeanUtils.copyBean(okrReqDTO, request);
-//        okrService.addOKR(okrReqDTO);
-//    }
+    @GetMapping("/getOKR/{okrName}")
+    public List<TuhuOKRDisplayDTO> getOKR(@PathVariable String okrName) {
+        return okrService.getOKRByName(okrName);
+    }
 
-//    @PostMapping(value = "/update", consumes = {"multipart/form-data"})
-//    @RequiresRoles(value = {RoleConstants.TEST_MANAGER, RoleConstants.TEST_USER}, logical = Logical.OR)
-//    public ApiDefinitionWithBLOBs update(@RequestPart("request") SaveApiDefinitionRequest request, @RequestPart(value = "files") List<MultipartFile> bodyFiles) {
-//        return okrService.update(request, bodyFiles);
-//    }
+    @GetMapping("/getOKRNames")
+    public List<String> getOKRNames() {
+        return okrService.getOKRNames();
+    }
+
+
+    @PostMapping(value = "/updateOKR")
+    public String update(@RequestBody OKRRequest request) {
+        return okrService.updateOKR(request);
+    }
 
 }

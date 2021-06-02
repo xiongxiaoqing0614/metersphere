@@ -1,14 +1,10 @@
 <template>
   <div>
-    <vxe-toolbar ref="xToolbar" export>
+    <vxe-toolbar ref="xToolbar" custom export>
       <template #buttons>
-        <vxe-button content="选择季度">
-          <template #dropdowns>
-            <vxe-button type="text" content="21Q2"></vxe-button>
-            <vxe-button type="text" content="21Q3"></vxe-button>
-            <vxe-button type="text" content="21Q4"></vxe-button>
-          </template>
-        </vxe-button>
+        <vxe-select v-model="okrName" @change="getOKRByName">
+          <vxe-option v-for="item in okrNames" :key="item" :value="item" :label="`${item}`"></vxe-option>
+        </vxe-select>
       </template>
     </vxe-toolbar> 
     <vxe-table
@@ -22,13 +18,17 @@
       ref="xTable"
       class="editable-footer"
       max-height="600"
+      :header-cell-style="headerCellStyle"
+      :cell-style="cellStyle"
       :export-config="{}"
       :loading="result.loading"
       :data="tableData"
       :footer-method="footerMethod"
       :footer-cell-class-name="footerCellClassName"
-      :edit-config="{trigger: 'dblclick', mode: 'row'}">
+      :edit-config="{trigger: 'dblclick', mode: 'row', showStatus: true}"
+      @edit-closed="editClosedEvent">
       <vxe-table-column type="seq" width="60"></vxe-table-column>
+      <vxe-table-column field="id" :visible="false" width="60"></vxe-table-column>
       <vxe-table-column 
         field="department" 
         title="部门"
@@ -36,8 +36,8 @@
         :filters="[{label:'门店与供应链中心',value:'门店与供应链中心'},{label:'线下业务与CRM技术中心',value:'线下业务与CRM技术中心'},{label:'交易履约与营销平台中心',value:'交易履约与营销平台中心'},{label:'业务开发第二中心',value:'业务开发第二中心'},{label:'业务开发第一中心',value:'业务开发第一中心'}]"
         :filter-method="filterDepartmentMethod"></vxe-table-column>
       <vxe-table-column field="team" title="团队"></vxe-table-column>
-      <vxe-table-column field="okrApiTotal" title="季度OKR-接口总数" :edit-render="{name: '$input', props: {type: 'number'}}"></vxe-table-column>
-      <vxe-table-column field="okrApiP0" title="季度OKR-P0接口数" :edit-render="{name: '$input', props: {type: 'number'}}"></vxe-table-column>
+      <vxe-table-column field="okrApiTotal" title="季度OKR-接口总数" :edit-render="{name: '$input', props: {type: 'number',placeholder: '请输入OKR'}}"></vxe-table-column>
+      <vxe-table-column field="okrApiP0" title="季度OKR-P0接口数" :edit-render="{name: '$input', props: {type: 'number',placeholder: '请输入OKR'}}"></vxe-table-column>
       <vxe-table-column field="okrApiP0N" title="季度OKR-非P0接口数" >
             <template #default="{ row }">
               <span>{{ countokrApiP0N(row) }}</span>
@@ -58,7 +58,7 @@
               <span>{{ countokrApiTestTotal(row) }}</span>
             </template>
       </vxe-table-column>
-      <vxe-table-column field="okrScenarioTestTotal" title="季度OKR-场景用例总数" :edit-render="{name: '$input', props: {type: 'number'}}"></vxe-table-column>
+      <vxe-table-column field="okrScenarioTestTotal" title="季度OKR-场景用例总数" :edit-render="{name: '$input', props: {type: 'number',placeholder: '请输入OKR'}}"></vxe-table-column>
     
       <vxe-table-column field="apiCount" title="已完成接口总数"></vxe-table-column>
       <vxe-table-column field="p0APICount" title="已完成P0接口总数"></vxe-table-column>
@@ -112,19 +112,24 @@ export default {
       result:{},
       tableData: null,
       orgList: null,
-      wsList: null,
-      tableColumns:null
+      okrName: null,
+      okrNames: null,
+      okrList: null,
+      tableColumns: null
     };
   },
   created() {
+    this.getOKRNames();
     this.getSummary();
     this.$nextTick(() => {
-      this.$refs['table'].doLayout();
-    }) 
+      // 将表格和工具栏进行关联
+      const $table = this.$refs.xTable
+      $table.connect(this.$refs.xToolbar)
+    })
   },
   updated () {
     this.$nextTick(() => {
-      this.$refs['table'].doLayout();
+      // this.$refs['table'].doLayout();
     }) 
   },
   activated() {
@@ -137,14 +142,21 @@ export default {
     init() {
 
     },
+    getOKRNames(){
+      this.result = this.$get("/tuhu/okr/getOKRNames", response => {
+        this.okrNames = response.data;
+      });
+    },
     getSummary(){
       const _this = this;
-      this.result = this.$get("/tuhu/okr/getOKR", response => {
+      this.result = this.$get("/tuhu/okr/getCurrentOKR", response => {
         _this.tableData = response.data;
-        console.info(_this.tableData);
-        console.table(_this.tableData)
         _this.orgList = new Array();
         for(var i = 0, len = _this.tableData.length; i < len; i++){
+          if(i == 0) {
+            this.okrName = _this.tableData[i].name;
+          }
+
           var departName = _this.tableData[i].department
           if(!this.hasFilter(_this.orgList, departName))
           {
@@ -271,23 +283,111 @@ export default {
         })
       ]
 
-      if(returnArray[0][3] > 0)
-        returnArray[0][18] = ((returnArray[0][10]/returnArray[0][3]).toFixed(4) * 100).toString() + " %"
+      if(returnArray[0][3] > 0){
+        let rate = ((returnArray[0][10]/returnArray[0][3])* 100).toString().match(/^\d+(?:\.\d{0,1})?/)
+        returnArray[0][18] = rate + " %"
+      }
 
-      if(returnArray[0][4] > 0)
-        returnArray[0][19] = ((returnArray[0][11]/returnArray[0][4]).toFixed(4) * 100).toString() + " %"
+      if(returnArray[0][4] > 0){
+        let rate = ((returnArray[0][11]/returnArray[0][4]) * 100).toString().match(/^\d+(?:\.\d{0,1})?/)
+        returnArray[0][19] = rate + " %"
+      }
 
-      if(returnArray[0][8] > 0)
-        returnArray[0][20] = ((returnArray[0][12]/returnArray[0][8]).toFixed(4) * 100).toString() + " %"
+      if(returnArray[0][8] > 0){
+        let rate = ((returnArray[0][12]/returnArray[0][8]) * 100).toString().match(/^\d+(?:\.\d{0,1})?/)
+        returnArray[0][20] = rate + " %"
+      }
 
-      if(returnArray[0][9] > 0)
-        returnArray[0][21] = ((returnArray[0][13]/returnArray[0][9]).toFixed(4) * 100).toString() + " %"
+      if(returnArray[0][9] > 0){
+        let rate = ((returnArray[0][13]/returnArray[0][9]) * 100).toString().match(/^\d+(?:\.\d{0,1})?/)
+        returnArray[0][21] = rate + " %"
+      }
 
       for (let i = 0; i < returnArray[0].length; ++i) {
         if(returnArray[0][i] === "NaN")
           returnArray[0][i] = 0
       }
       return returnArray
+    },
+    headerCellStyle ({ column, columnIndex }) {
+      if (column.property === 'okrApiTotal' || column.property === 'okrApiP0' || column.property === 'okrScenarioTestTotal'  ) {
+        return {
+          backgroundColor: '#D1E9E9',
+          color: '#272727'
+        }
+      } else if (column.property === 'okrApiP0N' || column.property === 'okrApiTestP0' ||
+       column.property === 'okrApiTestP0N' || column.property === 'okrApiTestTotal' ||
+       column.property === 'apiCompleteRate' || column.property === 'p0apiCompleteRate' ||
+       column.property === 'caseCompleteRate' || column.property === 'scenarioCompleteRate' ) {
+        return {
+          backgroundColor: '#E1C4C4',
+          color: '#272727'
+        }
+       } else if (column.property === 'apiCountThisWeek' || column.property === 'p0APICountThisWeek' ||
+       column.property === 'singleCountThisWeek' || column.property === 'scenarioCountThisWeek' ) {
+        return {
+          backgroundColor: '#E8E8D0',
+          color: '#272727'
+        }
+       } else if (column.property === 'apiCount' || column.property === 'p0APICount' ||
+       column.property === 'singleCount' || column.property === 'scenarioCount' ) {
+        return {
+          backgroundColor: '#FFF3EE',
+          color: '#272727'
+        }
+       } else {
+         return {
+          backgroundColor: '#FFFCEC',
+          color: '#272727'
+         }
+       }
+    },
+    cellStyle ({ row, rowIndex, column }) {
+      // if (column.property === 'sex') {
+      //   if (row.sex === 'Women') {
+      //     return {
+      //       backgroundColor: '#187',
+      //       color: '#ffffff'
+      //     }
+      //   } else if (row.age === 24) {
+      //     return {
+      //       backgroundColor: '#2db7f5',
+      //       color: '#000'
+      //     }
+      //   }
+      // }
+      // if ([2, 3, 5].includes(rowIndex)) {
+      //   return {
+      //     backgroundColor: 'red',
+      //     color: '#ffffff'
+      //   }
+      // }
+    },
+    editClosedEvent ({ row, column }) {
+      row.name = this.okrName;
+      this.result = this.$post('/tuhu/okr/updateOKR', row, response => {
+        row.id = response.data
+        this.$success(this.$t('commons.save_success'));
+        this.$emit('refresh');
+      });
+    },
+    buildParam(row) {
+      return JSON.parse(row)
+    },
+    getOKRByName() {
+      this.result = this.$get("/tuhu/okr/getOKR/" + this.okrName , response => {
+        this.tableData = response.data;
+        this.orgList = new Array();
+        for(var i = 0, len = this.tableData.length; i < len; i++){
+          var departName = this.tableData[i].department
+          if(!this.hasFilter(this.orgList, departName))
+          {
+            this.orgList.push({label: departName, value: departName});
+          }
+        }
+        this.departmentOptions = (JSON.stringify(this.orgList).replaceAll("\"label\"", "label").replaceAll("\"value\"", "value").replaceAll("\"","'")).toString();
+        this.$emit('refresh');
+      });
     }
   }
 }
