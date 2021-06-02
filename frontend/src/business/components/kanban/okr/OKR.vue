@@ -145,6 +145,8 @@ export default {
     getOKRNames(){
       this.result = this.$get("/tuhu/okr/getOKRNames", response => {
         this.okrNames = response.data;
+        if(this.okrName == null && this.okrNames.length > 0)
+          this.okrName = this.okrNames[0];
       });
     },
     getSummary(){
@@ -153,7 +155,7 @@ export default {
         _this.tableData = response.data;
         _this.orgList = new Array();
         for(var i = 0, len = _this.tableData.length; i < len; i++){
-          if(i == 0) {
+          if(this.okrName ==null && i == 0) {
             this.okrName = _this.tableData[i].name;
           }
 

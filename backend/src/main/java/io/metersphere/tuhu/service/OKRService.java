@@ -186,10 +186,10 @@ public class OKRService {
 
     public List<String> getOKRNames(){
         List<String> existedOKRNames = okrMapper.getOKRNames();
-        String nextOKRName = getNextQName();
         if(existedOKRNames.isEmpty()){
-            existedOKRNames.add(nextOKRName);
+            existedOKRNames.add(getNameByCurrentTime());
         }else{
+            String nextOKRName = getNextQName();
             if(!existedOKRNames.contains(nextOKRName))
                 existedOKRNames.add(nextOKRName);
         }
