@@ -26,6 +26,7 @@ import org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy;
 import org.apache.jmeter.protocol.http.util.HTTPFileArg;
 import org.apache.jmeter.save.SaveService;
 import org.apache.jorphan.collections.HashTree;
+import org.apache.jmeter.threads.ThreadGroup;
 
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -39,8 +40,10 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
             Object scriptWrapper = SaveService.loadElement(source);
             HashTree testPlan = this.getHashTree(scriptWrapper);
 
+            this.projectId = request.getProjectId();
             List<ApiDefinitionWithBLOBs> results = new ArrayList<>();
-            this.getApiDefinitionWithBLOBs(testPlan, results, this.getSelectModulePath(request), request, this.getHeaders(testPlan));
+            List<Map<String, String>> headerList = new ArrayList<>();
+            this.getApiDefinitionWithBLOBs(testPlan, results, request.getModuleId(), this.getSelectModulePath(request), request, this.getHeaders(testPlan,headerList),0);
 
             ApiDefinitionImport apiImport = new ApiDefinitionImport();
             apiImport.setData(results);
@@ -65,8 +68,11 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
         return selectModulePath;
     }
 
-    private void getApiDefinitionWithBLOBs(HashTree tree, List<ApiDefinitionWithBLOBs> results, String selectModulePath, ApiTestImportRequest importRequest, Map<String, String> headers){
+    private void getApiDefinitionWithBLOBs(HashTree tree, List<ApiDefinitionWithBLOBs> results, String selectModuleId, String selectModulePath, ApiTestImportRequest importRequest, List<Map<String, String>> headers, int indexHeader){
         for (Object key : tree.keySet()) {
+            if(key instanceof ThreadGroup){
+                indexHeader = indexHeader+1;
+            }
             if (key instanceof HTTPSamplerProxy){
                 HashTree httpSamplerProxy = tree.get(key);
                 String samplerPath = ((HTTPSamplerProxy) key).getPath();
@@ -74,7 +80,12 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
                 String samplerMethod = ((HTTPSamplerProxy) key).getMethod();
 
                 MsHTTPSamplerProxy samplerProxy = new MsHTTPSamplerProxy();
-                BeanUtils.copyBean(samplerProxy, ((HTTPSamplerProxy) key));
+                samplerProxy.setBody(new Body());
+                samplerProxy.setArguments(new ArrayList<KeyValue>() {{
+                    this.add(new KeyValue());
+                }});
+                HTTPSamplerProxy source = (HTTPSamplerProxy) key;
+                BeanUtils.copyBean(samplerProxy, source);
 
                 boolean hasPath = false;
                 for (int i = 0; i<results.size(); i++){
@@ -86,39 +97,56 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
                 }
                 if (!hasPath){
                     MsHTTPSamplerProxy request = buildRequest(samplerName, samplerPath, samplerMethod);
-                    ApiDefinitionWithBLOBs apiDefinition = buildApiDefinition(request.getId(),samplerName,samplerPath,samplerPath,importRequest);
-                    JSONObject headerObj = new JSONObject();
+                    ApiDefinitionWithBLOBs apiDefinition = buildApiDefinition(request.getId(),samplerName,samplerPath,samplerMethod,importRequest);
+                    List<KeyValue> headerObj = new ArrayList<>();
                     for (Object objKey : httpSamplerProxy.keySet()) {
                         if (objKey instanceof HeaderManager){
                             if(((HeaderManager)objKey).getHeaders() != null){
                                 for (int j = 0; j<((HeaderManager)objKey).getHeaders().size(); j++){
-                                    headerObj.put(((HeaderManager)objKey).getHeader(j).getName(), ((HeaderManager)objKey).getHeader(j).getValue());
+                                    headerObj.add(new KeyValue(((HeaderManager)objKey).getHeader(j).getName(), ((HeaderManager)objKey).getHeader(j).getValue()));
                                 }
                             }
                         }
                     }
-                    for (String headerManagerKey: headers.keySet()){
+                    for (String headerManagerKey: headers.get(indexHeader-1).keySet()){
                         boolean hasHeader = false;
-                        for(String headerKey: headerObj.keySet()){
-                            if (headerKey.equals(headerManagerKey)){
+                        for(int k = 0; k<headerObj.size(); k++){
+                            if (headerObj.get(k).getName().equals(headerManagerKey)){
                                 hasHeader = true;
                             }
                         }
                         if(!hasHeader){
-                            headerObj.put(headerManagerKey,headers.get(headerManagerKey));
+                            headerObj.add(new KeyValue(headerManagerKey,headers.get(indexHeader-1).get(headerManagerKey)));
                         }
                     }
                     JSONObject requestObj = new JSONObject();
                     requestObj.put("name", samplerName);
                     requestObj.put("path", samplerPath);
                     requestObj.put("method", samplerMethod);
-                    requestObj.put("headers", headerObj.toJSONString());
-                    JSONObject bodyObj = new JSONObject();
-                    bodyObj.put(Body.RAW, JSON.toJSONString(samplerProxy.getBody()));
-                    if (((HTTPSamplerProxy) key).getPostBodyRaw()){
-                        requestObj.put("body",bodyObj);
+                    requestObj.put("headers", headerObj);
+                    if (source.getArguments() != null) {
+                        if (source.getPostBodyRaw()) {
+                            samplerProxy.getBody().setType(Body.RAW);
+                            source.getArguments().getArgumentsAsMap().forEach((k, v) -> {
+                                samplerProxy.getBody().setRaw(v);
+                            });
+                            samplerProxy.getBody().initKvs();
+                        } else {
+                            samplerProxy.getBody().setType(Body.WWW_FROM);
+                            List<KeyValue> keyValues = new LinkedList<>();
+                            source.getArguments().getArgumentsAsMap().forEach((k, v) -> {
+                                KeyValue keyValue = new KeyValue(k, v);
+                                keyValues.add(keyValue);
+                            });
+                            if (CollectionUtils.isNotEmpty(keyValues)) {
+                                samplerProxy.getBody().setKvs(keyValues);
+                            }
+                        }
+                        samplerProxy.getBody().initBinary();
                     }
+                    requestObj.put("body",samplerProxy.getBody());
                     apiDefinition.setRequest(requestObj.toJSONString());
+                    apiDefinition.setModuleId(selectModuleId);
                     apiDefinition.setModulePath(selectModulePath);
                     results.add(apiDefinition);
                 }
@@ -127,31 +155,30 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
             // 递归子项
             HashTree node = tree.get(key);
             if (node != null) {
-                getApiDefinitionWithBLOBs(node, results, selectModulePath, importRequest, headers);
+                getApiDefinitionWithBLOBs(node, results, selectModuleId, selectModulePath, importRequest, headers,indexHeader);
             }
         }
 
     }
 
-    private Map<String, String> getHeaders(HashTree tree){
+    private List<Map<String, String>> getHeaders(HashTree tree, List<Map<String, String>> headerList){
+//        List<Map<String, String>> headerList = new ArrayList<>();
         Map<String, String> headers = new HashMap<>();
         for (Object key : tree.keySet()) {
-            if (key instanceof TestPlan){
-                HashTree node = tree.get(key);
-                for (Object objKey : node.keySet()){
-                    if (objKey instanceof HeaderManager){
-                        if(((HeaderManager)objKey).getHeaders() != null){
-                            for (int j = 0; j<((HeaderManager)objKey).getHeaders().size(); j++){
-                                headers.put(((HeaderManager)objKey).getHeader(j).getName(), ((HeaderManager)objKey).getHeader(j).getValue());
-                            }
-                        }
-                        break;
+            if (key instanceof HeaderManager){
+                if(((HeaderManager)key).getHeaders() != null){
+                    for (int j = 0; j<((HeaderManager)key).getHeaders().size(); j++){
+                        headers.put(((HeaderManager)key).getHeader(j).getName(), ((HeaderManager)key).getHeader(j).getValue());
                     }
                 }
+                headerList.add(headers);
             }
-            break;
+            HashTree node = tree.get(key);
+            if (node != null && !(key instanceof HTTPSamplerProxy)) {
+                getHeaders(node, headerList);
+            }
         }
-        return headers;
+        return headerList;
     }
 
     protected ApiDefinitionResult buildApiDefinition(String id, String name, String path, String method, ApiTestImportRequest importRequest) {
@@ -175,84 +202,5 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
         field.setAccessible(true);
         return (HashTree) field.get(scriptWrapper);
     }
-
-//    private void convertHttpSampler(MsHTTPSamplerProxy samplerProxy, Object key) {
-//        try {
-//            HTTPSamplerProxy source = (HTTPSamplerProxy) key;
-//            BeanUtils.copyBean(samplerProxy, source);
-//            samplerProxy.setRest(new ArrayList<KeyValue>() {{
-//                this.add(new KeyValue());
-//            }});
-//            samplerProxy.setArguments(new ArrayList<KeyValue>() {{
-//                this.add(new KeyValue());
-//            }});
-//            if (source != null && source.getHTTPFiles().length > 0) {
-//                samplerProxy.getBody().initBinary();
-//                samplerProxy.getBody().setType(Body.FORM_DATA);
-//                List<KeyValue> keyValues = new LinkedList<>();
-//                for (HTTPFileArg arg : source.getHTTPFiles()) {
-//                    List<BodyFile> files = new LinkedList<>();
-//                    BodyFile file = new BodyFile();
-//                    file.setId(arg.getParamName());
-//                    file.setName(arg.getPath());
-//                    files.add(file);
-//
-//                    KeyValue keyValue = new KeyValue(arg.getParamName(), arg.getParamName());
-//                    keyValue.setContentType(arg.getProperty("HTTPArgument.content_type").toString());
-//                    keyValue.setType("file");
-//                    keyValue.setFiles(files);
-//                    keyValues.add(keyValue);
-//                }
-//                samplerProxy.getBody().setKvs(keyValues);
-//            }
-//            samplerProxy.setProtocol(RequestType.HTTP);
-//            samplerProxy.setConnectTimeout(source.getConnectTimeout() + "");
-//            samplerProxy.setResponseTimeout(source.getResponseTimeout() + "");
-//            samplerProxy.setPort(source.getPropertyAsString("HTTPSampler.port"));
-//            samplerProxy.setDomain(source.getDomain());
-//            if (source.getArguments() != null) {
-//                if (source.getPostBodyRaw()) {
-//                    samplerProxy.getBody().setType(Body.RAW);
-//                    source.getArguments().getArgumentsAsMap().forEach((k, v) -> {
-//                        samplerProxy.getBody().setRaw(v);
-//                    });
-//                    samplerProxy.getBody().initKvs();
-//                } else {
-//                    List<KeyValue> keyValues = new LinkedList<>();
-//                    source.getArguments().getArgumentsAsMap().forEach((k, v) -> {
-//                        KeyValue keyValue = new KeyValue(k, v);
-//                        keyValues.add(keyValue);
-//                    });
-//                    if (CollectionUtils.isNotEmpty(keyValues)) {
-//                        samplerProxy.setArguments(keyValues);
-//                    }
-//                }
-//                samplerProxy.getBody().initBinary();
-//            }
-//            // samplerProxy.setPath(source.getPath());
-//            samplerProxy.setMethod(source.getMethod());
-//            if (this.getUrl(source) != null) {
-//                samplerProxy.setUrl(this.getUrl(source));
-//                samplerProxy.setPath(null);
-//            }
-//            samplerProxy.setId(UUID.randomUUID().toString());
-//            samplerProxy.setType("HTTPSamplerProxy");
-//            // 处理HTTP协议的请求头
-//            if (headerMap.containsKey(key.hashCode())) {
-//                List<KeyValue> keyValues = new LinkedList<>();
-//                headerMap.get(key.hashCode()).forEach(item -> {
-//                    HeaderManager headerManager = (HeaderManager) item;
-//                    if (headerManager.getHeaders() != null) {
-//                        for (int i = 0; i < headerManager.getHeaders().size(); i++) {
-//                            keyValues.add(new KeyValue(headerManager.getHeader(i).getName(), headerManager.getHeader(i).getValue()));
-//                        }
-//                    }
-//                });
-//                samplerProxy.setHeaders(keyValues);
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
 }
 
