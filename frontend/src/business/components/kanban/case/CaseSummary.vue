@@ -129,7 +129,7 @@ require('echarts/lib/component/legend');
 
 
 export default {
-  name: "KanbanHome",
+  name: "CaseSummary",
   components: {
     MsMainContainer,
     MsContainer,
