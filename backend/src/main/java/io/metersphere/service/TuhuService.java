@@ -1,7 +1,6 @@
 package io.metersphere.service;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import io.metersphere.base.domain.TestPlan;
 import io.metersphere.base.mapper.TestPlanMapper;
