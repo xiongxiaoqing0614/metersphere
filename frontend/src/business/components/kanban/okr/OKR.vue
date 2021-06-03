@@ -220,7 +220,7 @@ export default {
       if(row.okrApiTotal == 0) {
         row.apiCompleteRate = 0
       }else{
-        row.apiCompleteRate = (row.apiCount/row.okrApiTotal).toFixed(4) * 100 
+        row.apiCompleteRate = ((row.apiCount/row.okrApiTotal) * 100).toFixed(1)
       }
       return row.apiCompleteRate
     },
@@ -228,7 +228,7 @@ export default {
       if(row.okrApiP0 == 0) {
         row.p0apiCompleteRate = 0
       }else{
-        row.p0apiCompleteRate = (row.p0APICount/row.okrApiP0).toFixed(4) * 100
+        row.p0apiCompleteRate = ((row.p0APICount/row.okrApiP0) * 100).toFixed(1)
       }
       return row.p0apiCompleteRate
     },
@@ -236,7 +236,7 @@ export default {
       if(row.okrApiTestTotal == 0) {
         row.caseCompleteRate = 0
       }else{
-        row.caseCompleteRate = (row.singleCount/row.okrApiTestTotal).toFixed(4) * 100
+        row.caseCompleteRate = ((row.singleCount/row.okrApiTestTotal) * 100).toFixed(1)
       }
       return row.caseCompleteRate
     },
@@ -244,7 +244,7 @@ export default {
       if(row.okrScenarioTestTotal == 0) {
         row.scenarioCompleteRate = 0
       }else{
-        row.scenarioCompleteRate = (row.scenarioCount/row.okrScenarioTestTotal).toFixed(4) * 100
+        row.scenarioCompleteRate = ((row.scenarioCount/row.okrScenarioTestTotal)* 100).toFixed(1) 
       }
       return row.scenarioCompleteRate
     },
