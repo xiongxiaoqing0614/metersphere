@@ -92,7 +92,7 @@ import MsRichText from "@/business/components/track/case/components/MsRichText";
 import {TEST} from "@/business/components/api/definition/model/JsonData";
 import TestCaseAttachment from "@/business/components/track/case/components/TestCaseAttachment";
 import TestCaseIssueRelate from "@/business/components/track/case/components/TestCaseIssueRelate";
-import {checkoutTestManagerOrTestUser, enableModules} from "@/common/js/utils";
+import {enableModules} from "@/common/js/utils";
 import FormRichTextItem from "@/business/components/track/case/components/FormRichTextItem";
 
 export default {
@@ -117,9 +117,6 @@ export default {
   },
   computed: {
     isTesterPermission() {
-      if (!checkoutTestManagerOrTestUser()) {
-        return false;
-      }
       return true;
     }
   },
@@ -139,6 +136,9 @@ export default {
   methods: {
     updateRemark(text) {
       this.form.remark = text;
+    },
+    reset() {
+      this.tabActiveName = "remark";
     },
     fileValidator(file) {
       /// todo: 是否需要对文件内容和大小做限制
@@ -223,15 +223,17 @@ export default {
     handleExceed() {
       this.$error(this.$t('load_test.file_size_limit'));
     },
-    getFileMetaData() {
-      if (this.uploadList && this.uploadList.length > 0) {
+    getFileMetaData(id) {
+      // 保存用例后传入用例id，刷新文件列表，可以预览和下载
+      if (this.uploadList && this.uploadList.length > 0 && !id) {
         return;
       }
       this.fileList = [];
       this.tableData = [];
       this.uploadList = [];
-      if (this.caseId) {
-        this.result = this.$get("test/case/file/metadata/" + this.caseId, response => {
+      let testCaseId = id ? id : this.caseId;
+      if (testCaseId) {
+        this.result = this.$get("test/case/file/metadata/" + testCaseId, response => {
           let files = response.data;
 
           if (!files) {

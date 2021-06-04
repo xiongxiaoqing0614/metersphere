@@ -65,6 +65,7 @@ export default {
     email: 'Email',
     phone: 'Phone',
     role: 'Role',
+    group: 'Group',
     personal_info: 'Personal Info',
     status: 'Status',
     show_all: 'Show All',
@@ -313,6 +314,8 @@ export default {
     case_template: 'Test Case Template',
     default_template: 'Default Template',
     system_template: 'System Template',
+    option_check: 'Please add option values',
+    option_value_check: 'Please fill in the full option values',
   },
   workspace: {
     create: 'Create Workspace',
@@ -470,6 +473,9 @@ export default {
       add_workspace_batch: 'Batch add user to workspace',
       add_user_role_batch: 'Batch add user role',
     }
+  },
+  group: {
+    add: 'Add User Group',
   },
   role: {
     please_choose_role: 'Please Choose Role',
@@ -752,6 +758,7 @@ export default {
         batch_move: "Batch move",
         path_valid_info: "The request path is invalid",
         other_config: "Other Config",
+        cert_alias: "Certificate Alias",
         message_template: "Message Template",
         tcp_parameter_tip: "The request parameters can be referenced in the request template ${XXX}",
         esb_table: {
@@ -1088,7 +1095,7 @@ export default {
       swagger_url_import: "Import using URL",
       timing_synchronization: "Timing synchronization",
       next_synchronization_time: "Next synchronization time",
-      ms_env_import_file_limit: "It supports JSON format files exported through metersphere",
+      ms_env_import_file_limit: "It only supports JSON format files exported through metersphere",
       file_exceed_limit: "The number of files exceeds the limit",
     },
     home_page: {
@@ -1379,7 +1386,8 @@ export default {
         continue_upload: "Upload continue",
       },
       export: {
-        export: "Export cases"
+        export: "Export cases",
+        export_tip: "Switch to Interface List and check Use Case Export"
       }
     },
     plan: {
@@ -1552,6 +1560,7 @@ export default {
     },
     issue: {
       issue: "Issue",
+      issue_management: "Issue Management",
       issue_resource: "Issue source",
       create_issue: "Create Issue",
       add_issue: "Add Issue",
@@ -1840,5 +1849,6 @@ export default {
     after_change: "After change",
     share: "Share",
     change_history: "Change history",
+    change_content: "Change content"
   }
 };

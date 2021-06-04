@@ -24,7 +24,7 @@
         <el-input type="textarea" v-model="form.description"></el-input>
       </el-form-item>
       <el-form-item label="全局用户组">
-        <el-switch v-model="form.global" :disabled="dialogType === 'edit'" @change="change(form.global)"></el-switch>
+        <el-switch v-model="form.global" :disabled="dialogType === 'edit' || form.type === 'SYSTEM'" @change="change(form.global)"></el-switch>
       </el-form-item>
 
       <el-form-item label="所属组织" v-if="show" prop="scopeId">
@@ -112,10 +112,16 @@ export default {
       })
     },
     edit() {
-      this.$post("/user/group/edit", this.form, () => {
-        this.$success(this.$t('commons.modify_success'));
-        this.$emit("refresh")
-        this.dialogVisible = false;
+      this.$refs['form'].validate(valid => {
+        if (valid) {
+          this.$post("/user/group/edit", this.form, () => {
+            this.$success(this.$t('commons.modify_success'));
+            this.$emit("refresh")
+            this.dialogVisible = false;
+          })
+        } else {
+          return false;
+        }
       })
     },
     open(row, type, title) {

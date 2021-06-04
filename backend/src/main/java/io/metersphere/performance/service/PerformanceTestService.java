@@ -448,8 +448,14 @@ public class PerformanceTestService {
         checkQuota(request, true);
         // copy test
         LoadTestWithBLOBs copy = loadTestMapper.selectByPrimaryKey(request.getId());
+        String copyName = copy.getName() + " Copy";
+
+        if (StringUtils.length(copyName) > 30) {
+            MSException.throwException(Translator.get("load_test_name_length"));
+        }
+
         copy.setId(UUID.randomUUID().toString());
-        copy.setName(copy.getName() + " Copy");
+        copy.setName(copyName);
         copy.setCreateTime(System.currentTimeMillis());
         copy.setUpdateTime(System.currentTimeMillis());
         copy.setStatus(APITestStatus.Saved.name());
@@ -619,6 +625,11 @@ public class PerformanceTestService {
     public String getLogDetails(String id) {
         LoadTestWithBLOBs loadTest = loadTestMapper.selectByPrimaryKey(id);
         if (loadTest != null) {
+            String loadConfiguration = loadTest.getLoadConfiguration();
+            if (StringUtils.isNotEmpty(loadConfiguration)) {
+                loadConfiguration = "{\"" + "压力配置" + "\":" + loadConfiguration + "}";
+            }
+            loadTest.setLoadConfiguration(loadConfiguration);
             List<DetailColumn> columns = ReflexObjectUtil.getColumns(loadTest, PerformanceReference.performanceColumns);
             OperatingLogDetails details = new OperatingLogDetails(JSON.toJSONString(loadTest.getId()), loadTest.getProjectId(), loadTest.getName(), loadTest.getCreateUser(), columns);
             return JSON.toJSONString(details);

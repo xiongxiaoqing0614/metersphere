@@ -34,12 +34,12 @@
 
 
         <el-tabs class="testplan-config" v-model="active">
-          <el-tab-pane :label="$t('load_test.basic_config')">
+          <el-tab-pane :label="$t('load_test.basic_config')" class="advanced-config">
             <performance-basic-config :is-read-only="isReadOnly" :test="test" ref="basicConfig"
                                       @tgTypeChange="tgTypeChange"
                                       @fileChange="fileChange"/>
           </el-tab-pane>
-          <el-tab-pane :label="$t('load_test.pressure_config')">
+          <el-tab-pane :label="$t('load_test.pressure_config')" class="advanced-config">
             <performance-pressure-config :is-read-only="isReadOnly" :test="test" :test-id="testId"
                                          @fileChange="fileChange"
                                          ref="pressureConfig" @changeActive="changeTabActive"/>
@@ -62,9 +62,8 @@ import PerformancePressureConfig from "./components/PerformancePressureConfig";
 import PerformanceAdvancedConfig from "./components/PerformanceAdvancedConfig";
 import MsContainer from "../../common/components/MsContainer";
 import MsMainContainer from "../../common/components/MsMainContainer";
-import {getCurrentProjectID} from "@/common/js/utils";
+import {getCurrentProjectID, hasPermission} from "@/common/js/utils";
 import MsScheduleConfig from "../../common/components/MsScheduleConfig";
-import {LIST_CHANGE, PerformanceEvent} from "@/business/components/common/head/ListEvent";
 import MsChangeHistory from "../../history/ChangeHistory";
 
 export default {
@@ -122,7 +121,7 @@ export default {
 
   },
   created() {
-    this.isReadOnly = false;
+    this.isReadOnly = !hasPermission('PROJECT_PERFORMANCE_TEST:READ+EDIT');
     this.getTest(this.$route.params.testId);
   },
   mounted() {
@@ -180,8 +179,6 @@ export default {
         this.$success(this.$t('commons.save_success'));
         this.$refs.advancedConfig.cancelAllEdit();
         this.$router.push({path: '/performance/test/all'});
-        // 发送广播，刷新 head 上的最新列表
-        PerformanceEvent.$emit(LIST_CHANGE);
       });
     },
     saveAndRun() {
@@ -197,8 +194,6 @@ export default {
         this.result = this.$post(this.runPath, {id: this.test.id, triggerMode: 'MANUAL'}, (response) => {
           let reportId = response.data;
           this.$router.push({path: '/performance/report/view/' + reportId});
-          // 发送广播，刷新 head 上的最新列表
-          PerformanceEvent.$emit(LIST_CHANGE);
         });
       });
     },
@@ -359,7 +354,7 @@ export default {
 }
 
 .advanced-config {
-  height: calc(100vh - 280px);
+  height: calc(100vh - 265px);
   overflow: auto;
 }
 </style>

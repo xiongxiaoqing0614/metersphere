@@ -17,38 +17,33 @@
         <div v-if="detail && detail.details && detail.details.columns" style="margin-left: 20px">
           <el-table :data="detail.details.columns">
             <el-table-column prop="columnTitle" :label="$t('operating_log.change_field')" width="150px" show-overflow-tooltip/>
-            <el-table-column prop="originalValue" :label="$t('operating_log.before_change')" width="400px" show-overflow-tooltip>
-              <template v-slot:default="scope">
-                <span v-if="timeDates.indexOf(scope.row.columnName)!==-1">{{ scope.row.originalValue | timestampFormatDate }}</span>
-                <pre v-else>{{ scope.row.originalValue }}</pre>
-
-              </template>
-            </el-table-column>
-            <el-table-column prop="newValue" :label="$t('operating_log.after_change')" width="400px" show-overflow-tooltip>
+            <el-table-column prop="newValue" :label="$t('operating_log.change_content')">
               <template v-slot:default="scope">
                 <span v-if="timeDates.indexOf(scope.row.columnName)!==-1">{{ scope.row.newValue | timestampFormatDate }}</span>
-                <pre v-else>{{ scope.row.newValue }}</pre>
+                <div v-html="getDiff(scope.row.originalValue,scope.row.newValue)" v-else></div>
               </template>
             </el-table-column>
           </el-table>
         </div>
       </div>
       <div v-else-if="detail && (detail.operType ==='DELETE' || detail.details === null || (detail.details && detail.details.columns && detail.details.columns.length === 0))">
-        <pre style="overflow: auto">{{detail.operTitle}} </pre>
+        <div>{{detail.operTitle}}</div>
         <span style="color: #409EFF">{{getType(detail.operType)}} </span>
         <span style="color: #409EFF"> {{$t('api_test.home_page.detail_card.success')}}</span>
       </div>
       <div v-else>
         <div v-if="detail && detail.details && detail.details.columns" style="overflow: auto">
           <span v-for="n in detail.details.columns" :key="n.id">
-            <pre v-if="timeDates.indexOf(n.columnName)!==-1">
+            <div v-if="timeDates.indexOf(n.columnName)!==-1">
               {{n.columnTitle}}：{{ n.originalValue | timestampFormatDate }}
-            </pre>
-            <pre style="overflow: auto" v-else>
+            </div>
+            <div v-else-if="isJson(n.originalValue)">
+              {{n.columnTitle}}：<pre>{{n.originalValue}}</pre>
+            </div>
+            <div style="margin-top: 10px" v-else>
               {{n.columnTitle}}：{{n.originalValue}}
-            </pre>
+            </div>
           </span>
-
         </div>
       </div>
     </div>
@@ -57,6 +52,9 @@
 </template>
 
 <script>
+  const jsondiffpatch = require('jsondiffpatch');
+  const formattersHtml = jsondiffpatch.formatters.html;
+
   export default {
     name: "MsLogDetail",
     components: {},
@@ -66,6 +64,8 @@
     data() {
       return {
         infoVisible: false,
+        d1: "",
+        d2: "",
         detail: {},
         LOG_TYPE: [
           {id: 'CREATE', label: this.$t('api_test.definition.request.create_info')},
@@ -119,8 +119,25 @@
       }
     },
     methods: {
+      isJson(jsonStr) {
+        try {
+          let numRe = new RegExp("^[0-9]*$");
+          if (!jsonStr || "null" === jsonStr || numRe.test(jsonStr)) {
+            return false;
+          } else {
+            JSON.parse(jsonStr);
+            return true;
+          }
+        } catch (e) {
+          return false;
+        }
+      },
       handleClose() {
         this.infoVisible = false;
+      },
+      getDiff(v1, v2) {
+        let delta = jsondiffpatch.diff(v1, v2);
+        return formattersHtml.format(delta, v1);
       },
       getDetails(id) {
         this.result = this.$get("/operating/log/get/" + id, response => {
@@ -140,6 +157,8 @@
 </script>
 
 <style scoped>
+  @import "~jsondiffpatch/dist/formatters-styles/html.css";
+  @import "~jsondiffpatch/dist/formatters-styles/annotated.css";
 
   .tip {
     padding: 3px 5px;

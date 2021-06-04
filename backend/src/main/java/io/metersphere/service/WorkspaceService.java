@@ -7,9 +7,11 @@ import io.metersphere.base.mapper.ext.ExtOrganizationMapper;
 import io.metersphere.base.mapper.ext.ExtUserGroupMapper;
 import io.metersphere.base.mapper.ext.ExtUserRoleMapper;
 import io.metersphere.base.mapper.ext.ExtWorkspaceMapper;
+import io.metersphere.commons.constants.UserGroupConstants;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.utils.SessionUtils;
 import io.metersphere.controller.request.WorkspaceRequest;
+import io.metersphere.dto.RelatedSource;
 import io.metersphere.dto.UserRoleHelpDTO;
 import io.metersphere.dto.WorkspaceDTO;
 import io.metersphere.dto.WorkspaceMemberDTO;
@@ -83,6 +85,15 @@ public class WorkspaceService {
             workspace.setUpdateTime(currentTime);
             workspace.setCreateUser(SessionUtils.getUserId());
             workspaceMapper.insertSelective(workspace);
+            // 创建工作空间为当前用户添加用户组
+            UserGroup userGroup = new UserGroup();
+            userGroup.setId(UUID.randomUUID().toString());
+            userGroup.setUserId(SessionUtils.getUserId());
+            userGroup.setCreateTime(System.currentTimeMillis());
+            userGroup.setUpdateTime(System.currentTimeMillis());
+            userGroup.setGroupId(UserGroupConstants.WS_ADMIN);
+            userGroup.setSourceId(workspace.getId());
+            userGroupMapper.insert(userGroup);
         } else {
             workspace.setUpdateTime(currentTime);
             workspaceMapper.updateByPrimaryKeySelective(workspace);
@@ -120,10 +131,10 @@ public class WorkspaceService {
             projectService.deleteProject(projectId);
         });
 
-        // delete workspace member
-        UserRoleExample userRoleExample = new UserRoleExample();
-        userRoleExample.createCriteria().andSourceIdEqualTo(workspaceId);
-        userRoleMapper.deleteByExample(userRoleExample);
+        // delete user group
+        UserGroupExample userGroupExample = new UserGroupExample();
+        userGroupExample.createCriteria().andSourceIdEqualTo(workspaceId);
+        userGroupMapper.deleteByExample(userGroupExample);
 
         // delete workspace
         workspaceMapper.deleteByPrimaryKey(workspaceId);
@@ -200,23 +211,19 @@ public class WorkspaceService {
 
     public List<Workspace> getWorkspaceListByOrgIdAndUserId(String orgId) {
         String useId = SessionUtils.getUser().getId();
+        List<RelatedSource> relatedSource = extUserGroupMapper.getRelatedSource(useId);
+        List<String> wsIds = relatedSource
+                .stream()
+                .filter(r -> StringUtils.equals(r.getOrganizationId(), orgId))
+                .map(RelatedSource::getWorkspaceId)
+                .distinct()
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(wsIds)) {
+            return new ArrayList<>();
+        }
         WorkspaceExample workspaceExample = new WorkspaceExample();
-        workspaceExample.createCriteria().andOrganizationIdEqualTo(orgId);
-        List<Workspace> workspaces = workspaceMapper.selectByExample(workspaceExample);
-        UserGroupExample userGroupExample = new UserGroupExample();
-        userGroupExample.createCriteria().andUserIdEqualTo(useId);
-        List<UserGroup> userGroups = userGroupMapper.selectByExample(userGroupExample);
-        List<Workspace> resultWorkspaceList = new ArrayList<>();
-        userGroups.forEach(userGroup -> {
-            workspaces.forEach(workspace -> {
-                if (StringUtils.equals(userGroup.getSourceId(), workspace.getId())) {
-                    if (!resultWorkspaceList.contains(workspace)) {
-                        resultWorkspaceList.add(workspace);
-                    }
-                }
-            });
-        });
-        return resultWorkspaceList;
+        workspaceExample.createCriteria().andIdIn(wsIds);
+        return workspaceMapper.selectByExample(workspaceExample);
     }
 
     public List<String> getWorkspaceIdsOrgId(String orgId) {
@@ -272,6 +279,17 @@ public class WorkspaceService {
         workspace.setUpdateTime(System.currentTimeMillis());
         workspace.setCreateUser(SessionUtils.getUserId());
         workspaceMapper.insertSelective(workspace);
+
+        // 创建工作空间为当前用户添加用户组
+        UserGroup userGroup = new UserGroup();
+        userGroup.setId(UUID.randomUUID().toString());
+        userGroup.setUserId(SessionUtils.getUserId());
+        userGroup.setCreateTime(System.currentTimeMillis());
+        userGroup.setUpdateTime(System.currentTimeMillis());
+        userGroup.setGroupId(UserGroupConstants.WS_ADMIN);
+        userGroup.setSourceId(workspace.getId());
+        userGroupMapper.insert(userGroup);
+
         return workspace;
     }
 

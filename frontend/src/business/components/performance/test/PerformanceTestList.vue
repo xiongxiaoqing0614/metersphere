@@ -5,7 +5,7 @@
         <template v-slot:header>
           <ms-table-header :condition.sync="condition" @search="search"
                            :title="$t('commons.test')"
-                           v-permission="['PROJECT_PERFORMANCE_TEST:READ+CREATE']"
+                           :create-permission="['PROJECT_PERFORMANCE_TEST:READ+CREATE']"
                            @create="create" :createTip="$t('load_test.create')"/>
         </template>
 
@@ -78,7 +78,9 @@
             width="150"
             :label="$t('commons.operating')">
             <template v-slot:default="scope">
-              <ms-table-operators :buttons="buttons" :row="scope.row"/>
+              <div>
+                <ms-table-operators :buttons="buttons" :row="scope.row"/>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -99,7 +101,6 @@ import MsTableOperators from "../../common/components/MsTableOperators";
 import {getCurrentProjectID, getCurrentWorkspaceId} from "@/common/js/utils";
 import MsTableHeader from "../../common/components/MsTableHeader";
 import {TEST_CONFIGS} from "../../common/components/search/search-components";
-import {LIST_CHANGE, PerformanceEvent} from "@/business/components/common/head/ListEvent";
 import {_filter, _sort} from "@/common/js/tableUtils";
 
 export default {
@@ -171,7 +172,7 @@ export default {
   methods: {
     getMaintainerOptions() {
       let workspaceId = getCurrentWorkspaceId();
-      this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
+      this.$post('/user/project/member/tester/list', {projectId: getCurrentProjectID()}, response => {
         this.userFilters = response.data.map(u => {
           return {text: u.name, value: u.id};
         });
@@ -230,8 +231,6 @@ export default {
       this.result = this.$post(this.deletePath, data, () => {
         this.$success(this.$t('commons.delete_success'));
         this.initTableData();
-        // 发送广播，刷新 head 上的最新列表
-        PerformanceEvent.$emit(LIST_CHANGE);
       });
     },
     sort(column) {

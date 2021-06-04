@@ -1,7 +1,7 @@
 <template>
   <el-card class="table-card" v-loading="result.loading">
     <template v-slot:header>
-      <ms-table-header v-permission="['PROJECT_TRACK_REVIEW:READ+CREATE']" :condition.sync="condition"
+      <ms-table-header :create-permission="['PROJECT_TRACK_REVIEW:READ+CREATE']" :condition.sync="condition"
                        @search="initTableData" @create="testCaseReviewCreate"
                        :create-tip="$t('test_track.review.create_review')"
                        :title="$t('test_track.review.test_review')"/>
@@ -12,6 +12,7 @@
       class="adjust-table"
       :data="tableData"
       @filter-change="filter"
+      :height="screenHeight"
       @sort-change="sort"
       @row-click="intoReview">
       <template v-for="(item, index) in tableLabel">
@@ -94,10 +95,15 @@
           <header-label-operate @exec="customHeader"/>
         </template>
         <template v-slot:default="scope">
-          <ms-table-operator v-permission="['PROJECT_TRACK_REVIEW:READ+EDIT', 'PROJECT_TRACK_REVIEW:READ+DELETE']"
-                             @editClick="handleEdit(scope.row)"
-                             @deleteClick="handleDelete(scope.row)">
-          </ms-table-operator>
+          <div>
+
+            <ms-table-operator :edit-permission="['PROJECT_TRACK_REVIEW:READ+EDIT']"
+                               :delete-permission="['PROJECT_TRACK_REVIEW:READ+DELETE']"
+                               @editClick="handleEdit(scope.row)"
+                               @deleteClick="handleDelete(scope.row)">
+            </ms-table-operator>
+          </div>
+
         </template>
       </el-table-column>
       <header-custom ref="headerCustom" :initTableData="initTableData" :optionalFields=headerItems
@@ -119,8 +125,8 @@ import MsDialogFooter from "../../../common/components/MsDialogFooter";
 import MsTableHeader from "../../../common/components/MsTableHeader";
 import MsCreateBox from "../../../settings/CreateBox";
 import MsTablePagination from "../../../common/pagination/TablePagination";
-import {checkoutTestManagerOrTestUser, getCurrentWorkspaceId} from "@/common/js/utils";
-import {_filter, _sort, getLabel} from "@/common/js/tableUtils";
+import {getCurrentProjectID, getCurrentWorkspaceId} from "@/common/js/utils";
+import {_filter, _sort, deepClone, getLabel} from "@/common/js/tableUtils";
 import PlanStatusTableItem from "../../common/tableItems/plan/PlanStatusTableItem";
 import {Test_Case_Review} from "@/business/components/common/model/JsonData";
 import {TEST_CASE_REVIEW_LIST} from "@/common/js/constants";
@@ -155,6 +161,7 @@ export default {
       currentPage: 1,
       pageSize: 10,
       total: 0,
+      screenHeight: 'calc(100vh - 295px)',
       statusFilters: [
         {text: this.$t('test_track.plan.plan_status_prepare'), value: 'Prepare'},
         {text: this.$t('test_track.plan.plan_status_running'), value: 'Underway'},
@@ -170,17 +177,18 @@ export default {
     }
   },
   created() {
-    this.isTestManagerOrTestUser = checkoutTestManagerOrTestUser();
+    this.isTestManagerOrTestUser = true;
     this.initTableData();
   },
   computed: {
     projectId() {
-      return this.$store.state.projectId;
+      return getCurrentProjectID();
     },
   },
   methods: {
     customHeader() {
-      this.$refs.headerCustom.open(this.tableLabel);
+      const list = deepClone(this.tableLabel);
+      this.$refs.headerCustom.open(list);
     },
 
     initTableData() {

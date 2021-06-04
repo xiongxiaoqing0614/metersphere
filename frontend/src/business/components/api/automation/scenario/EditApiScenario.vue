@@ -110,7 +110,7 @@
                 <el-col :span="6" class="ms-col-one ms-font">
                   <el-tooltip placement="top" effect="light">
                     <template v-slot:content>
-                      <div>{{ currentScenario.name }}</div>
+                      <div>{{ currentScenario.name === undefined || '' ? $t('api_test.scenario.name') : currentScenario.name }}</div>
                     </template>
                     <span class="scenario-name">
                         {{ currentScenario.name === undefined || '' ? $t('api_test.scenario.name') : currentScenario.name }}
@@ -253,7 +253,7 @@
   import {parseEnvironment} from "../../definition/model/EnvironmentModel";
   import {ELEMENT_TYPE, ELEMENTS} from "./Setting";
   import MsApiCustomize from "./ApiCustomize";
-  import {getUUID, objToStrMap, strMapToObj, handleCtrlSEvent} from "@/common/js/utils";
+  import {getUUID, objToStrMap, strMapToObj, handleCtrlSEvent, getCurrentProjectID} from "@/common/js/utils";
   import ApiEnvironmentConfig from "@/business/components/api/test/components/ApiEnvironmentConfig";
   import MsInputTag from "./MsInputTag";
   import MsRun from "./DebugRun";
@@ -501,7 +501,7 @@
         return buttons.filter(btn => btn.show);
       },
       projectId() {
-        return this.$store.state.projectId
+        return getCurrentProjectID();
       },
     },
     methods: {
@@ -651,6 +651,9 @@
       recursiveSorting(arr, scenarioProjectId) {
         for (let i in arr) {
           arr[i].index = Number(i) + 1;
+          if (!arr[i].resourceId) {
+            arr[i].resourceId = getUUID();
+          }
           if (arr[i].type === ELEMENT_TYPE.LoopController && arr[i].loopType === "LOOP_COUNT" && arr[i].hashTree && arr[i].hashTree.length > 1) {
             arr[i].countController.proceed = true;
           }
@@ -677,6 +680,9 @@
         for (let i in this.scenarioDefinition) {
           // 排序
           this.scenarioDefinition[i].index = Number(i) + 1;
+          if (!this.scenarioDefinition[i].resourceId) {
+            this.scenarioDefinition[i].resourceId = getUUID();
+          }
           // 设置循环控制
           if (this.scenarioDefinition[i].type === ELEMENT_TYPE.LoopController && this.scenarioDefinition[i].hashTree
             && this.scenarioDefinition[i].hashTree.length > 1) {
@@ -777,8 +783,7 @@
         this.reload();
       },
       getMaintainerOptions() {
-        let workspaceId = localStorage.getItem(WORKSPACE_ID);
-        this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
+        this.$post('/user/project/member/tester/list', {projectId: getCurrentProjectID()},response => {
           this.maintainerOptions = response.data;
         });
       },
@@ -842,20 +847,22 @@
                 if (!sign) {
                   return;
                 }
-                this.editScenario().then(() => {
-                  this.debugData = {
-                    id: this.currentScenario.id,
-                    name: this.currentScenario.name,
-                    type: "scenario",
-                    variables: this.currentScenario.variables,
-                    referenced: 'Created',
-                    enableCookieShare: this.enableCookieShare,
-                    headers: this.currentScenario.headers,
-                    environmentMap: this.projectEnvMap,
-                    hashTree: this.scenarioDefinition
-                  };
-                  this.reportId = getUUID().substring(0, 8);
-                })
+                //调试时不再保存
+                this.debugData = {
+                  id: this.currentScenario.id,
+                  name: this.currentScenario.name,
+                  type: "scenario",
+                  variables: this.currentScenario.variables,
+                  referenced: 'Created',
+                  enableCookieShare: this.enableCookieShare,
+                  headers: this.currentScenario.headers,
+                  environmentMap: this.projectEnvMap,
+                  hashTree: this.scenarioDefinition
+                };
+                this.reportId = getUUID().substring(0, 8);
+                // this.editScenario().then(() => {
+                //
+                // })
               })
 
             })

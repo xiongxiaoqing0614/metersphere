@@ -52,8 +52,18 @@
                       :content="itemName" style="margin-left: 0px; margin-right: 2px"/>
             </template>
           </el-table-column>
-          <el-table-column v-if="item.id == 'userId'" prop="userId" :label="$t('api_test.automation.creator')" min-width="100px"
+          <el-table-column v-if="item.id == 'userId'" prop="userId" :label="$t('api_test.automation.creator')"
+                           min-width="100px"
                            show-overflow-tooltip :key="index"/>
+          <el-table-column
+            v-if="item.id == 'maintainer'"
+            prop="principal"
+            :label="$t('custom_field.case_maintainer')"
+            show-overflow-tooltip
+            :key="index"
+            min-width="120"
+          >
+          </el-table-column>
           <el-table-column v-if="item.id == 'updateTime'"
                            prop="updateTime"
                            min-width="120px"
@@ -63,7 +73,8 @@
               <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
             </template>
           </el-table-column>
-          <el-table-column v-if="item.id == 'stepTotal'" prop="stepTotal" :label="$t('api_test.automation.step')" min-width="80px"
+          <el-table-column v-if="item.id == 'stepTotal'" prop="stepTotal" :label="$t('api_test.automation.step')"
+                           min-width="80px"
                            show-overflow-tooltip :key="index"/>
           <el-table-column v-if="item.id == 'lastResult'" prop="lastResult" min-width="100px"
                            :filters="RESULT_FILTERS"
@@ -86,14 +97,16 @@
             <header-label-operate @exec="customHeader"/>
           </template>
           <template v-slot:default="{row}">
-            <ms-table-operator-button class="run-button"
-                                      v-permission="['PROJECT_API_SCENARIO:READ+RUN']"
-                                      :tip="$t('api_test.run')"
-                                      icon="el-icon-video-play"
-                                      @exec="execute(row)"/>
-            <ms-table-operator-button v-permission="['PROJECT_TRACK_PLAN:READ+RELEVANCE_OR_CANCEL']"
-                                      :tip="$t('test_track.plan_view.cancel_relevance')"
-                                      icon="el-icon-unlock" type="danger" @exec="remove(row)"/>
+            <div>
+              <ms-table-operator-button class="run-button"
+                                        v-permission="['PROJECT_TRACK_PLAN:READ+RUN']"
+                                        :tip="$t('api_test.run')"
+                                        icon="el-icon-video-play"
+                                        @exec="execute(row)"/>
+              <ms-table-operator-button v-permission="['PROJECT_TRACK_PLAN:READ+RELEVANCE_OR_CANCEL']"
+                                        :tip="$t('test_track.plan_view.cancel_relevance')"
+                                        icon="el-icon-unlock" type="danger" @exec="remove(row)"/>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -121,7 +134,7 @@ import MsTableHeader from "@/business/components/common/components/MsTableHeader
 import MsTablePagination from "@/business/components/common/pagination/TablePagination";
 import ShowMoreBtn from "@/business/components/track/case/components/ShowMoreBtn";
 import MsTag from "../../../../../common/components/MsTag";
-import {getUUID, strMapToObj} from "@/common/js/utils";
+import {getCurrentProjectID, getUUID, strMapToObj} from "@/common/js/utils";
 import MsApiReportDetail from "../../../../../api/automation/report/ApiReportDetail";
 import MsTableMoreBtn from "../../../../../api/automation/scenario/TableMoreBtn";
 import MsScenarioExtendButtons from "@/business/components/api/automation/scenario/ScenarioExtendBtns";
@@ -138,7 +151,7 @@ import {
   initCondition,
   buildBatchParam,
   toggleAllSelection,
-  checkTableRowIsSelect
+  checkTableRowIsSelect, deepClone
 } from "../../../../../../../common/js/tableUtils";
 import MsTableOperatorButton from "../../../../../common/components/MsTableOperatorButton";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
@@ -205,12 +218,14 @@ export default {
       ...API_SCENARIO_FILTERS,
       buttons: [
         {
-          name: this.$t('test_track.case.batch_unlink'), handleClick: this.handleDeleteBatch
+          name: this.$t('test_track.case.batch_unlink'), handleClick: this.handleDeleteBatch, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_DELETE']
         },
         {
-          name: this.$t('api_test.automation.batch_execute'), handleClick: this.handleBatchExecute
+          name: this.$t('api_test.automation.batch_execute'), handleClick: this.handleBatchExecute, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_RUN']
         },
-        {name: this.$t('test_track.case.batch_edit_case'), handleClick: this.handleBatchEdit}
+        {
+          name: this.$t('test_track.case.batch_edit_case'), handleClick: this.handleBatchEdit, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_EDIT']
+        }
       ],
       selectRows: new Set(),
       typeArr: [
@@ -223,7 +238,7 @@ export default {
   },
   computed: {
     projectId() {
-      return this.$store.state.projectId
+      return getCurrentProjectID();
     },
   },
   created() {
@@ -241,7 +256,8 @@ export default {
   },
   methods: {
     customHeader() {
-      this.$refs.headerCustom.open(this.tableLabel)
+      const list = deepClone(this.tableLabel);
+      this.$refs.headerCustom.open(list);
     },
     search() {
       initCondition(this.condition,this.condition.selectAll);

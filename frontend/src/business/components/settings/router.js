@@ -18,6 +18,11 @@ export default {
       meta: {system: true, title: 'commons.organization', permissions: ['SYSTEM_ORGANIZATION:READ']}
     },
     {
+      path: 'systemworkspace',
+      component: () => import('@/business/components/settings/system/SystemWorkspace'),
+      meta: {system: true, title: 'commons.workspace', permissions: ['SYSTEM_WORKSPACE:READ']}
+    },
+    {
       path: 'usergroup',
       component: () => import('@/business/components/settings/system/group/UserGroup'),
       meta: {system: true, title: '用户组与权限', permissions: ['SYSTEM_GROUP:READ', 'ORGANIZATION_GROUP:READ']}
@@ -46,11 +51,6 @@ export default {
         title: 'test_track.plan_view.report_template',
         permissions: ['WORKSPACE_TEMPLATE:READ+REPORT_TEMPLATE']
       }
-    },
-    {
-      path: 'systemworkspace',
-      component: () => import('@/business/components/settings/system/SystemWorkspace'),
-      meta: {system: true, title: 'commons.workspace', permissions: ['SYSTEM_WORKSPACE:READ']}
     },
     {
       path: 'testresourcepool',
@@ -129,10 +129,28 @@ export default {
       meta: {project: true, title: 'api_test.environment.environment_config', permissions: ['PROJECT_ENVIRONMENT:READ']}
     },
     {
-      path: 'operatingLog',
+      path: 'operatingLog/system',
       component: () => import('@/business/components/settings/operatinglog/OperatingLog'),
+      name:'system',
       meta: {system: true, title: 'operating_log.title', permissions: ['SYSTEM_OPERATING_LOG:READ']}
+    },
+    {
+      path: 'operatingLog/organization',
+      component: () => import('@/business/components/settings/operatinglog/OperatingLog'),
+      name:'organization',
+      meta: {organization: true, title: 'operating_log.title', permissions: ['ORGANIZATION_OPERATING_LOG:READ']}
+    },
+    {
+      path: 'operatingLog/workspace',
+      component: () => import('@/business/components/settings/operatinglog/OperatingLog'),
+      name:'workspace',
+      meta: {workspace: true, title: 'operating_log.title', permissions: ['WORKSPACE_OPERATING_LOG:READ']}
+    },
+    {
+      path: 'operatingLog/project',
+      name:'project',
+      component: () => import('@/business/components/settings/operatinglog/OperatingLog'),
+      meta: {project: true, title: 'operating_log.title', permissions: ['PROJECT_OPERATING_LOG:READ']}
     }
-
   ]
 };

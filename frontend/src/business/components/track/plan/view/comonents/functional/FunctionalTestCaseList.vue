@@ -178,18 +178,18 @@
                   <status-table-item :value="scope.row.status"/>
                 </span>
                 <el-dropdown-menu slot="dropdown" chang>
-                  <el-dropdown-item :disabled="!isTestManagerOrTestUser" :command="{id: scope.row.id, status: 'Pass'}">
+                  <el-dropdown-item :disabled="!hasEditPermission" :command="{id: scope.row.id, status: 'Pass'}">
                     {{ $t('test_track.plan_view.pass') }}
                   </el-dropdown-item>
-                  <el-dropdown-item :disabled="!isTestManagerOrTestUser"
+                  <el-dropdown-item :disabled="!hasEditPermission"
                                     :command="{id: scope.row.id, status: 'Failure'}">
                     {{ $t('test_track.plan_view.failure') }}
                   </el-dropdown-item>
-                  <el-dropdown-item :disabled="!isTestManagerOrTestUser"
+                  <el-dropdown-item :disabled="!hasEditPermission"
                                     :command="{id: scope.row.id, status: 'Blocking'}">
                     {{ $t('test_track.plan_view.blocking') }}
                   </el-dropdown-item>
-                  <el-dropdown-item :disabled="!isTestManagerOrTestUser" :command="{id: scope.row.id, status: 'Skip'}">
+                  <el-dropdown-item :disabled="!hasEditPermission" :command="{id: scope.row.id, status: 'Skip'}">
                     {{ $t('test_track.plan_view.skip') }}
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -220,12 +220,14 @@
           <header-label-operate @exec="customHeader"/>
         </template>
         <template v-slot:default="scope">
-          <ms-table-operator-button v-permission="['PROJECT_TRACK_CASE:READ+EDIT']" :tip="$t('commons.edit')"
-                                    icon="el-icon-edit"
-                                    @exec="handleEdit(scope.row)"/>
-          <ms-table-operator-button v-permission="['PROJECT_TRACK_PLAN:READ+RELEVANCE_OR_CANCEL']"
-                                    :tip="$t('test_track.plan_view.cancel_relevance')"
-                                    icon="el-icon-unlock" type="danger" @exec="handleDelete(scope.row)"/>
+          <div>
+            <ms-table-operator-button v-permission="['PROJECT_TRACK_CASE:READ+EDIT']" :tip="$t('commons.edit')"
+                                      icon="el-icon-edit"
+                                      @exec="handleEdit(scope.row)"/>
+            <ms-table-operator-button v-permission="['PROJECT_TRACK_PLAN:READ+RELEVANCE_OR_CANCEL']"
+                                      :tip="$t('test_track.plan_view.cancel_relevance')"
+                                      icon="el-icon-unlock" type="danger" @exec="handleDelete(scope.row)"/>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -264,7 +266,7 @@ import {
   TokenKey,
   WORKSPACE_ID
 } from "@/common/js/constants";
-import {checkoutTestManagerOrTestUser, hasRoles} from "@/common/js/utils";
+import {getCurrentProjectID, hasPermission} from "@/common/js/utils";
 import PriorityTableItem from "../../../../common/tableItems/planview/PriorityTableItem";
 import StatusTableItem from "../../../../common/tableItems/planview/StatusTableItem";
 import TypeTableItem from "../../../../common/tableItems/planview/TypeTableItem";
@@ -331,7 +333,7 @@ export default {
       selectRows: new Set(),
       testPlan: {},
       isReadOnly: false,
-      isTestManagerOrTestUser: false,
+      hasEditPermission: false,
       priorityFilters: [
         {text: 'P0', value: 'P0'},
         {text: 'P1', value: 'P1'},
@@ -360,10 +362,12 @@ export default {
       showMore: false,
       buttons: [
         {
-          name: this.$t('test_track.case.batch_edit_case'), handleClick: this.handleBatchEdit
+          name: this.$t('test_track.case.batch_edit_case'), handleClick: this.handleBatchEdit,
+          permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_EDIT']
         },
         {
-          name: this.$t('test_track.case.batch_unlink'), handleClick: this.handleDeleteBatch
+          name: this.$t('test_track.case.batch_unlink'), handleClick: this.handleDeleteBatch,
+          permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_DELETE']
         }
       ],
       typeArr: [
@@ -419,7 +423,7 @@ export default {
       this.$refs.testPlanTestCaseEdit.openTestCaseEdit(row);
     });
     this.refreshTableAndPlan();
-    this.isTestManagerOrTestUser = checkoutTestManagerOrTestUser();
+    this.hasEditPermission = hasPermission('PROJECT_TRACK_PLAN:READ+EDIT');
     this.getMaintainerOptions();
   },
   beforeDestroy() {
@@ -494,7 +498,7 @@ export default {
       });
     },
     showDetail(row, event, column) {
-      this.isReadOnly = !this.isTestManagerOrTestUser;
+      this.isReadOnly = !this.hasEditPermission;
       this.$refs.testPlanTestCaseEdit.openTestCaseEdit(row);
     },
     refresh() {
@@ -511,12 +515,10 @@ export default {
       this.initTableData();
     },
     refreshTestPlanRecent() {
-      if (hasRoles(ROLE_TEST_USER, ROLE_TEST_MANAGER)) {
-        let param = {};
-        param.id = this.planId;
-        param.updateTime = Date.now();
-        this.$post('/test/plan/edit', param);
-      }
+      let param = {};
+      param.id = this.planId;
+      param.updateTime = Date.now();
+      this.$post('/test/plan/edit', param);
     },
     search() {
       this.initTableData();
@@ -526,9 +528,6 @@ export default {
     },
     handleEdit(testCase, index) {
       this.isReadOnly = false;
-      if (!checkoutTestManagerOrTestUser()) {
-        this.isReadOnly = true;
-      }
       this.$refs.testPlanTestCaseEdit.openTestCaseEdit(testCase);
     },
     handleDelete(testCase) {
@@ -682,8 +681,7 @@ export default {
       this.$refs.batchEdit.open();
     },
     getMaintainerOptions() {
-      let workspaceId = localStorage.getItem(WORKSPACE_ID);
-      this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
+      this.$post('/user/project/member/tester/list', {projectId: getCurrentProjectID()}, response => {
         this.valueArr.executor = response.data;
         this.executorFilters = response.data.map(u => {
           return {text: u.name, value: u.id};

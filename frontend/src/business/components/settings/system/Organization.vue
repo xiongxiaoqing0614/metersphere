@@ -3,7 +3,8 @@
 
     <el-card class="table-card">
       <template v-slot:header>
-        <ms-table-header :create-permission="['SYSTEM_ORGANIZATION:READ+CREATE']" :condition.sync="condition" @search="initTableData" @create="create"
+        <ms-table-header :create-permission="['SYSTEM_ORGANIZATION:READ+CREATE']" :condition.sync="condition"
+                         @search="initTableData" @create="create"
                          :create-tip="$t('organization.create')" :title="$t('commons.organization')"/>
       </template>
       <!-- system menu organization table-->
@@ -21,9 +22,13 @@
         </el-table-column>
         <el-table-column :label="$t('commons.operating')">
           <template v-slot:default="scope">
-            <ms-table-operator :edit-permission="['SYSTEM_ORGANIZATION:READ+EDIT']"
-                               :delete-permission="['SYSTEM_ORGANIZATION:READ+DELETE']"
-              @editClick="edit(scope.row)" @deleteClick="handleDelete(scope.row)"/>
+            <div>
+              <ms-table-operator :edit-permission="['SYSTEM_ORGANIZATION:READ+EDIT']"
+                                 :delete-permission="['SYSTEM_ORGANIZATION:READ+DELETE']"
+                                 :show-delete="organizationId !== scope.row.id"
+                                 @editClick="edit(scope.row)"
+                                 @deleteClick="handleDelete(scope.row)"/>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -32,7 +37,8 @@
     </el-card>
 
     <!-- dialog of organization member -->
-    <el-dialog :close-on-click-modal="false" :visible.sync="dialogOrgMemberVisible" width="70%" :destroy-on-close="true" @close="closeFunc"
+    <el-dialog :close-on-click-modal="false" :visible.sync="dialogOrgMemberVisible" width="70%" :destroy-on-close="true"
+               @close="closeFunc"
                class="dialog-css">
       <ms-table-header :condition.sync="dialogCondition" @create="addMember" @search="dialogSearch"
                        :create-tip="$t('member.create')" :title="$t('commons.member')"/>
@@ -49,8 +55,10 @@
         </el-table-column>
         <el-table-column :label="$t('commons.operating')">
           <template v-slot:default="scope">
-            <ms-table-operator :tip2="$t('commons.remove')" @editClick="editMember(scope.row)"
-                               @deleteClick="delMember(scope.row)"/>
+            <div>
+              <ms-table-operator :tip2="$t('commons.remove')" @editClick="editMember(scope.row)"
+                                 @deleteClick="delMember(scope.row)"/>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -60,12 +68,15 @@
     </el-dialog>
 
     <!-- add organization form -->
-    <el-dialog :close-on-click-modal="false" :title="$t('organization.create')" :visible.sync="dialogOrgAddVisible" width="30%" @closed="closeFunc"
+    <el-dialog :close-on-click-modal="false" :title="$t('organization.create')" :visible.sync="dialogOrgAddVisible"
+               width="30%" @closed="closeFunc"
                :destroy-on-close="true">
       <el-form :model="form" label-position="right" label-width="100px" size="small" :rules="rule"
                ref="createOrganization">
         <el-form-item :label="$t('commons.name')" prop="name">
           <el-input v-model="form.name" autocomplete="off"/>
+          <!-- 阻止Enter关闭dialog -->
+          <el-input v-show="false"/>
         </el-form-item>
         <el-form-item :label="$t('commons.description')" prop="description">
           <el-input v-model="form.description" autocomplete="off" type="textarea"/>
@@ -79,7 +90,8 @@
     </el-dialog>
 
     <!-- update organization form -->
-    <el-dialog :close-on-click-modal="false" :title="$t('organization.modify')" :visible.sync="dialogOrgUpdateVisible" width="30%"
+    <el-dialog :close-on-click-modal="false" :title="$t('organization.modify')" :visible.sync="dialogOrgUpdateVisible"
+               width="30%"
                :destroy-on-close="true"
                @close="closeFunc">
       <el-form :model="form" label-position="right" label-width="100px" size="small" :rules="rule"
@@ -99,7 +111,8 @@
     </el-dialog>
 
     <!-- add organization member form -->
-    <el-dialog :close-on-click-modal="false" :title="$t('member.create')" :visible.sync="dialogOrgMemberAddVisible" width="30%"
+    <el-dialog :close-on-click-modal="false" :title="$t('member.create')" :visible.sync="dialogOrgMemberAddVisible"
+               width="30%"
                :destroy-on-close="true"
                @close="closeFunc">
       <el-form :model="memberForm" ref="form" :rules="orgMemberRule" label-position="right" label-width="100px"
@@ -137,7 +150,8 @@
     </el-dialog>
 
     <!-- update organization member form -->
-    <el-dialog :close-on-click-modal="false" :title="$t('member.modify')" :visible.sync="dialogOrgMemberUpdateVisible" width="30%"
+    <el-dialog :close-on-click-modal="false" :title="$t('member.modify')" :visible.sync="dialogOrgMemberUpdateVisible"
+               width="30%"
                :destroy-on-close="true"
                @close="closeFunc">
       <el-form :model="memberForm" label-position="right" label-width="100px" size="small" ref="updateUserForm">
@@ -153,7 +167,7 @@
         <el-form-item :label="$t('commons.phone')" prop="phone">
           <el-input v-model="memberForm.phone" autocomplete="off" :disabled="true"/>
         </el-form-item>
-        <el-form-item :label="$t('commons.role')" prop="groupIds"
+        <el-form-item :label="$t('commons.group')" prop="groupIds"
                       :rules="{required: true, message: $t('role.please_choose_role'), trigger: 'change'}">
           <el-select filterable v-model="memberForm.groupIds" multiple :placeholder="$t('role.please_choose_role')"
                      class="select-width">
@@ -208,6 +222,11 @@ export default {
     MsDialogFooter,
     MsTableOperatorButton
   },
+  computed: {
+    organizationId() {
+      return getCurrentOrganizationId();
+    }
+  },
   data() {
     return {
       queryPath: '/organization/list',
@@ -253,7 +272,7 @@ export default {
         ]
       },
       orgId: ""
-    }
+    };
   },
   activated() {
     this.initTableData();
@@ -272,15 +291,15 @@ export default {
       });
       this.result = this.$post('/user/group/list', {type: GROUP_ORGANIZATION, resourceId: this.orgId}, response => {
         this.$set(this.memberForm, "groups", response.data);
-      })
+      });
     },
     dataFilter(val) {
       if (val) {
         this.memberForm.userList = this.memberForm.copyUserList.filter((item) => {
           if (!!~item.id.indexOf(val) || !!~item.id.toUpperCase().indexOf(val.toUpperCase())) {
-            return true
+            return true;
           }
-        })
+        });
       } else {
         this.memberForm.userList = this.memberForm.copyUserList;
       }
@@ -299,7 +318,7 @@ export default {
       // })
       this.result = this.$post('/user/group/list', {type: GROUP_ORGANIZATION, resourceId: this.orgId}, response => {
         this.$set(this.memberForm, "allgroups", response.data);
-      })
+      });
       // 编辑时填充角色信息
       this.$set(this.memberForm, 'groupIds', groupIds);
       listenGoBack(this.closeFunc);
@@ -322,7 +341,7 @@ export default {
           this.$get(url + "/" + encodeURIComponent(this.memberLineData[i].id), response => {
             let groups = response.data;
             this.$set(this.memberLineData[i], "groups", groups);
-          })
+          });
         }
         this.dialogTotal = data.itemCount;
       });
@@ -339,9 +358,12 @@ export default {
         this.memberLineData = data.listObject;
         let url = "/userrole/list/org/" + row.id;
         for (let i = 0; i < this.memberLineData.length; i++) {
-          this.result = this.$post('/user/group/list', {type: GROUP_ORGANIZATION, resourceId: this.memberLineData[i].id }, response => {
+          this.result = this.$post('/user/group/list', {
+            type: GROUP_ORGANIZATION,
+            resourceId: this.memberLineData[i].id
+          }, response => {
             this.$set(this.memberLineData[i], "groups", response.data);
-          })
+          });
         }
         this.dialogTotal = data.itemCount;
       });
@@ -384,7 +406,7 @@ export default {
           if (currentUser.id === userId) {
             refreshSessionAndCookies(ORGANIZATION, sourceId);
           }
-          this.$success(this.$t('commons.remove_success'))
+          this.$success(this.$t('commons.remove_success'));
           this.cellClick(this.currentRow);
         });
       }).catch(() => {
@@ -402,7 +424,7 @@ export default {
         } else {
           return false;
         }
-      })
+      });
     },
     updateOrganization(updateOrganizationForm) {
       this.$refs[updateOrganizationForm].validate(valid => {
@@ -415,7 +437,7 @@ export default {
         } else {
           return false;
         }
-      })
+      });
     },
     initTableData() {
       this.result = this.$post(this.queryPath + "/" + this.currentPage + "/" + this.pageSize, this.condition, response => {
@@ -425,15 +447,15 @@ export default {
           let param = {
             name: '',
             organizationId: this.tableData[i].id
-          }
+          };
           let path = "user/special/org/member/list/all";
           this.$post(path, param, res => {
             let member = res.data;
             this.$set(this.tableData[i], "memberSize", member.length);
-          })
+          });
         }
         this.total = data.itemCount;
-      })
+      });
     },
     closeFunc() {
       this.memberLineData = [];
@@ -463,7 +485,7 @@ export default {
             refreshSessionAndCookies(sign, sourceId);
             this.cellClick(this.currentRow);
             this.dialogOrgMemberAddVisible = false;
-          })
+          });
         } else {
           return false;
         }
@@ -477,7 +499,7 @@ export default {
         phone: this.memberForm.phone,
         groupIds: this.memberForm.groupIds,
         organizationId: this.currentRow.id
-      }
+      };
       this.$refs[formName].validate((valid) => {
         if (valid) {
           this.result = this.$post("/organization/member/update", param, () => {
@@ -490,7 +512,7 @@ export default {
     },
   }
 
-}
+};
 </script>
 
 <style scoped>

@@ -78,26 +78,34 @@
         </el-table-column>
 
         <el-table-column
-            v-if="item.id == 'type'"
-            prop="type"
-            :filters="typeFilters"
-            column-key="type"
-            min-width="100"
-            :label="$t('test_track.case.type')"
-            show-overflow-tooltip
-            :key="index">
+          v-if="item.id == 'type'"
+          prop="type"
+          :filters="typeFilters"
+          column-key="type"
+          min-width="100"
+          :label="$t('test_track.case.type')"
+          show-overflow-tooltip
+          :key="index">
           <template v-slot:default="scope">
             <type-table-item :value="scope.row.type"/>
           </template>
         </el-table-column>
-
         <el-table-column
-            v-if="item.id=='nodePath'"
-            prop="nodePath"
-            min-width="180"
-            :label="$t('test_track.case.module')"
-            show-overflow-tooltip
-            :key="index"
+          v-if="item.id == 'maintainer'"
+          prop="maintainer"
+          :label="$t('custom_field.case_maintainer')"
+          show-overflow-tooltip
+          :key="index"
+          min-width="120"
+        >
+        </el-table-column>
+        <el-table-column
+          v-if="item.id=='nodePath'"
+          prop="nodePath"
+          min-width="180"
+          :label="$t('test_track.case.module')"
+          show-overflow-tooltip
+          :key="index"
         >
         </el-table-column>
 
@@ -156,12 +164,14 @@
           <header-label-operate @exec="customHeader"/>
         </template>
         <template v-slot:default="scope">
-          <ms-table-operator-button v-permission="['PROJECT_TRACK_CASE:READ+EDIT']" :tip="$t('commons.edit')"
-                                    icon="el-icon-edit"
-                                    @exec="handleEdit(scope.row)"/>
-          <ms-table-operator-button v-permission="['PROJECT_TRACK_REVIEW:READ+RELEVANCE_OR_CANCEL']"
-                                    :tip="$t('test_track.plan_view.cancel_relevance')"
-                                    icon="el-icon-unlock" type="danger" @exec="handleDelete(scope.row)"/>
+          <div>
+            <ms-table-operator-button v-permission="['PROJECT_TRACK_CASE:READ+EDIT']" :tip="$t('commons.edit')"
+                                      icon="el-icon-edit"
+                                      @exec="handleEdit(scope.row)"/>
+            <ms-table-operator-button v-permission="['PROJECT_TRACK_REVIEW:READ+RELEVANCE_OR_CANCEL']"
+                                      :tip="$t('test_track.plan_view.cancel_relevance')"
+                                      icon="el-icon-unlock" type="danger" @exec="handleDelete(scope.row)"/>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -201,7 +211,7 @@ import MsTableButton from "../../../../common/components/MsTableButton";
 import ShowMoreBtn from "../../../case/components/ShowMoreBtn";
 import BatchEdit from "../../../case/components/BatchEdit";
 import MsTablePagination from '../../../../common/pagination/TablePagination';
-import {checkoutTestManagerOrTestUser, hasRoles} from "../../../../../../common/js/utils";
+import {hasRoles} from "../../../../../../common/js/utils";
 import {TEST_CASE_CONFIGS} from "../../../../common/components/search/search-components";
 import {ROLE_TEST_MANAGER, ROLE_TEST_USER, TEST_CASE_REVIEW_CASE_LIST} from "../../../../../../common/js/constants";
 import TestReviewTestCaseEdit from "./TestReviewTestCaseEdit";
@@ -211,7 +221,7 @@ import {
   _handleSelect,
   _handleSelectAll,
   _sort,
-  buildBatchParam,
+  buildBatchParam, deepClone,
   getLabel,
   getSelectDataCounts,
   initCondition,
@@ -311,11 +321,12 @@ export default {
   },
   mounted() {
     this.refreshTableAndReview();
-    this.isTestManagerOrTestUser = checkoutTestManagerOrTestUser();
+    this.isTestManagerOrTestUser = true;
   },
   methods: {
     customHeader() {
-      this.$refs.headerCustom.open(this.tableLabel);
+      const list = deepClone(this.tableLabel);
+      this.$refs.headerCustom.open(list);
     },
     initTableData() {
       initCondition(this.condition, this.condition.selectAll);
@@ -386,12 +397,10 @@ export default {
       this.initTableData();
     },
     refreshTestReviewRecent() {
-      if (hasRoles(ROLE_TEST_USER, ROLE_TEST_MANAGER)) {
-        let param = {};
-        param.id = this.reviewId;
-        param.updateTime = Date.now();
-        // this.$post('/test/case/review/edit', param);
-      }
+      let param = {};
+      param.id = this.reviewId;
+      param.updateTime = Date.now();
+      // this.$post('/test/case/review/edit', param);
     },
     search() {
       this.initTableData();
@@ -401,9 +410,6 @@ export default {
     },
     handleEdit(testCase, index) {
       this.isReadOnly = false;
-      if (!checkoutTestManagerOrTestUser()) {
-        this.isReadOnly = true;
-      }
       this.$refs.testReviewTestCaseEdit.openTestCaseEdit(testCase);
     },
     handleDelete(testCase) {

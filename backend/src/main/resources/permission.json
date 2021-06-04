@@ -240,6 +240,11 @@
       "resourceId": "ORGANIZATION_MESSAGE"
     },
     {
+      "id": "ORGANIZATION_OPERATING_LOG:READ",
+      "name": "查询操作日志",
+      "resourceId": "ORGANIZATION_OPERATING_LOG"
+    },
+    {
       "id": "WORKSPACE_USER:READ",
       "name": "查询成员",
       "resourceId": "WORKSPACE_USER"
@@ -315,6 +320,11 @@
       "resourceId": "WORKSPACE_PROJECT_ENVIRONMENT"
     },
     {
+      "id": "WORKSPACE_OPERATING_LOG:READ",
+      "name": "查询操作日志",
+      "resourceId": "WORKSPACE_OPERATING_LOG"
+    },
+    {
       "id": "WORKSPACE_TEMPLATE:READ",
       "name": "查询",
       "resourceId": "WORKSPACE_TEMPLATE"
@@ -364,21 +374,11 @@
       "name": "查询项目",
       "resourceId": "PROJECT_MANAGER"
     },
-//    {
-//      "id": "PROJECT_MANAGER:READ+CREATE",
-//      "name": "创建项目",
-//      "resourceId": "PROJECT_MANAGER"
-//    },
     {
       "id": "PROJECT_MANAGER:READ+EDIT",
       "name": "编辑项目",
       "resourceId": "PROJECT_MANAGER"
     },
-//    {
-//      "id": "PROJECT_MANAGER:READ+DELETE",
-//      "name": "删除项目",
-//      "resourceId": "PROJECT_MANAGER"
-//    },
     {
       "id": "PROJECT_ENVIRONMENT:READ",
       "name": "查询环境",
@@ -413,6 +413,11 @@
       "id": "PROJECT_ENVIRONMENT:READ+EXPORT",
       "name": "导出环境",
       "resourceId": "PROJECT_ENVIRONMENT"
+    },
+    {
+      "id": "PROJECT_OPERATING_LOG:READ",
+      "name": "查询操作日志",
+      "resourceId": "PROJECT_OPERATING_LOG"
     },
     {
       "id": "PROJECT_TRACK_CASE:READ",
@@ -471,7 +476,7 @@
     },
     {
       "id": "PROJECT_TRACK_REVIEW:READ+REVIEW",
-      "name": "开始评审",
+      "name": "评审用例",
       "resourceId": "PROJECT_TRACK_REVIEW"
     },
     {
@@ -515,6 +520,61 @@
       "resourceId": "PROJECT_TRACK_PLAN"
     },
     {
+      "id": "PROJECT_TRACK_PLAN:READ+RUN",
+      "name": "执行测试计划",
+      "resourceId": "PROJECT_TRACK_PLAN"
+    },
+    {
+      "id": "PROJECT_TRACK_PLAN:READ+CASE_BATCH_DELETE",
+      "name": "批量取消关联用例",
+      "resourceId": "PROJECT_TRACK_PLAN"
+    },
+    {
+      "id": "PROJECT_TRACK_PLAN:READ+CASE_BATCH_RUN",
+      "name": "批量执行用例",
+      "resourceId": "PROJECT_TRACK_PLAN"
+    },
+    {
+      "id": "PROJECT_TRACK_PLAN:READ+CASE_BATCH_EDIT",
+      "name": "批量编辑用例",
+      "resourceId": "PROJECT_TRACK_PLAN"
+    },
+    {
+      "id": "PROJECT_TRACK_ISSUE:READ",
+      "name": "查询缺陷",
+      "resourceId": "PROJECT_TRACK_ISSUE"
+    },
+    {
+      "id": "PROJECT_TRACK_ISSUE:READ+CREATE",
+      "name": "创建缺陷",
+      "resourceId": "PROJECT_TRACK_ISSUE"
+    },
+    {
+      "id": "PROJECT_TRACK_ISSUE:READ+EDIT",
+      "name": "编辑缺陷",
+      "resourceId": "PROJECT_TRACK_ISSUE"
+    },
+    {
+      "id": "PROJECT_TRACK_ISSUE:READ+DELETE",
+      "name": "删除缺陷",
+      "resourceId": "PROJECT_TRACK_ISSUE"
+    },
+    {
+      "id": "PROJECT_TRACK_REPORT:READ",
+      "name": "查询报告",
+      "resourceId": "PROJECT_TRACK_REPORT"
+    },
+    {
+      "id": "PROJECT_TRACK_REPORT:READ+DELETE",
+      "name": "删除报告",
+      "resourceId": "PROJECT_TRACK_REPORT"
+    },
+    {
+      "id": "PROJECT_TRACK_REPORT:READ+EXPORT",
+      "name": "导出报告",
+      "resourceId": "PROJECT_TRACK_REPORT"
+    },
+    {
       "id": "PROJECT_API_DEFINITION:READ",
       "name": "查询接口",
       "resourceId": "PROJECT_API_DEFINITION"
@@ -532,6 +592,11 @@
     {
       "id": "PROJECT_API_DEFINITION:READ+DELETE_API",
       "name": "删除接口",
+      "resourceId": "PROJECT_API_DEFINITION"
+    },
+    {
+      "id": "PROJECT_API_DEFINITION:READ+COPY_API",
+      "name": "复制接口",
       "resourceId": "PROJECT_API_DEFINITION"
     },
     {
@@ -655,6 +720,11 @@
       "resourceId": "PROJECT_API_REPORT"
     },
     {
+      "id": "PROJECT_API_REPORT:READ+EXPORT",
+      "name": "导出报告",
+      "resourceId": "PROJECT_API_REPORT"
+    },
+    {
       "id": "PROJECT_PERFORMANCE_TEST:READ",
       "name": "查询测试",
       "resourceId": "PROJECT_PERFORMANCE_TEST"
@@ -697,6 +767,11 @@
     {
       "id": "PROJECT_PERFORMANCE_REPORT:READ+DELETE",
       "name": "删除报告",
+      "resourceId": "PROJECT_PERFORMANCE_REPORT"
+    },
+    {
+      "id": "PROJECT_PERFORMANCE_REPORT:READ+EXPORT",
+      "name": "导出报告",
       "resourceId": "PROJECT_PERFORMANCE_REPORT"
     }
   ],
@@ -758,6 +833,10 @@
       "name": "消息设置"
     },
     {
+      "id": "ORGANIZATION_OPERATING_LOG",
+      "name": "操作日志"
+    },
+    {
       "id": "WORKSPACE_USER",
       "name": "成员"
     },
@@ -774,6 +853,10 @@
       "name": "环境设置"
     },
     {
+      "id": "WORKSPACE_OPERATING_LOG",
+      "name": "操作日志"
+    },
+    {
       "id": "PROJECT_USER",
       "name": "成员"
     },
@@ -786,6 +869,10 @@
       "name": "环境设置"
     },
     {
+      "id": "PROJECT_OPERATING_LOG",
+      "name": "操作日志"
+    },
+    {
       "id": "PROJECT_TRACK_CASE",
       "name": "测试用例"
     },
@@ -796,6 +883,14 @@
     {
       "id": "PROJECT_TRACK_PLAN",
       "name": "测试计划"
+    },
+    {
+      "id": "PROJECT_TRACK_ISSUE",
+      "name": "缺陷"
+    },
+    {
+      "id": "PROJECT_TRACK_REPORT",
+      "name": "报告"
     },
     {
       "id": "PROJECT_API_DEFINITION",

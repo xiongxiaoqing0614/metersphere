@@ -103,10 +103,13 @@
             :label="$t('commons.operating')">
             <template v-slot:default="scope">
               <ms-table-operator-button :tip="$t('test_track.module.rename')" icon="el-icon-edit"
+                                        v-permission="['PROJECT_PERFORMANCE_REPORT:READ+DELETE']"
                                         @exec="handleRename(scope.row)" type="success"/>
               <ms-table-operator-button :tip="$t('api_report.detail')" icon="el-icon-s-data"
+                                        v-permission="['PROJECT_PERFORMANCE_REPORT:READ']"
                                         @exec="handleView(scope.row)" type="primary"/>
               <ms-table-operator-button :tip="$t('load_test.report.diff')" icon="el-icon-s-operation"
+                                        v-permission="['PROJECT_PERFORMANCE_REPORT:READ']"
                                         @exec="handleDiff(scope.row)" type="warning"/>
               <ms-table-operator-button :tip="$t('api_report.delete')"
                                         v-permission="['PROJECT_PERFORMANCE_REPORT:READ+DELETE']"
@@ -132,7 +135,6 @@ import MsTableOperatorButton from "../../common/components/MsTableOperatorButton
 import ReportTriggerModeItem from "../../common/tableItem/ReportTriggerModeItem";
 import {REPORT_CONFIGS} from "../../common/components/search/search-components";
 import MsTableHeader from "../../common/components/MsTableHeader";
-import {LIST_CHANGE, PerformanceEvent} from "@/business/components/common/head/ListEvent";
 import ShowMoreBtn from "../../track/case/components/ShowMoreBtn";
 import {_filter, _sort} from "@/common/js/tableUtils";
 import MsDialogFooter from "@/business/components/common/components/MsDialogFooter";
@@ -313,16 +315,12 @@ export default {
     _handleDeleteNoMsg(report) {
       this.result = this.$post(this.deletePath + report.id, {}, () => {
         this.initTableData();
-        // 发送广播，刷新 head 上的最新列表
-        PerformanceEvent.$emit(LIST_CHANGE);
       });
     },
     _handleDelete(report) {
       this.result = this.$post(this.deletePath + report.id, {}, () => {
         this.$success(this.$t('commons.delete_success'));
         this.initTableData();
-        // 发送广播，刷新 head 上的最新列表
-        PerformanceEvent.$emit(LIST_CHANGE);
       });
     },
     sort(column) {
@@ -360,9 +358,14 @@ export default {
         confirmButtonText: this.$t('commons.confirm'),
         callback: (action) => {
           if (action === 'confirm') {
+            let ids = [];
             this.selectRows.forEach(row => {
-              this._handleDeleteNoMsg(row);
+              ids.push(row.id);
             });
+            this.result = this.$post("/performance/report/batch/delete", {ids: ids}, () => {
+              this.initTableData();
+            });
+
             this.$success(this.$t('commons.delete_success'));
           }
         },

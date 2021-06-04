@@ -30,21 +30,23 @@
           <i class="el-icon-folder"/>
         </span>
         <span v-if="!data.isEdit" class="node-title" v-text="data.name"/>
-        <span v-if="data.caseNum" class="node-title">
-          <span>(0/{{ data.caseNum }})</span>
+        <span class="count-title" v-if="isDisplay!=='relevance'">
+          <span style="color: #6C317C">{{ data.caseNum }}</span>
         </span>
         <span v-if="!disabled" class="node-operate child">
           <el-tooltip
-              v-if="data.id !== 'root' && data.name !=='默认模块'"
-              class="item"
-              effect="dark"
-              :open-delay="200"
-              :content="$t('test_track.module.rename')"
-              placement="top">
+            v-if="data.id !== 'root' && data.name !=='默认模块'"
+            class="item"
+            effect="dark"
+            v-permission="updatePermission"
+            :open-delay="200"
+            :content="$t('test_track.module.rename')"
+            placement="top">
             <i @click.stop="edit(node, data)" class="el-icon-edit"></i>
           </el-tooltip>
           <el-tooltip
             v-if="data.name ==='默认模块' && data.level !==1"
+            v-permission="updatePermission"
             class="item"
             effect="dark"
             :open-delay="200"
@@ -56,6 +58,7 @@
             class="item"
             effect="dark"
             :open-delay="200"
+            v-permission="addPermission"
             :content="$t('test_track.module.add_submodule')"
             placement="top">
             <i @click.stop="append(node, data)" class="el-icon-circle-plus-outline"></i>
@@ -65,6 +68,7 @@
             v-if="data.name ==='默认模块' && data.level !==1"
             class="item" effect="dark"
             :open-delay="200"
+            v-permission="deletePermission"
             :content="$t('commons.delete')"
             placement="top">
             <i @click.stop="remove(node, data)" class="el-icon-delete"></i>
@@ -75,6 +79,7 @@
             class="item" effect="dark"
             :open-delay="200"
             :content="$t('commons.delete')"
+            v-permission="deletePermission"
             placement="top">
             <i @click.stop="remove(node, data)" class="el-icon-delete"></i>
           </el-tooltip>
@@ -86,7 +91,6 @@
 </template>
 
 <script>
-import {checkoutTestManagerOrTestUser} from "../../../../common/js/utils";
 
 export default {
   name: "MsNodeTree",
@@ -100,10 +104,13 @@ export default {
         children: "children",
         label: "label"
       },
-      extendTreeNodes: []
+      extendTreeNodes: [],
     };
   },
   props: {
+    isDisplay: {
+      type: String,
+    },
     type: {
       type: String,
       default: "view"
@@ -123,6 +130,9 @@ export default {
         return 50;
       }
     },
+    updatePermission: Array,
+    addPermission: Array,
+    deletePermission: Array
   },
   watch: {
     treeNodes() {
@@ -134,17 +144,22 @@ export default {
   },
   computed: {
     disabled() {
-      return this.type != 'edit' || !checkoutTestManagerOrTestUser();
+      return this.type !== 'edit';
     }
   },
   methods: {
     init() {
+      let num = 0;
+      this.treeNodes.forEach(t => {
+        num += t.caseNum;
+      });
       this.extendTreeNodes = [];
       this.extendTreeNodes.unshift({
         "id": "root",
         "name": this.allLabel,
         "level": 0,
         "children": this.treeNodes,
+        "caseNum": num > 0 ? num : ""
       });
       if (this.expandedNode.length === 0) {
         this.expandedNode.push("root");
@@ -402,6 +417,14 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1 1 auto;
+  padding: 0px 5px;
+  overflow: hidden;
+}
+
+.count-title {
+  width: auto;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   padding: 0px 5px;
   overflow: hidden;
 }

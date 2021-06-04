@@ -48,6 +48,7 @@ import io.metersphere.track.request.testcase.QueryTestPlanRequest;
 import io.metersphere.track.request.testplan.FileOperationRequest;
 import io.metersphere.track.service.TestPlanScenarioCaseService;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.session.ExecutorType;
@@ -324,6 +325,7 @@ public class ApiAutomationService {
 
     /**
      * 更新时如果有删除自定义请求，则删除对应body文件
+     *
      * @param scenario
      */
     public void deleteUpdateBodyFile(ApiScenarioWithBLOBs scenario) {
@@ -529,7 +531,10 @@ public class ApiAutomationService {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         JSONObject element = JSON.parseObject(definition);
         try {
-            return objectMapper.readValue(element.getString("hashTree"), new TypeReference<LinkedList<MsTestElement>>() {});
+            if (element != null) {
+                return objectMapper.readValue(element.getString("hashTree"), new TypeReference<LinkedList<MsTestElement>>() {
+                });
+            }
         } catch (JsonProcessingException e) {
             LogUtil.error(e.getMessage(), e);
         }
@@ -776,8 +781,8 @@ public class ApiAutomationService {
             MsThreadGroup group = new MsThreadGroup();
             group.setLabel(item.getName());
             group.setName(reportId);
-
             MsScenario scenario = JSONObject.parseObject(item.getScenarioDefinition(), MsScenario.class);
+            this.preduceMsScenario(scenario);
             if (planEnvMap.size() > 0) {
                 scenario.setEnvironmentMap(planEnvMap);
             }
@@ -839,7 +844,11 @@ public class ApiAutomationService {
             StringBuilder builder = new StringBuilder();
             for (ApiScenarioWithBLOBs apiScenarioWithBLOBs : apiScenarios) {
                 try {
-                    boolean haveEnv = checkScenarioEnv(apiScenarioWithBLOBs);
+                    TestPlanApiScenario testPlanApiScenario = null;
+                    if (request.getScenarioTestPlanIdMap() != null && request.getScenarioTestPlanIdMap().containsKey(apiScenarioWithBLOBs.getId())) {
+                        testPlanApiScenario = testPlanApiScenarioMapper.selectByPrimaryKey(request.getScenarioTestPlanIdMap().get(apiScenarioWithBLOBs.getId()));
+                    }
+                    boolean haveEnv = checkScenarioEnv(apiScenarioWithBLOBs, testPlanApiScenario);
                     if (!haveEnv) {
                         builder.append(apiScenarioWithBLOBs.getName()).append("; ");
                     }
@@ -899,7 +908,7 @@ public class ApiAutomationService {
             APIScenarioReportResult report;
             Map<String, String> planEnvMap = new HashMap<>();
             //如果是测试计划页面触发的执行方式，生成报告时createScenarioReport第二个参数需要特殊处理
-            if (StringUtils.equalsAny(request.getRunMode(), ApiRunMode.SCENARIO_PLAN.name(),ApiRunMode.SCHEDULE_SCENARIO_PLAN.name())) {
+            if (StringUtils.equalsAny(request.getRunMode(), ApiRunMode.SCENARIO_PLAN.name(), ApiRunMode.SCHEDULE_SCENARIO_PLAN.name())) {
                 String testPlanScenarioId = item.getId();
                 if (request.getScenarioTestPlanIdMap() != null && request.getScenarioTestPlanIdMap().containsKey(item.getId())) {
                     testPlanScenarioId = request.getScenarioTestPlanIdMap().get(item.getId());
@@ -910,11 +919,11 @@ public class ApiAutomationService {
                         planEnvMap = JSON.parseObject(environment, Map.class);
                     }
                 }
-                if(request.isTestPlanScheduleJob()){
+                if (request.isTestPlanScheduleJob()) {
                     String savedScenarioId = testPlanScenarioId + ":" + request.getTestPlanReportId();
                     report = createScenarioReport(reportId, savedScenarioId, item.getName(), request.getTriggerMode(),
                             request.getExecuteType(), item.getProjectId(), request.getReportUserID(), null);
-                }else{
+                } else {
                     report = createScenarioReport(reportId, testPlanScenarioId, item.getName(), request.getTriggerMode(),
                             request.getExecuteType(), item.getProjectId(), request.getReportUserID(), null);
                 }
@@ -1040,7 +1049,7 @@ public class ApiAutomationService {
                 mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
                 JSONObject element = JSON.parseObject(item.getScenarioDefinition());
                 MsScenario scenario = JSONObject.parseObject(item.getScenarioDefinition(), MsScenario.class);
-
+                this.preduceMsScenario(scenario);
                 // 多态JSON普通转换会丢失内容，需要通过 ObjectMapper 获取
                 if (element != null && StringUtils.isNotEmpty(element.getString("hashTree"))) {
                     LinkedList<MsTestElement> elements = mapper.readValue(element.getString("hashTree"),
@@ -1062,7 +1071,7 @@ public class ApiAutomationService {
                     //如果是测试计划页面触发的执行方式，生成报告时createScenarioReport第二个参数需要特殊处理
                     APIScenarioReportResult report = null;
 //                  if (StringUtils.equals(request.getRunMode(), ApiRunMode.SCENARIO_PLAN.name())) {
-                    if (StringUtils.equalsAny(request.getRunMode(), ApiRunMode.SCENARIO_PLAN.name(),ApiRunMode.SCHEDULE_SCENARIO_PLAN.name())) {
+                    if (StringUtils.equalsAny(request.getRunMode(), ApiRunMode.SCENARIO_PLAN.name(), ApiRunMode.SCHEDULE_SCENARIO_PLAN.name())) {
                         String testPlanScenarioId = item.getId();
                         if (request.getScenarioTestPlanIdMap() != null && request.getScenarioTestPlanIdMap().containsKey(item.getId())) {
                             testPlanScenarioId = request.getScenarioTestPlanIdMap().get(item.getId());
@@ -1073,11 +1082,11 @@ public class ApiAutomationService {
                                 scenario.setEnvironmentMap(JSON.parseObject(environment, Map.class));
                             }
                         }
-                        if(request.isTestPlanScheduleJob()){
+                        if (request.isTestPlanScheduleJob()) {
                             String savedScenarioId = testPlanScenarioId + ":" + request.getTestPlanReportId();
                             report = createScenarioReport(group.getName(), savedScenarioId, item.getName(), request.getTriggerMode(),
                                     request.getExecuteType(), item.getProjectId(), request.getReportUserID(), null);
-                        }else{
+                        } else {
                             report = createScenarioReport(group.getName(), testPlanScenarioId, item.getName(), request.getTriggerMode() == null ? ReportTriggerMode.MANUAL.name() : request.getTriggerMode(),
                                     request.getExecuteType(), item.getProjectId(), request.getReportUserID(), request.getConfig());
                         }
@@ -1101,13 +1110,26 @@ public class ApiAutomationService {
         return jmeterHashTree;
     }
 
-    private boolean checkScenarioEnv(ApiScenarioWithBLOBs apiScenarioWithBLOBs) {
+    private void preduceMsScenario(MsScenario scenario) {
+        if(scenario.getHashTree()!=null){
+            for (MsTestElement itemElement : scenario.getHashTree()) {
+                if(itemElement instanceof  MsScenario){
+                    itemElement.setId(UUID.randomUUID().toString());
+                }
+            }
+        }
+    }
+
+    private boolean checkScenarioEnv(ApiScenarioWithBLOBs apiScenarioWithBLOBs, TestPlanApiScenario testPlanApiScenarios) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         String definition = apiScenarioWithBLOBs.getScenarioDefinition();
         MsScenario scenario = JSONObject.parseObject(definition, MsScenario.class);
         boolean isEnv = true;
         Map<String, String> envMap = scenario.getEnvironmentMap();
+        if (testPlanApiScenarios != null && StringUtils.isNotEmpty(testPlanApiScenarios.getEnvironment())) {
+            envMap = JSON.parseObject(testPlanApiScenarios.getEnvironment(), Map.class);
+        }
         ScenarioEnv apiScenarioEnv = getApiScenarioEnv(definition);
         // 所有请求非全路径检查环境
         if (!apiScenarioEnv.getFullUrl()) {
@@ -1275,6 +1297,10 @@ public class ApiAutomationService {
                 envConfig.put(id, env);
             });
         }
+        try{
+            this.preduceTestElement(request);
+        }catch (Exception e){
+        }
         ParameterConfig config = new ParameterConfig();
         config.setConfig(envConfig);
         HashTree hashTree = null;
@@ -1296,6 +1322,25 @@ public class ApiAutomationService {
         jMeterService.runDefinition(request.getId(), hashTree, request.getReportId(), ApiRunMode.SCENARIO.name());
         return request.getId();
     }
+
+    private void preduceTestElement(RunDefinitionRequest request) throws Exception{
+        if(request.getTestElement() != null){
+            for (MsTestElement threadGroup : request.getTestElement().getHashTree()) {
+                if(threadGroup instanceof MsThreadGroup && threadGroup.getHashTree() != null){
+                    for (MsTestElement scenario: threadGroup.getHashTree()) {
+                        if(scenario instanceof MsScenario && scenario.getHashTree() != null){
+                            for (MsTestElement itemElement : scenario.getHashTree()) {
+                                if(itemElement instanceof  MsScenario){
+                                    itemElement.setId(UUID.randomUUID().toString());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     public ReferenceDTO getReference(ApiScenarioRequest request) {
         ReferenceDTO dto = new ReferenceDTO();
@@ -1660,6 +1705,19 @@ public class ApiAutomationService {
                 String jmx = generateJmx(item);
                 if (StringUtils.isNotEmpty(jmx)) {
                     ApiScenrioExportJmx scenrioExportJmx = new ApiScenrioExportJmx(item.getName(), apiTestService.updateJmxString(jmx, null, true).getXml());
+                    //扫描需要哪些文件
+                    JmxInfoDTO dto = apiTestService.updateJmxString(jmx, item.getName(), true);
+                    if (MapUtils.isNotEmpty(dto.getAttachFiles())) {
+                        List<String> fileList = new ArrayList<>();
+                        for (String fileName : dto.getAttachFiles().values()) {
+                            if (!fileList.contains(fileName)) {
+                                fileList.add(fileName);
+                            }
+                        }
+                        if (!fileList.isEmpty()) {
+                            scenrioExportJmx.setFiles(fileList);
+                        }
+                    }
                     resList.add(scenrioExportJmx);
                 }
             }
@@ -1692,10 +1750,12 @@ public class ApiAutomationService {
                 ApiScenarioWithBLOBs scenario = apiScenarioMapper.selectByPrimaryKey(id);
                 String definition = scenario.getScenarioDefinition();
                 JSONObject object = JSON.parseObject(definition);
-                object.put("environmentMap", newEnvMap);
-                String newDefinition = JSON.toJSONString(object);
-                scenario.setScenarioDefinition(newDefinition);
-                apiScenarioMapper.updateByPrimaryKeySelective(scenario);
+                if (object != null) {
+                    object.put("environmentMap", newEnvMap);
+                    String newDefinition = JSON.toJSONString(object);
+                    scenario.setScenarioDefinition(newDefinition);
+                    apiScenarioMapper.updateByPrimaryKeySelective(scenario);
+                }
             }
         });
     }

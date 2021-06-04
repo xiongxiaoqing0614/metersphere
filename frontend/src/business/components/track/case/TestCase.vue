@@ -31,6 +31,7 @@
               :checkRedirectID="checkRedirectID"
               :isRedirectEdit="isRedirectEdit"
               :tree-nodes="treeNodes"
+              @refreshTable="refresh"
               @testCaseEdit="editTestCase"
               @testCaseCopy="copyTestCase"
               @testCaseDetail="showTestCaseDetail"
@@ -71,9 +72,9 @@
             </test-case-edit>
           </div>
         </el-tab-pane>
-        <el-tab-pane name="add">
+        <el-tab-pane name="add" v-if="hasPermission('PROJECT_TRACK_CASE:READ+CREATE')">
           <template v-slot:label>
-            <el-dropdown @command="handleCommand">
+            <el-dropdown @command="handleCommand" v-permission="['PROJECT_TRACK_CASE:READ+CREATE']">
               <el-button type="primary" plain icon="el-icon-plus" size="mini"/>
               <el-dropdown-menu slot="dropdown">
                 <el-dropdown-item command="ADD" v-permission="['PROJECT_TRACK_CASE:READ+CREATE']">
@@ -104,7 +105,7 @@ import SelectMenu from "../common/SelectMenu";
 import MsContainer from "../../common/components/MsContainer";
 import MsAsideContainer from "../../common/components/MsAsideContainer";
 import MsMainContainer from "../../common/components/MsMainContainer";
-import {checkoutTestManagerOrTestUser, getUUID} from "../../../../common/js/utils";
+import {getCurrentProjectID, getUUID, hasPermission} from "@/common/js/utils";
 import TestCaseNodeTree from "../common/TestCaseNodeTree";
 
 import MsTabButton from "@/business/components/common/components/MsTabButton";
@@ -176,7 +177,7 @@ export default {
     },
 
     projectId() {
-      return this.$store.state.projectId;
+      return getCurrentProjectID();
     },
     selectNodeIds() {
       return this.$store.state.testCaseSelectNodeIds;
@@ -189,6 +190,7 @@ export default {
     }
   },
   methods: {
+    hasPermission,
     handleCommand(e) {
       switch (e) {
         case "ADD":
@@ -256,7 +258,7 @@ export default {
     },
     exportTestCase() {
       if (this.activeDom !== 'left') {
-        this.$warning('请切换成接口列表导出！');
+        this.$warning(this.$t('test_track.case.export.export_tip'));
         return;
       }
       this.$refs.testCaseList.exportTestCase();
@@ -275,9 +277,6 @@ export default {
       let path = route.path;
       if (path.indexOf("/track/case/edit") >= 0 || path.indexOf("/track/case/create") >= 0) {
         this.testCaseReadOnly = false;
-        if (!checkoutTestManagerOrTestUser()) {
-          this.testCaseReadOnly = true;
-        }
         let caseId = this.$route.params.caseId;
         if (!this.projectId) {
           this.$warning(this.$t('commons.check_project_tip'));
@@ -297,11 +296,12 @@ export default {
     nodeChange(node) {
       this.activeName = "default";
     },
-    refreshTable() {
+    refreshTable(data) {
       if (this.$refs.testCaseList) {
         this.$refs.testCaseList.initTableData();
       }
       this.$refs.nodeTree.list();
+      this.setTable(data);
     },
     editTestCase(testCase) {
       this.type = "edit";
@@ -346,15 +346,16 @@ export default {
     refresh(data) {
       this.$store.commit('setTestCaseSelectNode', {});
       this.$store.commit('setTestCaseSelectNodeIds', []);
-      this.refreshTable();
-      this.setTable(data);
+      this.refreshTable(data);
     },
     setTable(data) {
-      for (let index in this.tabs) {
-        let tab = this.tabs[index];
-        if (tab.name === this.activeName) {
-          tab.label = data.name;
-          break;
+      if (data) {
+        for (let index in this.tabs) {
+          let tab = this.tabs[index];
+          if (tab.name === this.activeName) {
+            tab.label = data.name;
+            break;
+          }
         }
       }
     },

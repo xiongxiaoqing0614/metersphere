@@ -1,16 +1,12 @@
 package io.metersphere.log.utils;
 
 import com.alibaba.fastjson.JSON;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.alibaba.fastjson.JSONArray;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import io.metersphere.commons.utils.BeanUtils;
 import io.metersphere.commons.utils.LogUtil;
-import io.metersphere.log.utils.dff.Diff;
-import io.metersphere.log.utils.dff.JsonDiff;
-import io.metersphere.log.utils.dff.Operation;
 import io.metersphere.log.vo.DetailColumn;
 import io.metersphere.log.vo.OperatingLogDetails;
 import io.metersphere.log.vo.StatusReference;
@@ -59,9 +55,7 @@ public class ReflexObjectUtil {
                             column.setDepthDff(true);
                             if (val != null) {
                                 try {
-                                    if (f.getName().equals("loadConfiguration")) {
-                                        val = "{\"" + "压力配置" + "\":" + val.toString() + "}";
-                                    }
+                                    // 格式化
                                     Gson gson = new GsonBuilder().setPrettyPrinting().create();
                                     JsonObject jsonObject = gson.fromJson(val.toString(), JsonObject.class);
                                     column.setOriginalValue(gson.toJson(jsonObject));
@@ -82,6 +76,18 @@ public class ReflexObjectUtil {
         return columnList;
     }
 
+    public static boolean isJsonArray(String content) {
+        try {
+            JSONArray array = JSON.parseArray(content);
+            if (array != null && array.size() > 0) {
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static void order(List<String> orderRegulation, List<DetailColumn> targetList) {
         Collections.sort(targetList, ((o1, o2) -> {
             int io1 = orderRegulation.indexOf(o1.getColumnName());
@@ -98,52 +104,23 @@ public class ReflexObjectUtil {
                 List<DetailColumn> newColumns = newObj.getColumns();
                 for (int i = 0; i < originalColumns.size(); i++) {
                     if (!StringUtils.equals(JSON.toJSONString(originalColumns.get(i).getOriginalValue()), JSON.toJSONString(newColumns.get(i).getOriginalValue()))) {
-                        // 深度对比
-                        if (originalColumns.get(i).isDepthDff() && originalColumns.get(i).getOriginalValue() != null && newColumns.get(i).getOriginalValue() != null) {
-                            ObjectMapper mapper = new ObjectMapper();
-                            JsonNode source = mapper.readTree(originalColumns.get(i).getOriginalValue().toString());
-                            JsonNode target = mapper.readTree(newColumns.get(i).getOriginalValue().toString());
-                            List<Diff> after = JsonDiff.jsonDiff(source, target);
-
-                            StringBuilder addBuff = new StringBuilder();
-                            StringBuilder removeBuff = new StringBuilder();
-                            StringBuilder repBuff = new StringBuilder();
-                            StringBuilder oldValue = new StringBuilder();
-                            for (Diff item : after) {
-                                if (item.getOperation().equals(Operation.ADD)) {
-                                    addBuff.append(item.getPath() + "：" + item.getValue()).append("\n");
-                                }
-                                if (item.getOperation().equals(Operation.REMOVE)) {
-                                    removeBuff.append(item.getPath() + "：" + item.getValue()).append("\n");
-                                }
-                                if (item.getOperation().equals(Operation.REPLACE)) {
-                                    repBuff.append(item.getPath() + "：" + item.getValue()).append("\n");
-                                    oldValue.append(item.getPath() + "：" + item.getSrcValue()).append("\n");
-                                }
+                        if (originalColumns.get(i).getColumnName().equals("tags")) {
+                            if ((originalColumns.get(i).getOriginalValue() == null || StringUtils.isEmpty(originalColumns.get(i).getOriginalValue().toString()))
+                                    && StringUtils.equals("[]", newColumns.get(i).getOriginalValue().toString())) {
+                                continue;
+                            } else if ((newColumns.get(i).getOriginalValue() == null || StringUtils.isEmpty(newColumns.get(i).getOriginalValue().toString()))
+                                    && StringUtils.equals("[]", originalColumns.get(i).getOriginalValue().toString())) {
+                                continue;
                             }
-                            StringBuilder newValue = new StringBuilder();
-                            if (addBuff != null && addBuff.toString().length() > 0) {
-                                newValue.append("添加：").append(addBuff).append("\n");
-                            }
-                            if (removeBuff != null && removeBuff.toString().length() > 0) {
-                                newValue.append("移除：").append(removeBuff).append("\n");
-                            }
-                            if (repBuff != null && repBuff.toString().length() > 0) {
-                                newValue.append("修改：").append(repBuff).append("\n");
-                            }
-                            DetailColumn column = new DetailColumn();
-                            BeanUtils.copyBean(column, originalColumns.get(i));
-                            if (oldValue != null && oldValue.length() > 0) {
-                                column.setOriginalValue(oldValue);
-                            }
-                            column.setNewValue(newValue);
-                            comparedColumns.add(column);
-                        } else {
-                            DetailColumn column = new DetailColumn();
-                            BeanUtils.copyBean(column, originalColumns.get(i));
-                            column.setNewValue(newColumns.get(i).getOriginalValue());
-                            comparedColumns.add(column);
                         }
+                        if (StringUtils.isEmpty(JSON.toJSONString(originalColumns.get(i).getOriginalValue())) && StringUtils.isEmpty(JSON.toJSONString(newColumns.get(i).getOriginalValue()))) {
+                            continue;
+                        }
+                        // 深度对比
+                        DetailColumn column = new DetailColumn();
+                        BeanUtils.copyBean(column, originalColumns.get(i));
+                        column.setNewValue(newColumns.get(i).getOriginalValue());
+                        comparedColumns.add(column);
                     }
                 }
             }

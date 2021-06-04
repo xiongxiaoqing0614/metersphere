@@ -782,6 +782,7 @@ public class TestCaseService {
     private List<TestCaseExcelData> generateTestCaseExcel(TestCaseBatchRequest request) {
         ServiceUtils.getSelectAllIds(request, request.getCondition(),
                 (query) -> extTestCaseMapper.selectIds(query));
+        boolean isUseCustomId = projectService.useCustomNum(request.getProjectId());
         QueryTestCaseRequest condition = request.getCondition();
         List<OrderRequest> orderList = new ArrayList<>();
         if (condition != null) {
@@ -802,7 +803,11 @@ public class TestCaseService {
             data.setName(t.getName());
             data.setNodePath(t.getNodePath());
             data.setPriority(t.getPriority());
-            data.setCustomNum(t.getCustomNum());
+            if(isUseCustomId){
+                data.setCustomNum(t.getCustomNum());
+            }else{
+                data.setCustomNum(String.valueOf(t.getNum()));
+            }
             if (StringUtils.isBlank(t.getStepModel())) {
                 data.setStepModel(TestCaseConstants.StepModel.STEP.name());
             } else {
@@ -961,9 +966,7 @@ public class TestCaseService {
     }
 
     public String save(EditTestCaseRequest request, List<MultipartFile> files) {
-        if (files == null) {
-            throw new IllegalArgumentException(Translator.get("file_cannot_be_null"));
-        }
+
 
         final TestCaseWithBLOBs testCaseWithBLOBs = addTestCase(request);
         //插入测试与用例关系表
@@ -991,14 +994,16 @@ public class TestCaseService {
             });
         }
 
+        if (files != null) {
+            files.forEach(file -> {
+                final FileMetadata fileMetadata = fileService.saveFile(file, testCaseWithBLOBs.getProjectId());
+                TestCaseFile testCaseFile = new TestCaseFile();
+                testCaseFile.setCaseId(testCaseWithBLOBs.getId());
+                testCaseFile.setFileId(fileMetadata.getId());
+                testCaseFileMapper.insert(testCaseFile);
+            });
+        }
 
-        files.forEach(file -> {
-            final FileMetadata fileMetadata = fileService.saveFile(file, testCaseWithBLOBs.getProjectId());
-            TestCaseFile testCaseFile = new TestCaseFile();
-            testCaseFile.setCaseId(testCaseWithBLOBs.getId());
-            testCaseFile.setFileId(fileMetadata.getId());
-            testCaseFileMapper.insert(testCaseFile);
-        });
         return testCaseWithBLOBs.getId();
     }
 
@@ -1103,7 +1108,7 @@ public class TestCaseService {
         selectFields.add("id");
         selectFields.add("name");
         request.setSelectFields(selectFields);
-        return extTestCaseMapper.list(request);
+        return extTestCaseMapper.listIds(request);
     }
 
     public void minderEdit(TestCaseMinderEditRequest request) {
