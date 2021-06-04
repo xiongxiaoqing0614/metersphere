@@ -79,6 +79,7 @@ public class ForsetiParser extends ApiImportAbstractParser {
                 JSONObject apiObj = apiArray.getJSONObject(j);
                 ApiDefinitionResult apiDefinition = parseForsetiApiObj(apiObj, importRequest);
                 String apiTag = apiObj.getString("tags");
+                String tag4Tranfer = apiTag;
                 if (apiTag != null) {
                     if (apiTag.contains(",")) {
                         String[] apiTags = apiTag.split(",");
@@ -93,6 +94,7 @@ public class ForsetiParser extends ApiImportAbstractParser {
                     }
                     ApiModule apiModule = ApiDefinitionImportUtil.buildModule(module, apiTag, importRequest.getProjectId());
                     apiDefinition.setModuleId(apiModule.getId());
+                    apiDefinition.setTags("[\"" + tag4Tranfer.replaceAll(",", "\",\"") + "\"]");
                 } else {
                     apiDefinition.setModuleId(module.getId());
                 }
