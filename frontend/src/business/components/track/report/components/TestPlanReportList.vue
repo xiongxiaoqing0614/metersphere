@@ -52,6 +52,16 @@
           <ms-tag v-else type="effect" effect="plain" :content="scope.row.status"/>
         </template>
       </el-table-column>
+      <el-table-column prop="coverageRate" min-width="100" :label="$t('commons.coverage_rate')" show-overflow-tooltip>
+        <template v-slot:default="scope">
+          <el-button
+            @click="showCoverageRateReport(scope.row, $event)"
+            type="text"
+            size="small">
+            {{scope.row.coverageRate}}
+          </el-button>
+        </template>
+      </el-table-column>
       <el-table-column min-width="150" :label="$t('commons.operating')">
         <template v-slot:default="scope">
           <div>
@@ -67,6 +77,7 @@
     <ms-table-pagination :change="initTableData" :current-page.sync="currentPage" :page-size.sync="pageSize"
                          :total="total"/>
     <test-plan-report-view @refresh="initTableData" ref="testPlanReportView"/>
+    <test-plan-code-coverage-rate-report-view @refresh="initTableData" ref="testPlanCodeCoverageRateReportView"/>
   </el-card>
 </template>
 
@@ -77,10 +88,12 @@ import MsTableOperatorButton from "../../../common/components/MsTableOperatorBut
 import MsTableOperator from "../../../common/components/MsTableOperator";
 import {TEST_PLAN_REPORT_CONFIGS} from "../../../common/components/search/search-components";
 import TestPlanReportView from "@/business/components/track/report/components/TestPlanReportView";
+import TestPlanCodeCoverageRateReportView from "@/business/components/track/report/components/TestPlanCodeCoverageRateReportView";
 import ReportTriggerModeItem from "@/business/components/common/tableItem/ReportTriggerModeItem";
 import MsTag from "@/business/components/common/components/MsTag";
 import ShowMoreBtn from "@/business/components/track/case/components/ShowMoreBtn";
 import MsTableSelectAll from "@/business/components/common/components/table/MsTableSelectAll";
+import {pullAndMergeCodeCoverageRate} from "@/common/js/tuhu/testreport";
 import {
   _filter,
   _handleSelect,
@@ -98,6 +111,7 @@ export default {
   components: {
     MsTableHeaderSelectPopover,
     TestPlanReportView,
+    TestPlanCodeCoverageRateReportView,
     MsTableOperator, MsTableOperatorButton, MsTableHeader, MsTablePagination,
     ReportTriggerModeItem, MsTag,
     ShowMoreBtn, MsTableSelectAll,
@@ -164,7 +178,7 @@ export default {
       this.result = this.$post(this.buildPagePath(this.queryPath), this.condition, response => {
         let data = response.data;
         this.total = data.itemCount;
-        this.tableData = data.listObject;
+        this.tableData = pullAndMergeCodeCoverageRate(this, data.listObject);
         if (this.$refs.testPlanReportTable) {
           // setTimeout(this.$refs.testPlanReportTable,200);
         }
@@ -250,6 +264,13 @@ export default {
       //更新统计信息
       this.selectDataCounts = getSelectDataCounts(this.condition, this.total, this.selectRows);
     },
+    showCoverageRateReport(row, event){
+      event.preventDefault();
+      event.stopPropagation();
+      let url = `/tuhu/testplan/report?appId=${row._appId}&branchName=${row._branchName}&commitId=${row._commitId}&stage=${row._stage}`;
+      this.$refs.testPlanCodeCoverageRateReportView.open(row.name, url);
+      // window.open(url);
+    }
   }
 }
 </script>

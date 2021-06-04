@@ -494,6 +494,27 @@ public class MsHTTPSamplerProxy extends MsTestElement {
                 }
             }
         }
+
+        // 数据兼容处理
+        if (config.getConfig() != null && config.getConfig().containsKey(getParentProjectId())) {
+            // 1.8 前后 混合数据
+            this.setProjectId(getParentProjectId());
+        } else if (config.getConfig() != null && StringUtils.isNotEmpty(this.getProjectId()) && config.getConfig().containsKey(this.getProjectId())) {
+            // 1.8 之后 当前正常数据
+        } else {
+            // 1.8 之前 数据
+            if (config.getConfig() != null) {
+                if (!config.getConfig().containsKey(RunModeConstants.HIS_PRO_ID.toString())) {
+                    // 测试计划执行
+                    Iterator<String> it = config.getConfig().keySet().iterator();
+                    if (it.hasNext()) {
+                        this.setProjectId(it.next());
+                    }
+                } else {
+                    this.setProjectId(RunModeConstants.HIS_PRO_ID.toString());
+                }
+            }
+        }
     }
 
     private boolean isUrl() {

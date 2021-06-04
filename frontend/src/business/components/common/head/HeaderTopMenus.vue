@@ -8,6 +8,9 @@
            @select="handleSelect"
            :key="menuKey"
            router>
+    <el-menu-item index="/kanban" v-permission="['PROJECT_TRACK_CASE:READ','PROJECT_TRACK_PLAN:READ','PROJECT_TRACK_REVIEW:READ','PROJECT_API_DEFINITION:READ','PROJECT_API_SCENARIO:READ','PROJECT_API_REPORT:READ']">
+      {{ $t('test_kanban.test_kanban') }}
+    </el-menu-item>
 
     <el-menu-item index="/track" v-if="check('testTrack')"
                   v-permission="['PROJECT_TRACK_CASE:READ','PROJECT_TRACK_PLAN:READ','PROJECT_TRACK_REVIEW:READ']">

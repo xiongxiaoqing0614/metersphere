@@ -543,6 +543,8 @@ public class ApiDefinitionService {
      * @return
      */
     public String run(RunDefinitionRequest request, List<MultipartFile> bodyFiles) {
+        //检查是否是ESB请求：ESB请求需要根据数据结构更换参数
+        request = esbApiParamService.checkIsEsbRequest(request);
         int count = 100;
         BaseSystemConfigDTO dto = systemParameterService.getBaseInfo();
         if (StringUtils.isNotEmpty(dto.getConcurrency())) {
