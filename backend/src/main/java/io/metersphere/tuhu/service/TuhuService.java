@@ -1,6 +1,7 @@
 package io.metersphere.tuhu.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import io.metersphere.base.domain.TestPlan;
 import io.metersphere.base.mapper.TestPlanMapper;
@@ -74,15 +75,12 @@ public class TuhuService {
             LogUtil.info("testPlanIds or testReportIds is null");
             return null;
         }
-        String rjs = fetchCodeCoverageData(JSON.toJSONString(mappingList));
-        LogUtil.info("code coverage rate result json: " + rjs);
-        JSONObject jo = JSONObject.parseObject(rjs);
-        if (jo == null || jo.getInteger("code") != 0) {
-            return null;
-        }
+
+        JSONArray rjs = fetchCodeCoverageData(JSON.toJSONString(mappingList));
+        if (rjs == null) { return null; }
 
         List<TuhuCodeCoverageRateResultDTO> lst = new ArrayList<>();
-        for (Object j : jo.getJSONArray("data")) {
+        for (Object j : rjs) {
             TuhuCodeCoverageRateResultDTO tuhuCodeCoverageRateResultDTO = new TuhuCodeCoverageRateResultDTO();
             JSONObject t = (JSONObject)j;
             tuhuCodeCoverageRateResultDTO.setTestPlanId(t.getString("testPlanId"));
@@ -98,17 +96,30 @@ public class TuhuService {
         return lst;
     }
 
-    private String fetchCodeCoverageData(String js) {
+    private JSONArray fetchCodeCoverageData(String js) {
         String codeCoverageRateServerUrl = codeCoverageRateServerUrlPrefix + "/api/coverager/data";
-        LogUtil.info("codeCoverageRateServerUrl: " + codeCoverageRateServerUrl);
-        LogUtil.info("code coverage rate request json: " + js);
+        String result = restApiPost(codeCoverageRateServerUrl, js);
+
+        JSONObject jo = JSONObject.parseObject(result);
+        if (jo == null || jo.getInteger("code") != 0) {
+            return null;
+        }
+
+        return jo.getJSONArray("data");
+    }
+
+    public static String restApiPost(String url, String js) {
+        LogUtil.info("post url: " + url);
+        LogUtil.info("request json: " + js);
         RestTemplate client = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> requestEntity = new HttpEntity<>(js, headers);
-        ResponseEntity<String> response = client.exchange(codeCoverageRateServerUrl, HttpMethod.POST, requestEntity, String.class);
+        ResponseEntity<String> response = client.exchange(url, HttpMethod.POST, requestEntity, String.class);
 
-        return response.getBody();
+        String result = response.getBody();
+        LogUtil.info("pass rate response json: " + result);
+        return result;
     }
 
     public String getTestReportByTimestamp(CodeCoverageBindRequest codeCoverageBind) {
