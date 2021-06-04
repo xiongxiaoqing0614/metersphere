@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
-import io.metersphere.commons.utils.LogUtil;
 
 
 @Service
