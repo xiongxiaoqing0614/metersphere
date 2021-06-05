@@ -33,6 +33,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 
 public class JmeterTuhuParser extends ApiImportAbstractParser {
+    boolean threadConfirm = false;
 
     @Override
     public ApiDefinitionImport parse(InputStream source, ApiTestImportRequest request) {
@@ -42,8 +43,9 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
 
             this.projectId = request.getProjectId();
             List<ApiDefinitionWithBLOBs> results = new ArrayList<>();
-            List<Map<String, String>> headerList = new ArrayList<>();
-            this.getApiDefinitionWithBLOBs(testPlan, results, request.getModuleId(), this.getSelectModulePath(request), request, this.getHeaders(testPlan,headerList),0);
+            List<HashTree> threadGroupList = new ArrayList<>();
+            this.getAllThreadGroup(testPlan,threadGroupList);
+            this.getApiDefinitionWithBLOBs(testPlan, results, request.getModuleId(), this.getSelectModulePath(request), request, threadGroupList);
 
             ApiDefinitionImport apiImport = new ApiDefinitionImport();
             apiImport.setData(results);
@@ -68,11 +70,8 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
         return selectModulePath;
     }
 
-    private void getApiDefinitionWithBLOBs(HashTree tree, List<ApiDefinitionWithBLOBs> results, String selectModuleId, String selectModulePath, ApiTestImportRequest importRequest, List<Map<String, String>> headers, int indexHeader){
+    private void getApiDefinitionWithBLOBs(HashTree tree, List<ApiDefinitionWithBLOBs> results, String selectModuleId, String selectModulePath, ApiTestImportRequest importRequest, List<HashTree> threadGroupList){
         for (Object key : tree.keySet()) {
-            if(key instanceof ThreadGroup){
-                indexHeader = indexHeader+1;
-            }
             if (key instanceof HTTPSamplerProxy){
                 HashTree httpSamplerProxy = tree.get(key);
                 String samplerPath = ((HTTPSamplerProxy) key).getPath();
@@ -108,17 +107,21 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
                             }
                         }
                     }
-                    for (String headerManagerKey: headers.get(indexHeader-1).keySet()){
-                        boolean hasHeader = false;
-                        for(int k = 0; k<headerObj.size(); k++){
-                            if (headerObj.get(k).getName().equals(headerManagerKey)){
-                                hasHeader = true;
+                    List<Map<String, String>> headers = this.getHttpSamplerConHeader(threadGroupList,key);
+                    if (headers.size()>0){
+                        for (String headerManagerKey: headers.get(0).keySet()){
+                            boolean hasHeader = false;
+                            for(int k = 0; k<headerObj.size(); k++){
+                                if (headerObj.get(k).getName().equals(headerManagerKey)){
+                                    hasHeader = true;
+                                }
+                            }
+                            if(!hasHeader){
+                                headerObj.add(new KeyValue(headerManagerKey,headers.get(0).get(headerManagerKey)));
                             }
                         }
-                        if(!hasHeader){
-                            headerObj.add(new KeyValue(headerManagerKey,headers.get(indexHeader-1).get(headerManagerKey)));
-                        }
                     }
+
                     JSONObject requestObj = new JSONObject();
                     requestObj.put("name", samplerName);
                     requestObj.put("path", samplerPath);
@@ -155,30 +158,10 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
             // 递归子项
             HashTree node = tree.get(key);
             if (node != null) {
-                getApiDefinitionWithBLOBs(node, results, selectModuleId, selectModulePath, importRequest, headers,indexHeader);
+                getApiDefinitionWithBLOBs(node, results, selectModuleId, selectModulePath, importRequest, threadGroupList);
             }
         }
 
-    }
-
-    private List<Map<String, String>> getHeaders(HashTree tree, List<Map<String, String>> headerList){
-//        List<Map<String, String>> headerList = new ArrayList<>();
-        Map<String, String> headers = new HashMap<>();
-        for (Object key : tree.keySet()) {
-            if (key instanceof HeaderManager){
-                if(((HeaderManager)key).getHeaders() != null){
-                    for (int j = 0; j<((HeaderManager)key).getHeaders().size(); j++){
-                        headers.put(((HeaderManager)key).getHeader(j).getName(), ((HeaderManager)key).getHeader(j).getValue());
-                    }
-                }
-                headerList.add(headers);
-            }
-            HashTree node = tree.get(key);
-            if (node != null && !(key instanceof HTTPSamplerProxy)) {
-                getHeaders(node, headerList);
-            }
-        }
-        return headerList;
     }
 
     protected ApiDefinitionResult buildApiDefinition(String id, String name, String path, String method, ApiTestImportRequest importRequest) {
@@ -201,6 +184,63 @@ public class JmeterTuhuParser extends ApiImportAbstractParser {
         Field field = scriptWrapper.getClass().getDeclaredField("testPlan");
         field.setAccessible(true);
         return (HashTree) field.get(scriptWrapper);
+    }
+
+    private void getAllThreadGroup(HashTree tree,List<HashTree>threadGroupList){
+        for (Object key: tree.keySet()){
+            if (key instanceof ThreadGroup){
+                threadGroupList.add(tree.get(key));
+            }
+            HashTree node = tree.get(key);
+            if (node != null){
+                getAllThreadGroup(node,threadGroupList);
+            }
+        }
+    }
+
+    private List<Map<String, String>> getHttpSamplerConHeader(List<HashTree>threadGroupList, Object samplerKey){
+        List<Map<String, String>> headerList = new ArrayList<>();
+        for (int i = 0; i<threadGroupList.size(); i++){
+            boolean threadConfirm = this.threadGroupConfirm(threadGroupList.get(i),samplerKey);
+            if (threadConfirm){
+                this.getThreadHeader(threadGroupList.get(i),headerList);
+                break;
+            }
+        }
+        return headerList;
+    }
+
+    private boolean threadGroupConfirm(HashTree tree, Object samplerKey){
+        threadConfirm = false;
+        for (Object key: tree.keySet()){
+            if (key.equals(samplerKey)){
+                threadConfirm = true;
+                break;
+            }
+            HashTree node = tree.get(key);
+            if (node != null && !threadConfirm){
+                threadGroupConfirm(node,samplerKey);
+            }
+        }
+        return threadConfirm;
+    }
+
+    private void getThreadHeader(HashTree tree, List<Map<String, String>> headerList){
+        Map<String, String> headers = new HashMap<>();
+        for (Object key : tree.keySet()) {
+            if (key instanceof HeaderManager){
+                if(((HeaderManager)key).getHeaders() != null){
+                    for (int j = 0; j<((HeaderManager)key).getHeaders().size(); j++){
+                        headers.put(((HeaderManager)key).getHeader(j).getName(), ((HeaderManager)key).getHeader(j).getValue());
+                    }
+                }
+                headerList.add(headers);
+            }
+            HashTree node = tree.get(key);
+            if (node != null && !(key instanceof HTTPSamplerProxy)) {
+                getThreadHeader(node, headerList);
+            }
+        }
     }
 }
 
