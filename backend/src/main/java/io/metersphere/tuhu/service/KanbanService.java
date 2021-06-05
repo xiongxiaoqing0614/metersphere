@@ -2,6 +2,7 @@ package io.metersphere.tuhu.service;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.metersphere.api.jmeter.RequestResult;
 import io.metersphere.api.jmeter.ScenarioResult;
 import io.metersphere.api.jmeter.TestResult;
@@ -207,7 +208,9 @@ public class KanbanService {
             jo.put("deviceName", "metersphere");
         }
 
-        String rep = restApiPost(url, JSONObject.toJSONString(jo));
+        JSONArray ja = new JSONArray();
+        ja.add(jo);
+        String rep = restApiPost(url, JSONObject.toJSONString(ja));
         JSONObject repObj = JSONObject.parseObject(rep);
         if (repObj == null || !repObj.getBoolean("success")) {
             LogUtil.error("上传测试结果失败: " + rep);
@@ -215,10 +218,11 @@ public class KanbanService {
     }
 
     private JSONObject makeTestResultDataObj(TestResult testResult, String testPlanReportId) {
+        LogUtil.info(JSONObject.toJSONString(testResult, SerializerFeature.PrettyFormat, SerializerFeature.WriteMapNullValue,
+                SerializerFeature.WriteDateUseDateFormat));
         ScenarioResult sr = testResult.getScenarios().get(0);
         JSONObject jo = new JSONObject();
         TestPlanReportExtDTO testPlanReportExtDTO = kanbanMapper.queryTestPlanInfoByReportId(testPlanReportId);
-        LogUtil.info(JSONObject.toJSONString(testPlanReportExtDTO));
         if (testPlanReportExtDTO == null) { return jo; }
 
         jo.put("groupName", testPlanReportExtDTO.getGroupName());
