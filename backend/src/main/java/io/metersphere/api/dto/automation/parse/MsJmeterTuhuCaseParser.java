@@ -84,6 +84,7 @@ import java.util.*;
 
 public class MsJmeterTuhuCaseParser extends ApiImportAbstractParser<ScenarioImport> {
     private final String ENV_NAME = "导入数据环境";
+    private boolean THREAD_CON = false;
     /**
      * todo 存放单个请求下的Header 为了和平台对应
      */
@@ -941,14 +942,28 @@ public class MsJmeterTuhuCaseParser extends ApiImportAbstractParser<ScenarioImpo
     private List<Map<String, String>> getHttpSamplerConHeader(List<HashTree> ThreadGroupList, Object samplerKey){
         List<Map<String, String>> headerList = new ArrayList<>();
         for (int i = 0; i<ThreadGroupList.size(); i++){
-            for (Object key : ThreadGroupList.get(i).keySet()) {
-                if (key.equals(samplerKey)){
-                    this.getThreadHeader(ThreadGroupList.get(i),headerList);
-                    break;
-                }
+            boolean threadCon = this.threadGroupConfirm(ThreadGroupList.get(i),samplerKey);
+            if(threadCon){
+                this.getThreadHeader(ThreadGroupList.get(i),headerList);
+                break;
             }
         }
         return headerList;
+    }
+
+    private boolean threadGroupConfirm(HashTree tree, Object samplerKey){
+        THREAD_CON = false;
+        for (Object key: tree.keySet()){
+            if (key.equals(samplerKey)) {
+                THREAD_CON = true;
+                break;
+            }
+            HashTree node = tree.get(key);
+            if (node != null && !THREAD_CON) {
+                threadGroupConfirm(node, samplerKey);
+            }
+        }
+        return THREAD_CON;
     }
 
     private void getThreadHeader(HashTree tree, List<Map<String, String>> headerList){
