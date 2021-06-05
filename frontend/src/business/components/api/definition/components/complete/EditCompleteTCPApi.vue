@@ -5,8 +5,11 @@
       <el-col>
         <!--操作按钮-->
         <div style="float: right;margin-right: 20px;margin-top: 20px">
-          <el-button type="primary" size="small" @click="saveApi" title="ctrl + s" v-tester>{{ $t('commons.save') }}</el-button>
-          <el-button type="primary" size="small" @click="runTest" v-tester>{{ $t('commons.test') }}</el-button>
+          <el-link type="primary" style="margin-right: 20px" @click="openHis" v-if="basisData.id">
+            {{ $t('operating_log.change_history') }}
+          </el-link>
+          <el-button type="primary" size="small" @click="saveApi" title="ctrl + s">{{ $t('commons.save') }}</el-button>
+          <el-button type="primary" size="small" @click="runTest">{{ $t('commons.test') }}</el-button>
         </div>
       </el-col>
     </el-row>
@@ -32,6 +35,7 @@
 <!--      <api-response-component :currentProtocol="apiCase.request.protocol" :api-item="apiCase"/>-->
     </div>
 
+    <ms-change-history ref="changeHistory"/>
 
   </div>
 
@@ -40,12 +44,15 @@
 <script>
 import MsTcpBasicApi from "./TCPBasicApi";
 import MsBasisParameters from "../request/tcp/TcpBasisParameters";
+import MsChangeHistory from "../../../../history/ChangeHistory";
+import {hasLicense} from "@/common/js/utils";
+
 const requireComponent = require.context('@/business/components/xpack/', true, /\.vue$/);
 const esbDefinition = (requireComponent!=null&&requireComponent.keys().length) > 0 ? requireComponent("./apidefinition/EsbDefinition.vue") : {};
 const esbDefinitionResponse = (requireComponent!=null&&requireComponent.keys().length) > 0 ? requireComponent("./apidefinition/EsbDefinitionResponse.vue") : {};
 export default {
   name: "MsAddCompleteTcpApi",
-  components: {MsTcpBasicApi, MsBasisParameters,
+  components: {MsTcpBasicApi, MsBasisParameters,MsChangeHistory,
     "esbDefinition": esbDefinition.default,
     "esbDefinitionResponse": esbDefinitionResponse.default},
   props: {
@@ -76,9 +83,12 @@ export default {
     }
     if (requireComponent != null && JSON.stringify(esbDefinition) != '{}'&& JSON.stringify(esbDefinitionResponse) != '{}') {
       this.showXpackCompnent = true;
-      if(this.methodTypes.length == 1){
-        this.methodTypes.push("ESB");
+      if(hasLicense()){
+        if(this.methodTypes.length == 1){
+          this.methodTypes.push("ESB");
+        }
       }
+
     }
   },
   watch: {
@@ -102,6 +112,9 @@ export default {
     },
   },
   methods: {
+    openHis(){
+      this.$refs.changeHistory.open(this.basisData.id);
+    },
     callback() {
       this.validated = true;
     },

@@ -8,22 +8,25 @@
            @select="handleSelect"
            :key="menuKey"
            router>
-    <el-menu-item index="/kanban" v-permission="['test_manager','test_user','test_viewer']">
+    <el-menu-item index="/kanban" v-permission="['PROJECT_TRACK_CASE:READ','PROJECT_TRACK_PLAN:READ','PROJECT_TRACK_REVIEW:READ','PROJECT_API_DEFINITION:READ','PROJECT_API_SCENARIO:READ','PROJECT_API_REPORT:READ']">
       {{ $t('test_kanban.test_kanban') }}
     </el-menu-item>
-    <el-menu-item index="/track" v-permission="['test_manager','test_user','test_viewer']">
+
+    <el-menu-item index="/track" v-if="check('testTrack')"
+                  v-permission="['PROJECT_TRACK_CASE:READ','PROJECT_TRACK_PLAN:READ','PROJECT_TRACK_REVIEW:READ']">
       {{ $t('test_track.test_track') }}
     </el-menu-item>
     <el-menu-item index="/api" @click="active()" v-if="check('api')"
-                  v-permission="['test_manager','test_user','test_viewer']">
+                  v-permission="['PROJECT_API_DEFINITION:READ','PROJECT_API_SCENARIO:READ','PROJECT_API_REPORT:READ']">
       {{ $t('commons.api') }}
     </el-menu-item>
     <el-menu-item index="/performance" v-if="check('performance')"
                   onselectstart="return false"
-                  v-permission="['test_manager','test_user','test_viewer']">
+                  v-permission="['PROJECT_PERFORMANCE_TEST:READ','PROJECT_PERFORMANCE_REPORT:READ']">
       {{ $t('commons.performance') }}
     </el-menu-item>
-    <el-menu-item index="/report" v-permission="['test_manager','test_user','test_viewer']"
+    <el-menu-item index="/report"
+                  v-permission="['PROJECT_TRACK_CASE:READ','PROJECT_TRACK_PLAN:READ','PROJECT_TRACK_REVIEW:READ']"
                   v-if="isReport && check('reportStat')">
       {{ $t('commons.report_statistics.title') }}
     </el-menu-item>
@@ -38,7 +41,6 @@
 import {LicenseKey} from '@/common/js/constants';
 import {mapGetters} from "vuex";
 import {hasLicense} from "@/common/js/utils";
-import {MODULE_CHANGE, ModuleEvent} from "@/business/components/common/head/ListEvent";
 
 const requireContext = require.context('@/business/components/xpack/', true, /router\.js$/);
 const report = requireContext.keys().map(key => requireContext(key).report);
@@ -81,7 +83,6 @@ export default {
       }
     }
 
-    this.registerEvents();
   },
   computed: {
     ...mapGetters([
@@ -108,15 +109,6 @@ export default {
       }
       return true;
     },
-    registerEvents() {
-      ModuleEvent.$on(MODULE_CHANGE, () => {
-        if (module.default) {
-          module.default.listModules(this).then(() => {
-            this.menuKey++;
-          });
-        }
-      });
-    }
   }
 };
 </script>

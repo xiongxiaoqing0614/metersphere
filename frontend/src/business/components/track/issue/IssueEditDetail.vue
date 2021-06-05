@@ -1,21 +1,10 @@
 <template>
-  <el-main v-loading="result.loading" class="container">
+  <el-main v-loading="result.loading" class="container" :style="isPlan ? '' : 'height: calc(100vh - 62px)'">
     <el-scrollbar>
       <el-form :model="form" :rules="rules" label-position="right" label-width="140px" ref="form">
 
         <el-form-item :label="$t('commons.title')" prop="title">
           <el-input v-model="form.title" autocomplete="off"></el-input>
-        </el-form-item>
-
-        <el-form-item :label="$t('custom_field.issue_creator')" prop="title">
-          <el-select filterable v-model="form.creator" :placeholder="$t('custom_field.issue_creator')">
-            <el-option
-              v-for="(item) in memberOptions"
-              :key="item.id"
-              :label="item.id + ' (' + item.name + ')'"
-              :value="item.id">
-            </el-option>
-          </el-select>
         </el-form-item>
 
         <!-- 自定义字段 -->
@@ -87,7 +76,7 @@ import {buildCustomFields, getTemplate, parseCustomField} from "@/common/js/cust
 import CustomFiledComponent from "@/business/components/settings/workspace/template/CustomFiledComponent";
 import TestCaseIssueList from "@/business/components/track/issue/TestCaseIssueList";
 import IssueEditDetail from "@/business/components/track/issue/IssueEditDetail";
-import {getCurrentUserId, getCurrentWorkspaceId} from "@/common/js/utils";
+import {getCurrentProjectID, getCurrentUserId} from "@/common/js/utils";
 
 export default {
   name: "IssueEditDetail",
@@ -130,8 +119,7 @@ export default {
       zentaoUsers: [],
       Builds: [],
       hasTapdId: false,
-      hasZentaoId: false,
-      memberOptions: []
+      hasZentaoId: false
     };
   },
   props: {
@@ -141,7 +129,8 @@ export default {
         return false;
       }
     },
-    caseId: String
+    caseId: String,
+    planId: String
   },
   computed: {
     isSystem() {
@@ -151,24 +140,18 @@ export default {
       return SYSTEM_FIELD_NAME_MAP;
     },
     projectId() {
-      return this.$store.state.projectId
+      return getCurrentProjectID();
     }
   },
   methods: {
     open(data) {
       let initAddFuc = this.initEdit;
-      this.getMemberOptions();
       getTemplate('field/template/issue/get/relate/', this)
         .then((template) => {
           this.issueTemplate = template;
           this.getThirdPartyInfo();
           initAddFuc(data);
         });
-    },
-    getMemberOptions() {
-      this.$post('/user/ws/member/tester/list', {workspaceId: getCurrentWorkspaceId()}, response => {
-        this.memberOptions = response.data;
-      });
     },
     getThirdPartyInfo() {
       let platform = this.issueTemplate.platform;
@@ -200,6 +183,9 @@ export default {
         } else {
           //copy
           this.url = 'issues/add';
+          if (!this.form.creator) {
+            this.form.creator = getCurrentUserId();
+          }
           this.form.title = data.title + '_copy';
         }
       } else {
@@ -208,9 +194,9 @@ export default {
           description: this.issueTemplate.content
         }
         this.url = 'issues/add';
-      }
-      if (!this.form.creator) {
-        this.form.creator = getCurrentUserId();
+        if (!this.form.creator) {
+          this.form.creator = getCurrentUserId();
+        }
       }
       parseCustomField(this.form, this.issueTemplate, this.customFieldForm, this.customFieldRules, null);
       this.$nextTick(() => {
@@ -251,6 +237,9 @@ export default {
       } else {
         param.testCaseIds = Array.from(this.testCaseContainIds);
       }
+      if (this.planId) {
+        param.resourceId = this.planId;
+      }
       return param;
     },
     _save() {
@@ -279,9 +268,6 @@ export default {
 
 <style scoped>
 
-.container {
-  height: calc(100vh - 62px);
-}
 
 .filed-list {
   margin-top: 30px;

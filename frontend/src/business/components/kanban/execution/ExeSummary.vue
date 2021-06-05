@@ -3,11 +3,10 @@
     <el-table
       v-loading="result.loading"
       :data="tableData"
-      height="700"
       border
       stripe
       ref=“table”
-      style="width: 100%">
+      style="width: 100%; max-height: 700px;">
       <el-table-column
         align="center"
         prop="department"
@@ -41,8 +40,24 @@
       </el-table-column>
       <el-table-column
         align="center"
+        prop="passRateAvg"
+        label="日均用例通过率">
+        <template slot-scope="scope">
+          <div v-if="scope.row.dailyAvgPassRate">
+            {{scope.row.dailyAvgPassRate * 100}}%
+          </div>
+          <div v-else>
+            --
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        align="center"
         prop="passRate"
         label="用例最后通过率">
+        <template slot-scope="scope">
+          {{scope.row.passRate}}%
+        </template>
       </el-table-column>
             <el-table-column
         align="center"

@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <el-card class="table-card" v-loading="loading">
+  <div class="card-container">
+    <el-card class="card-content" v-loading="loading">
       <template v-slot:header>
         <test-plan-scenario-list-header
           :condition="condition"
@@ -8,10 +8,13 @@
           @relevanceCase="$emit('relevanceCase', 'scenario')"/>
       </template>
 
-      <el-table ref="scenarioTable" border :data="tableData" class="test-content adjust-table ms-select-all-fixed" @select-all="handleSelectAll"
+      <el-table ref="scenarioTable" border :data="tableData" class="test-content adjust-table ms-select-all-fixed"
+                @select-all="handleSelectAll"
+                @sort-change="sort"
+                @filter-change="filter"
                 :height="screenHeight"
                 @select="handleSelect">
-        <el-table-column type="selection"/>
+        <el-table-column width="50" type="selection"/>
         <ms-table-header-select-popover v-show="total>0"
                                         :page-size="pageSize > total ? total : pageSize"
                                         :total="total"
@@ -25,6 +28,7 @@
         <template v-for="(item, index) in tableLabel">
           <el-table-column
             v-if="item.id == 'num'"
+            sortable="custom"
             prop="customNum"
             min-width="80px"
             label="ID"
@@ -32,12 +36,12 @@
           <el-table-column v-if="item.id == 'name'" prop="name" :label="$t('api_test.automation.scenario_name')" min-width="120px"
                            show-overflow-tooltip :key="index"/>
           <el-table-column v-if="item.id == 'level'" prop="level" :label="$t('api_test.automation.case_level')" min-width="100px"
+                           column-key="level"
+                           sortable="custom"
+                           :filters="LEVEL_FILTERS"
                            show-overflow-tooltip :key="index">
             <template v-slot:default="scope">
-              <ms-tag v-if="scope.row.level == 'P0'" type="info" effect="plain" content="P0"/>
-              <ms-tag v-if="scope.row.level == 'P1'" type="warning" effect="plain" content="P1"/>
-              <ms-tag v-if="scope.row.level == 'P2'" type="success" effect="plain" content="P2"/>
-              <ms-tag v-if="scope.row.level == 'P3'" type="danger" effect="plain" content="P3"/>
+              <priority-table-item :value="scope.row.level" ref="level"/>
             </template>
 
           </el-table-column>
@@ -48,17 +52,32 @@
                       :content="itemName" style="margin-left: 0px; margin-right: 2px"/>
             </template>
           </el-table-column>
-          <el-table-column v-if="item.id == 'userId'" prop="userId" :label="$t('api_test.automation.creator')" min-width="100px"
+          <el-table-column v-if="item.id == 'userId'" prop="userId" :label="$t('api_test.automation.creator')"
+                           min-width="100px"
                            show-overflow-tooltip :key="index"/>
-          <el-table-column v-if="item.id == 'updateTime'" prop="updateTime" min-width="120px"
+          <el-table-column
+            v-if="item.id == 'maintainer'"
+            prop="principal"
+            :label="$t('custom_field.case_maintainer')"
+            show-overflow-tooltip
+            :key="index"
+            min-width="120"
+          >
+          </el-table-column>
+          <el-table-column v-if="item.id == 'updateTime'"
+                           prop="updateTime"
+                           min-width="120px"
+                           sortable="custom"
                            :label="$t('api_test.automation.update_time')" width="180" :key="index">
             <template v-slot:default="scope">
               <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
             </template>
           </el-table-column>
-          <el-table-column v-if="item.id == 'stepTotal'" prop="stepTotal" :label="$t('api_test.automation.step')" min-width="80px"
+          <el-table-column v-if="item.id == 'stepTotal'" prop="stepTotal" :label="$t('api_test.automation.step')"
+                           min-width="80px"
                            show-overflow-tooltip :key="index"/>
           <el-table-column v-if="item.id == 'lastResult'" prop="lastResult" min-width="100px"
+                           :filters="RESULT_FILTERS"
                            :label="$t('api_test.automation.last_result')" :key="index">
             <template v-slot:default="{row}">
               <el-link type="success" @click="showReport(row)" v-if="row.lastResult === 'Success'">
@@ -78,11 +97,16 @@
             <header-label-operate @exec="customHeader"/>
           </template>
           <template v-slot:default="{row}">
-            <ms-table-operator-button class="run-button" :is-tester-permission="true" :tip="$t('api_test.run')"
-                                      icon="el-icon-video-play"
-                                      @exec="execute(row)" v-tester/>
-            <ms-table-operator-button :is-tester-permission="true" :tip="$t('test_track.plan_view.cancel_relevance')"
-                                      icon="el-icon-unlock" type="danger" @exec="remove(row)" v-tester/>
+            <div>
+              <ms-table-operator-button class="run-button"
+                                        v-permission="['PROJECT_TRACK_PLAN:READ+RUN']"
+                                        :tip="$t('api_test.run')"
+                                        icon="el-icon-video-play"
+                                        @exec="execute(row)"/>
+              <ms-table-operator-button v-permission="['PROJECT_TRACK_PLAN:READ+RELEVANCE_OR_CANCEL']"
+                                        :tip="$t('test_track.plan_view.cancel_relevance')"
+                                        icon="el-icon-unlock" type="danger" @exec="remove(row)"/>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -127,7 +151,7 @@ import {
   initCondition,
   buildBatchParam,
   toggleAllSelection,
-  checkTableRowIsSelect
+  checkTableRowIsSelect, deepClone
 } from "../../../../../../../common/js/tableUtils";
 import MsTableOperatorButton from "../../../../../common/components/MsTableOperatorButton";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
@@ -137,10 +161,13 @@ import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOpe
 import BatchEdit from "@/business/components/track/case/components/BatchEdit";
 import MsPlanRunMode from "../../../common/PlanRunMode";
 import MsTableHeaderSelectPopover from "@/business/components/common/components/table/MsTableHeaderSelectPopover";
+import PriorityTableItem from "@/business/components/track/common/tableItems/planview/PriorityTableItem";
+import {API_SCENARIO_FILTERS} from "@/common/js/table-constants";
 
 export default {
   name: "MsTestPlanApiScenarioList",
   components: {
+    PriorityTableItem,
     HeaderLabelOperate,
     HeaderCustom,
     MsTableOperatorButton,
@@ -171,7 +198,7 @@ export default {
     return {
       type: TEST_PLAN_SCENARIO_CASE,
       headerItems: Test_Plan_Scenario_Case,
-      screenHeight: document.documentElement.clientHeight - 348,//屏幕高度
+      screenHeight: 'calc(100vh - 330px)',//屏幕高度
       tableLabel: [],
       loading: false,
       condition: {},
@@ -180,7 +207,7 @@ export default {
       selectAll: false,
       tableData: [],
       currentPage: 1,
-      selectDataCounts:0,
+      selectDataCounts: 0,
       pageSize: 10,
       total: 0,
       reportId: "",
@@ -188,14 +215,17 @@ export default {
       infoDb: false,
       runVisible: false,
       runData: [],
+      ...API_SCENARIO_FILTERS,
       buttons: [
         {
-          name: this.$t('test_track.case.batch_unlink'), handleClick: this.handleDeleteBatch
+          name: this.$t('test_track.case.batch_unlink'), handleClick: this.handleDeleteBatch, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_DELETE']
         },
         {
-          name: this.$t('api_test.automation.batch_execute'), handleClick: this.handleBatchExecute
+          name: this.$t('api_test.automation.batch_execute'), handleClick: this.handleBatchExecute, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_RUN']
         },
-        {name: this.$t('test_track.case.batch_edit_case'), handleClick: this.handleBatchEdit}
+        {
+          name: this.$t('test_track.case.batch_edit_case'), handleClick: this.handleBatchEdit, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_EDIT']
+        }
       ],
       selectRows: new Set(),
       typeArr: [
@@ -208,7 +238,7 @@ export default {
   },
   computed: {
     projectId() {
-      return this.$store.state.projectId
+      return getCurrentProjectID();
     },
   },
   created() {
@@ -226,7 +256,8 @@ export default {
   },
   methods: {
     customHeader() {
-      this.$refs.headerCustom.open(this.tableLabel)
+      const list = deepClone(this.tableLabel);
+      this.$refs.headerCustom.open(list);
     },
     search() {
       initCondition(this.condition,this.condition.selectAll);
@@ -297,7 +328,7 @@ export default {
       })
     },
     handleBatchExecute() {
-      this.$refs.runMode.open();
+      this.$refs.runMode.open('API');
     },
     orderBySelectRows(rows){
       let selectIds = Array.from(rows).map(row => row.id);
@@ -363,6 +394,18 @@ export default {
       this.runVisible = true;
       this.infoDb = true;
       this.reportId = row.reportId;
+    },
+    sort(column) {
+      // 每次只对一个字段排序
+      if (this.condition.orders) {
+        this.condition.orders = [];
+      }
+      _sort(column, this.condition);
+      this.search();
+    },
+    filter(filters) {
+      _filter(filters, this.condition);
+      this.search();
     },
     remove(row) {
       if (this.planId) {

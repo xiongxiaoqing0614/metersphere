@@ -3,6 +3,7 @@ package io.metersphere.ldap.controller;
 import io.metersphere.base.domain.Organization;
 import io.metersphere.base.domain.User;
 import io.metersphere.base.domain.Workspace;
+import io.metersphere.commons.constants.OperLogConstants;
 import io.metersphere.commons.constants.ParamConstants;
 import io.metersphere.commons.constants.UserSource;
 import io.metersphere.commons.exception.MSException;
@@ -14,6 +15,7 @@ import io.metersphere.controller.request.organization.AddOrgMemberRequest;
 import io.metersphere.i18n.Translator;
 import io.metersphere.ldap.service.LdapService;
 import io.metersphere.service.OrganizationService;
+import io.metersphere.log.annotation.MsAuditLog;
 import io.metersphere.service.SystemParameterService;
 import io.metersphere.service.UserService;
 import io.metersphere.service.WorkspaceService;
@@ -50,6 +52,7 @@ public class LdapController {
     private SystemParameterService systemParameterService;
 
     @PostMapping(value = "/signin")
+    @MsAuditLog(module = "system_parameter_setting", type = OperLogConstants.LOGIN, title = "LDAP")
     public ResultHolder login(@RequestBody LoginRequest request) {
 
         String isOpen = systemParameterService.getValue(ParamConstants.LDAP.OPEN.getValue());
@@ -198,6 +201,7 @@ public class LdapController {
     }
 
     @PostMapping("/test/login")
+    @MsAuditLog(module = "system_parameter_setting", type = OperLogConstants.LOGIN, title = "LDAP")
     public void testLogin(@RequestBody LoginRequest request) {
         ldapService.authenticate(request);
     }

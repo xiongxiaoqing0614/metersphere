@@ -240,7 +240,7 @@ public class TuhuIntegrationService {
 
             project.setCaseTemplateId(caseTemplateService.getDefaultTemplate(wsId).getId());
             project.setIssueTemplateId(issueTemplateService.getDefaultTemplate(wsId).getId());
-            project.setProtocal("http");
+//            project.setProtocal("http");
             project.setName(projName);
             projectMapper.insertSelective(project);
             projId = project.getId();

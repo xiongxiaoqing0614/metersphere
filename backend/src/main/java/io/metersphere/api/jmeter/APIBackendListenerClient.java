@@ -2,6 +2,7 @@ package io.metersphere.api.jmeter;
 
 
 import com.alibaba.fastjson.JSONObject;
+import io.metersphere.api.dto.RunningParamKeys;
 import io.metersphere.api.dto.automation.ApiTestReportVariable;
 import io.metersphere.api.dto.scenario.request.RequestType;
 import io.metersphere.api.service.*;
@@ -25,7 +26,7 @@ import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.visualizers.backend.AbstractBackendListenerClient;
 import org.apache.jmeter.visualizers.backend.BackendListenerContext;
 import org.springframework.http.HttpMethod;
-
+import io.metersphere.tuhu.service.KanbanService;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
@@ -49,6 +50,8 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
 
     private APITestService apiTestService;
 
+    private KanbanService kanbanService;
+
     private APIReportService apiReportService;
 
     private ApiDefinitionService apiDefinitionService;
@@ -64,6 +67,8 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
     private ApiAutomationService apiAutomationService;
 
     private TestPlanApiCaseService testPlanApiCaseService;
+
+    private ApiEnvironmentRunningParamService apiEnvironmentRunningParamService;
 
     public String runMode = ApiRunMode.RUN.name();
 
@@ -95,7 +100,10 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
         if (apiTestService == null) {
             LogUtil.error("apiTestService is required");
         }
-
+        kanbanService = CommonBeanFactory.getBean(KanbanService.class);
+        if (kanbanService == null) {
+            LogUtil.error("kanbanService is required");
+        }
         apiReportService = CommonBeanFactory.getBean(APIReportService.class);
         if (apiReportService == null) {
             LogUtil.error("apiReportService is required");
@@ -129,6 +137,10 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
         if (testPlanApiCaseService == null) {
             LogUtil.error("testPlanApiCaseService is required");
         }
+        apiEnvironmentRunningParamService = CommonBeanFactory.getBean(ApiEnvironmentRunningParamService.class);
+        if(apiEnvironmentRunningParamService == null){
+            LogUtil.error("apiEnvironmentRunningParamService is required");
+        }
         super.setupTest(context);
     }
 
@@ -148,47 +160,58 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
         // 一个脚本里可能包含多个场景(ThreadGroup)，所以要区分开，key: 场景Id
         final Map<String, ScenarioResult> scenarios = new LinkedHashMap<>();
         queue.forEach(result -> {
+//            if(result instanceof SampleResult){
+//                if(testResult.getTotal()>0){
+//                    testResult.setTotal(testResult.getTotal()-1);
+//                }
+//            }
             // 线程名称: <场景名> <场景Index>-<请求Index>, 例如：Scenario 2-1
-            String scenarioName = StringUtils.substringBeforeLast(result.getThreadName(), THREAD_SPLIT);
-            String index = StringUtils.substringAfterLast(result.getThreadName(), THREAD_SPLIT);
-            String scenarioId = StringUtils.substringBefore(index, ID_SPLIT);
-            ScenarioResult scenarioResult;
-            if (!scenarios.containsKey(scenarioId)) {
-                scenarioResult = new ScenarioResult();
-                try {
-                    scenarioResult.setId(Integer.parseInt(scenarioId));
-                } catch (Exception e) {
-                    scenarioResult.setId(0);
-                    LogUtil.error("场景ID转换异常: " + e.getMessage());
+            if(StringUtils.equals(result.getSampleLabel(), RunningParamKeys.RUNNING_DEBUG_SAMPLER_NAME)){
+                String evnStr = result.getResponseDataAsString();
+                apiEnvironmentRunningParamService.parseEvn(evnStr);
+            }else {
+                String scenarioName = StringUtils.substringBeforeLast(result.getThreadName(), THREAD_SPLIT);
+                String index = StringUtils.substringAfterLast(result.getThreadName(), THREAD_SPLIT);
+                String scenarioId = StringUtils.substringBefore(index, ID_SPLIT);
+                ScenarioResult scenarioResult;
+                if (!scenarios.containsKey(scenarioId)) {
+                    scenarioResult = new ScenarioResult();
+                    try {
+                        scenarioResult.setId(Integer.parseInt(scenarioId));
+                    } catch (Exception e) {
+                        scenarioResult.setId(0);
+                        LogUtil.error("场景ID转换异常: " + e.getMessage());
+                    }
+                    scenarioResult.setName(scenarioName);
+                    scenarios.put(scenarioId, scenarioResult);
+                } else {
+                    scenarioResult = scenarios.get(scenarioId);
                 }
-                scenarioResult.setName(scenarioName);
-                scenarios.put(scenarioId, scenarioResult);
-            } else {
-                scenarioResult = scenarios.get(scenarioId);
+                if (result.isSuccessful()) {
+                    scenarioResult.addSuccess();
+                    testResult.addSuccess();
+                } else {
+                    scenarioResult.addError(result.getErrorCount());
+                    testResult.addError(result.getErrorCount());
+                }
+
+                RequestResult requestResult = getRequestResult(result);
+                scenarioResult.getRequestResults().add(requestResult);
+                scenarioResult.addResponseTime(result.getTime());
+
+                testResult.addPassAssertions(requestResult.getPassAssertions());
+                testResult.addTotalAssertions(requestResult.getTotalAssertions());
+
+                scenarioResult.addPassAssertions(requestResult.getPassAssertions());
+                scenarioResult.addTotalAssertions(requestResult.getTotalAssertions());
             }
-            if (result.isSuccessful()) {
-                scenarioResult.addSuccess();
-                testResult.addSuccess();
-            } else {
-                scenarioResult.addError(result.getErrorCount());
-                testResult.addError(result.getErrorCount());
-            }
-
-            RequestResult requestResult = getRequestResult(result);
-            scenarioResult.getRequestResults().add(requestResult);
-            scenarioResult.addResponseTime(result.getTime());
-
-            testResult.addPassAssertions(requestResult.getPassAssertions());
-            testResult.addTotalAssertions(requestResult.getTotalAssertions());
-
-            scenarioResult.addPassAssertions(requestResult.getPassAssertions());
-            scenarioResult.addTotalAssertions(requestResult.getTotalAssertions());
         });
         testResult.getScenarios().addAll(scenarios.values());
         testResult.getScenarios().sort(Comparator.comparing(ScenarioResult::getId));
         ApiTestReport report = null;
         ApiTestReportVariable reportTask = null;
         String reportUrl = null;
+        String scenarioReportId = testResult.getTestId();
         // 这部分后续优化只留 DEFINITION 和 SCENARIO 两部分
         if (StringUtils.equals(this.runMode, ApiRunMode.DEBUG.name())) {
             report = apiReportService.get(debugReportId);
@@ -323,7 +346,7 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
         }
         queue.clear();
         super.teardownTest(context);
-
+        kanbanService.postTestResult(testResult, this.debugReportId, scenarioReportId);
         TestPlanTestCaseService testPlanTestCaseService = CommonBeanFactory.getBean(TestPlanTestCaseService.class);
         List<String> ids = testPlanTestCaseService.getTestPlanTestCaseIds(testResult.getTestId());
         if (ids.size() > 0) {

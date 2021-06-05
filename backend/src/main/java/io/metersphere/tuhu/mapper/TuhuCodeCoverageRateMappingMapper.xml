@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.metersphere.tuhu.mapper.TuhuCodeCoverageRateMappingMapper">
+  <resultMap id="BaseResultMap" type="io.metersphere.tuhu.dto.TuhuCodeCoverageRateResultDTO">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="testPlanId" jdbcType="VARCHAR" property="testPlanId" />
+    <result column="testReportId" jdbcType="VARCHAR" property="testReportId" />
+    <result column="appId" jdbcType="VARCHAR" property="appId" />
+    <result column="branchName" jdbcType="VARCHAR" property="branchName" />
+    <result column="commitId" jdbcType="VARCHAR" property="commitId" />
+    <result column="stage" jdbcType="VARCHAR" property="stage" />
+    <result column="coverageRate" jdbcType="FLOAT" property="coverageRate" />
+  </resultMap>
+  <sql id="Where_Clause">
+    <where>
+      id in
+      (select max(id) from tuhu_code_coverage_rate_mapping WHERE testPlanId IN
+      <foreach open="(" separator="," close=")" collection="array" item="testPlanIds" >
+        #{testPlanIds}
+      </foreach>
+      group by testPlanId)
+    </where>
+  </sql>
+  <sql id="Where_Clause_Report">
+    <where>
+      testReportId IN
+      <foreach open="(" separator="," close=")" collection="array" item="testReportIds" >
+        #{testReportIds}
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    id, `testPlanId`, `testReportId`, `appId`, `branchName`, `commitId`, `stage`, `coverageRate`, `create_time`
+  </sql>
+  <select id="queryByTestPlanIds" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from tuhu_code_coverage_rate_mapping
+    <include refid="Where_Clause" />
+  </select>
+  <select id="queryByTestReportIds" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from tuhu_code_coverage_rate_mapping
+    <include refid="Where_Clause_Report" />
+  </select>
+  <insert id="insert" parameterType="io.metersphere.tuhu.dto.TuhuCodeCoverageRateResultDTO">
+    insert into tuhu_code_coverage_rate_mapping (`testPlanId`, `testReportId`, `appId`,
+      `branchName`, `commitId`, `stage`, `coverageRate`)
+    values (#{testPlanId,jdbcType=VARCHAR}, #{testReportId,jdbcType=VARCHAR}, #{appId,jdbcType=VARCHAR},
+      #{branchName,jdbcType=VARCHAR}, #{commitId,jdbcType=VARCHAR}, #{stage,jdbcType=VARCHAR},
+      #{coverageRate,jdbcType=FLOAT})
+  </insert>
+</mapper>
