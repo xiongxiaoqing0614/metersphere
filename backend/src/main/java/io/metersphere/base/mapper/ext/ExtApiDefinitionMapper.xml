@@ -289,6 +289,11 @@
         WHERE project_id = #{projectId}
         AND create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp} AND `status` != 'Trash'
     </select>
+    <select id="countByProjectIDAndTagAndCreateInThisWeek" resultType="java.lang.Long">
+        SELECT count(id) AS countNumber FROM api_definition
+        WHERE project_id = #{projectId} AND tags like CONCAT('%', #{tag},'%')
+        AND create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp} AND `status` != 'Trash'
+    </select>
     <select id="countApiCoverageByProjectID" resultType="io.metersphere.api.dto.datacount.ApiDataCountResult">
         SELECT count(api.id) AS countNumber, if(test_case_api.api_definition_id is null,"uncoverage","coverage") AS groupField  FROM api_definition api left Join (
             SELECT DISTINCT api_definition_id FROM api_test_case
@@ -492,6 +497,12 @@
         <include refid="queryWhereCondition"/>
     </select>
 
+    <select id="moduleCountByCollection" resultType="java.util.Map">
+        select module_id AS moduleId,count(id) AS countNum from api_definition
+        <include refid="queryWhereCondition"/>
+        GROUP BY module_id
+    </select>
+
     <sql id="filter">
         <if test="request.filters != null and request.filters.size() > 0">
             <foreach collection="request.filters.entrySet()" index="key" item="values">
@@ -511,6 +522,12 @@
                         </when>
                         <when test="key=='user_id'">
                             and api_definition.user_id in
+                            <foreach collection="values" item="value" separator="," open="(" close=")">
+                                #{value}
+                            </foreach>
+                        </when>
+                        <when test="key=='case_status'">
+                            and api_definition.case_status in
                             <foreach collection="values" item="value" separator="," open="(" close=")">
                                 #{value}
                             </foreach>

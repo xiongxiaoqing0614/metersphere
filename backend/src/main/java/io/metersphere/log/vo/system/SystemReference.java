@@ -18,6 +18,9 @@ public class SystemReference {
     public static Map<String, String> jarColumns = new LinkedHashMap<>();
     public static Map<String, String> environmentColumns = new LinkedHashMap<>();
     public static Map<String, String> licenseColumns = new LinkedHashMap<>();
+    public static Map<String, String> ldapColumns = new LinkedHashMap<>();
+    public static Map<String, String> mailColumns = new LinkedHashMap<>();
+    public static Map<String, String> baseColumns = new LinkedHashMap<>();
 
     static {
 
@@ -35,6 +38,8 @@ public class SystemReference {
         jarColumns.clear();
         environmentColumns.clear();
         licenseColumns.clear();
+        ldapColumns.clear();
+        mailColumns.clear();
 
         userColumns.put("name", "用户名称");
         userColumns.put("createUser", "创建人");
@@ -116,6 +121,28 @@ public class SystemReference {
         licenseColumns.put("count", "icense版本");
         licenseColumns.put("licenseVersion", "授权数量");
         licenseColumns.put("status", "状态");
+
+        ldapColumns.put("url", "LDAP地址");
+        ldapColumns.put("dn", "绑定DN");
+        ldapColumns.put("password", "密码");
+        ldapColumns.put("ou", "用户OU");
+        ldapColumns.put("filter", "用户过滤器");
+        ldapColumns.put("mapping", "LDAP属性映射");
+        ldapColumns.put("open", "启用LDAP认证");
+
+        mailColumns.put("host","SMTP主机");
+        mailColumns.put("port","SMTP端口");
+        mailColumns.put("account","SMTP账号");
+        mailColumns.put("password","SMTP密码");
+        mailColumns.put("ssl","开启SSL");
+        mailColumns.put("tls","开启TLS");
+        mailColumns.put("recipient","测试接收人");
+
+        baseColumns.put("url","当前站点URL");
+        baseColumns.put("concurrency","并发数");
+        baseColumns.put("prometheusHost","Prometheus地址");
+
+
 
     }
 }

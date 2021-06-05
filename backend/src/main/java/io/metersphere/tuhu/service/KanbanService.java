@@ -16,10 +16,12 @@ import io.metersphere.api.service.ApiTestCaseService;
 import io.metersphere.base.domain.TestPlanReportExample;
 import io.metersphere.base.mapper.TestPlanReportMapper;
 import io.metersphere.commons.utils.LogUtil;
+import io.metersphere.commons.utils.DateUtils;
 import io.metersphere.track.dto.TestCaseReportAdvanceStatusResultDTO;
 import io.metersphere.track.dto.TestCaseReportMetricDTO;
 import io.metersphere.track.dto.TestCaseReportStatusResultDTO;
 import io.metersphere.tuhu.dto.*;
+import io.metersphere.base.mapper.ext.ExtApiDefinitionMapper;
 import io.metersphere.tuhu.mapper.KanbanMapper;
 import io.metersphere.track.dto.TestPlanDTOWithMetric;
 import io.metersphere.track.request.testcase.QueryTestPlanRequest;
@@ -33,8 +35,10 @@ import io.metersphere.base.mapper.ext.ExtTestPlanMapper;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import java.io.IOException;
 import java.util.Map;
@@ -55,6 +59,9 @@ public class KanbanService {
 
     @Resource
     private KanbanMapper kanbanMapper;
+
+    @Resource
+    private ExtApiDefinitionMapper extApiDefinitionMapper;
 
     @Resource
     private ApiDefinitionService apiDefinitionService;
@@ -83,6 +90,10 @@ public class KanbanService {
             String projectId = summaryData.getProjectId();
             long dateCountByCreateInThisWeek = apiDefinitionService.countByProjectIDAndCreateInThisWeek(projectId);
             allInfo.setApiCountThisWeek(dateCountByCreateInThisWeek);
+            long dateP0CountByCreateInThisWeek = countByProjectIDAndTagAndCreateInThisWeek(projectId, "P0");
+            allInfo.setP0APICountThisWeek(dateP0CountByCreateInThisWeek);
+
+
             ApiDataCountDTO apiCountResult = new ApiDataCountDTO();
 
             List<ApiDataCountResult> countResultByStatelList = apiDefinitionService.countStateByProjectID(projectId);
@@ -99,6 +110,25 @@ public class KanbanService {
             allInfoList.add(allInfo);
         }
         return allInfoList;
+    }
+
+    /**
+     * 统计本周创建的数据总量
+     *
+     * @param projectId
+     * @return
+     */
+    public long countByProjectIDAndTagAndCreateInThisWeek(String projectId, String tag) {
+        Map<String, Date> startAndEndDateInWeek = DateUtils.getWeedFirstTimeAndLastTime(new Date());
+
+        Date firstTime = startAndEndDateInWeek.get("firstTime");
+        Date lastTime = startAndEndDateInWeek.get("lastTime");
+
+        if (firstTime == null || lastTime == null) {
+            return 0;
+        } else {
+            return extApiDefinitionMapper.countByProjectIDAndTagAndCreateInThisWeek(projectId, tag, firstTime.getTime(), lastTime.getTime());
+        }
     }
 
     public List<ExecutionAllInfoDTO> getExeSummary() {

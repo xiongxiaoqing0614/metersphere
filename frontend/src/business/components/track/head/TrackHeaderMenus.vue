@@ -22,11 +22,11 @@
             {{ $t('test_track.plan.test_plan') }}
           </el-menu-item>
 
-          <el-menu-item :index="'/track/issue'">
-            {{ $t("缺陷管理") }}
+          <el-menu-item :index="'/track/issue'" popper-class="submenu" v-permission="['PROJECT_TRACK_ISSUE:READ']">
+            {{ $t('test_track.issue.issue_management') }}
           </el-menu-item>
 
-          <el-menu-item :index="'/track/testPlan/reportList'">
+          <el-menu-item :index="'/track/testPlan/reportList'" popper-class="submenu">
             {{ $t("commons.report") }}
           </el-menu-item>
         </el-menu>
@@ -41,9 +41,9 @@
 import MsShowAll from "../../common/head/ShowAll";
 import MsRecentList from "../../common/head/RecentList";
 import MsCreateButton from "../../common/head/CreateButton";
-import {LIST_CHANGE, TrackEvent} from "@/business/components/common/head/ListEvent";
 import SearchList from "@/business/components/common/head/SearchList";
 import ProjectChange from "@/business/components/common/head/ProjectSwitch";
+import {getCurrentProjectID} from "@/common/js/utils";
 
 export default {
   name: "TrackHeaderMenus",
@@ -77,7 +77,7 @@ export default {
       },
       planRecent: {
         title: this.$t('test_track.recent_plan'),
-        url: this.$store.state.projectId === '' ? "/test/plan/recent/5/" + undefined : "/test/plan/recent/5/" + this.$store.state.projectId,
+        url: getCurrentProjectID() === '' ? "/test/plan/recent/5/" + undefined : "/test/plan/recent/5/" + getCurrentProjectID(),
         index: function (item) {
           return '/track/plan/view/' + item.id;
         },
@@ -85,7 +85,7 @@ export default {
         }
       },
       pathName: '',
-    }
+    };
   },
   watch: {
     '$route': {
@@ -104,7 +104,6 @@ export default {
   },
   mounted() {
     this.init();
-    this.registerEvents();
   },
   methods: {
     reload() {
@@ -128,17 +127,11 @@ export default {
         this.reload();
       }
     },
-    registerEvents() {
-      TrackEvent.$on(LIST_CHANGE, () => {
-        this.$refs.planRecent.recent();
-        // this.$refs.caseRecent.recent();
-      });
-    }
+
   },
   beforeDestroy() {
-    TrackEvent.$off(LIST_CHANGE);
   }
-}
+};
 
 </script>
 

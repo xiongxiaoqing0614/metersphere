@@ -28,16 +28,19 @@
         <el-table-column prop="name" :label="$t('commons.username')"/>
         <el-table-column prop="email" :label="$t('commons.email')"/>
         <el-table-column prop="phone" :label="$t('commons.phone')"/>
-        <el-table-column prop="groups" label="用户组" width="120">
+        <el-table-column prop="groups" label="用户组" width="150">
           <template v-slot:default="scope">
             <ms-roles-tag :roles="scope.row.groups" type="success"/>
           </template>
         </el-table-column>
         <el-table-column :label="$t('commons.operating')">
           <template v-slot:default="scope">
-            <ms-table-operator :edit-permission="['WORKSPACE_USER:READ+EDIT']"
-                               :delete-permission="['WORKSPACE_USER:READ+DELETE']"
-                               :tip2="$t('commons.remove')" @editClick="edit(scope.row)" @deleteClick="del(scope.row)"/>
+            <div>
+              <ms-table-operator :edit-permission="['WORKSPACE_USER:READ+EDIT']"
+                                 :delete-permission="['WORKSPACE_USER:READ+DELETE']"
+                                 :tip2="$t('commons.remove')" @editClick="edit(scope.row)"
+                                 @deleteClick="del(scope.row)"/>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -163,8 +166,8 @@
           userIds: [
             {required: true, message: this.$t('member.please_choose_member'), trigger: ['blur']}
           ],
-          roleIds: [
-            {required: true, message: this.$t('role.please_choose_role'), trigger: ['blur']}
+          groupIds: [
+            {required: true, message: "请选择用户组", trigger: ['blur']}
           ]
         },
         screenHeight: 'calc(100vh - 255px)',
@@ -268,7 +271,7 @@
         this.updateVisible = true;
         this.form = Object.assign({}, row);
         let groupIds = this.form.groups.map(r => r.id);
-        this.result = this.$post('/user/group/list', {type: GROUP_WORKSPACE, resourceId: this.currentUser().lastWorkspaceId}, response => {
+        this.result = this.$post('/user/group/list', {type: GROUP_WORKSPACE, resourceId: getCurrentOrganizationId()}, response => {
           this.$set(this.form, "allgroups", response.data);
         })
         // 编辑使填充角色信息
@@ -313,7 +316,7 @@
           this.createVisible = true;
           this.userList = response.data;
         })
-        this.result = this.$post('/user/group/list', {type: GROUP_WORKSPACE, resourceId: this.currentUser().lastWorkspaceId}, response => {
+        this.result = this.$post('/user/group/list', {type: GROUP_WORKSPACE, resourceId: getCurrentOrganizationId()}, response => {
           this.$set(this.form, "groups", response.data);
         })
         listenGoBack(this.handleClose);
@@ -340,6 +343,7 @@
             this.result = this.$post("user/ws/member/add", param, () => {
               this.$success(this.$t('commons.save_success'));
               this.initTableData();
+              this.selectRows.clear();
               this.createVisible = false;
             })
           }

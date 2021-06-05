@@ -43,10 +43,12 @@
           </el-table-column>
           <el-table-column width="150" :label="$t('commons.operating')">
             <template v-slot:default="scope">
-              <ms-table-operator-button :tip="$t('api_report.detail')" icon="el-icon-s-data"
-                                        @exec="handleView(scope.row)" type="primary"/>
-              <ms-table-operator-button :tip="$t('api_report.delete')"
-                                        icon="el-icon-delete" @exec="handleDelete(scope.row)" type="danger"/>
+              <div>
+                <ms-table-operator-button :tip="$t('api_report.detail')" icon="el-icon-s-data"
+                                          @exec="handleView(scope.row)" type="primary"/>
+                <ms-table-operator-button :tip="$t('api_report.delete')"
+                                          icon="el-icon-delete" @exec="handleDelete(scope.row)" type="danger"/>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -66,7 +68,6 @@ import MsApiReportStatus from "./ApiReportStatus";
 import MsTableOperatorButton from "../../common/components/MsTableOperatorButton";
 import ReportTriggerModeItem from "../../common/tableItem/ReportTriggerModeItem";
 import {REPORT_CONFIGS} from "../../common/components/search/search-components";
-import {ApiEvent, LIST_CHANGE} from "@/business/components/common/head/ListEvent";
 import ShowMoreBtn from "../../track/case/components/ShowMoreBtn";
 import {_filter, _sort} from "@/common/js/tableUtils";
 
@@ -145,8 +146,6 @@ export default {
             this.result = this.$post("/api/report/delete", {id: report.id}, () => {
               this.$success(this.$t('commons.delete_success'));
               this.search();
-              // 发送广播，刷新 head 上的最新列表
-              ApiEvent.$emit(LIST_CHANGE);
             });
           }
         }
@@ -196,8 +195,6 @@ export default {
               this.selectRows.clear();
               this.$success(this.$t('commons.delete_success'));
               this.search();
-              // 发送广播，刷新 head 上的最新列表
-              ApiEvent.$emit(LIST_CHANGE);
             });
           }
         }

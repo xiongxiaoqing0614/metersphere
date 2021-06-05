@@ -49,10 +49,10 @@ public class ApiTestEnvironmentController {
      */
     @PostMapping("/list/{goPage}/{pageSize}")
     public Pager<List<ApiTestEnvironmentWithBLOBs>> listByCondition(@PathVariable int goPage, @PathVariable int pageSize, @RequestBody EnvironmentRequest environmentRequest) {
-        List<String> projectIds = environmentRequest.getProjectIds();
-        for (String projectId : projectIds) {
-            checkPermissionService.checkProjectOwner(projectId);
-        }
+//        List<String> projectIds = environmentRequest.getProjectIds();
+//        for (String projectId : projectIds) {
+//            checkPermissionService.checkProjectOwner(projectId);
+//        }
         Page<Object> page = PageHelper.startPage(goPage, pageSize, true);
         return PageUtils.setPageInfo(page, apiTestEnvironmentService.listByConditions(environmentRequest));
     }
@@ -70,13 +70,13 @@ public class ApiTestEnvironmentController {
 
     @PostMapping("/add")
     @MsAuditLog(module = "project_environment_setting", type = OperLogConstants.CREATE, content = "#msClass.getLogDetails(#apiTestEnvironmentWithBLOBs.id)", msClass = ApiTestEnvironmentService.class)
-    public String create(@RequestPart("request") ApiTestEnvironmentDTO apiTestEnvironmentWithBLOBs, @RequestPart(value = "files") List<MultipartFile> sslFiles) {
+    public String create(@RequestPart("request") ApiTestEnvironmentDTO apiTestEnvironmentWithBLOBs, @RequestPart(value = "files", required = false) List<MultipartFile> sslFiles) {
         return apiTestEnvironmentService.add(apiTestEnvironmentWithBLOBs, sslFiles);
     }
 
     @PostMapping(value = "/update")
     @MsAuditLog(module = "project_environment_setting", type = OperLogConstants.UPDATE, beforeEvent = "#msClass.getLogDetails(#apiTestEnvironment.id)", content = "#msClass.getLogDetails(#apiTestEnvironment.id)", msClass = ApiTestEnvironmentService.class)
-    public void update(@RequestPart("request") ApiTestEnvironmentDTO apiTestEnvironment, @RequestPart(value = "files") List<MultipartFile> sslFiles) {
+    public void update(@RequestPart("request") ApiTestEnvironmentDTO apiTestEnvironment, @RequestPart(value = "files", required = false) List<MultipartFile> sslFiles) {
         apiTestEnvironmentService.update(apiTestEnvironment, sslFiles);
     }
 

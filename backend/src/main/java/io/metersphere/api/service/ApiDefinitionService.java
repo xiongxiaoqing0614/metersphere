@@ -113,16 +113,6 @@ public class ApiDefinitionService {
         request = this.initRequest(request, true, true);
         List<ApiDefinitionResult> resList = extApiDefinitionMapper.list(request);
         calculateResult(resList, request.getProjectId());
-        ApiDefinitionRequest finalRequest = request;
-        if (finalRequest.getFilters().size() > 1) {
-            if (null != finalRequest.getFilters().get("case_status")) {
-                resList = resList.stream()
-                        .filter((ApiDefinitionResult b) -> finalRequest.getFilters().get("case_status").contains(b.getCaseStatus()))
-                        .collect(Collectors.toList());
-            }
-
-        }
-
         return resList;
     }
 
@@ -178,12 +168,13 @@ public class ApiDefinitionService {
         }
     }
 
-    public void create(SaveApiDefinitionRequest request, List<MultipartFile> bodyFiles) {
+    public ApiDefinitionWithBLOBs create(SaveApiDefinitionRequest request, List<MultipartFile> bodyFiles) {
         if (StringUtils.equals(request.getProtocol(), "DUBBO")) {
             request.setMethod("dubbo://");
         }
-        createTest(request);
+        ApiDefinitionWithBLOBs returnModel = createTest(request);
         FileUtils.createBodyFiles(request.getRequest().getId(), bodyFiles);
+        return returnModel;
     }
 
     public ApiDefinitionWithBLOBs update(SaveApiDefinitionRequest request, List<MultipartFile> bodyFiles) {
@@ -312,7 +303,7 @@ public class ApiDefinitionService {
         return test;
     }
 
-    private ApiDefinition createTest(SaveApiDefinitionRequest request) {
+    private ApiDefinitionWithBLOBs createTest(SaveApiDefinitionRequest request) {
         checkNameExist(request);
         if (StringUtils.equals(request.getMethod(), "ESB")) {
             //ESB的接口类型数据，采用TCP方式去发送。并将方法类型改为TCP。 并修改发送数据
@@ -572,6 +563,7 @@ public class ApiDefinitionService {
             ApiTestEnvironmentWithBLOBs environment = environmentService.get(map.get(request.getProjectId()));
             if (environment != null) {
                 EnvironmentConfig env = JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class);
+                env.setApiEnvironmentid(environment.getId());
                 envConfig.put(request.getProjectId(), env);
                 config.setConfig(envConfig);
             }
@@ -882,6 +874,7 @@ public class ApiDefinitionService {
         request.setOrders(ServiceUtils.getDefaultOrder(request.getOrders()));
         List<ApiDefinitionResult> resList = extApiDefinitionMapper.listRelevanceReview(request);
         calculateResult(resList, request.getProjectId());
+        resList = extApiDefinitionMapper.list(request);
         return resList;
     }
 
@@ -909,6 +902,7 @@ public class ApiDefinitionService {
                     res.setCaseStatus("-");
                 }
 
+                apiDefinitionMapper.updateByPrimaryKey(res);
                 if (StringUtils.equalsIgnoreCase("esb", res.getMethod())) {
                     esbApiParamService.handleApiEsbParams(res);
                 }

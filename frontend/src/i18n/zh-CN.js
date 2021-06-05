@@ -66,6 +66,7 @@ export default {
     email: '邮箱',
     phone: '电话',
     role: '角色',
+    group: '用户组',
     personal_info: '个人信息',
     api_keys: 'API Keys',
     quota: '配额管理',
@@ -314,6 +315,8 @@ export default {
     case_template: '测试用例模板',
     default_template: '默认模板',
     system_template: '系统模板',
+    option_check: '请添加选项值',
+    option_value_check: '请填写完整选项值',
   },
   workspace: {
     create: '创建工作空间',
@@ -468,6 +471,9 @@ export default {
       add_workspace_batch: '批量添加到工作空间',
       add_user_role_batch: '批量添加角色',
     }
+  },
+  group: {
+    add: '添加用户组',
   },
   role: {
     please_choose_role: '请选择角色',
@@ -951,6 +957,7 @@ export default {
       connect_timeout: "连接超时",
       response_timeout: "响应超时",
       follow_redirects: "跟随重定向",
+      cert_alias: "证书别名",
       do_multipart_post: "对 POST 使用 multipart/form-data",
       body_upload_limit_size: "上传文件大小不能超过 500 MB!",
       condition: "条件",
@@ -1090,7 +1097,7 @@ export default {
       swagger_url_import: "使用URL导入",
       timing_synchronization: "定时同步",
       next_synchronization_time: "下次同步时间",
-      ms_env_import_file_limit: "支持通过MeterSphere导出的json格式文件",
+      ms_env_import_file_limit: "仅支持通过MeterSphere导出的json格式文件",
       file_exceed_limit: "文件数量超出限制",
 
 
@@ -1258,7 +1265,8 @@ export default {
   test_kanban: {
     test_kanban: "看板报表",
     testcase_summary: "用例统计",
-    execution_summary: "执行统计"
+    execution_summary: "执行统计",
+    okr: "OKR"
   },
   test_track: {
     related_requirements: '关联需求',
@@ -1383,7 +1391,8 @@ export default {
         continue_upload: "继续上传",
       },
       export: {
-        export: "导出用例"
+        export: "导出用例",
+        export_tip: "请切换成接口列表勾选用例导出！"
       }
     },
     plan: {
@@ -1557,6 +1566,7 @@ export default {
     },
     issue: {
       issue: "缺陷",
+      issue_management: "缺陷管理",
       issue_resource: "缺陷来源",
       create_issue: "创建缺陷",
       add_issue: "添加缺陷",
@@ -1847,5 +1857,6 @@ export default {
     after_change: "变更后",
     share: "分享",
     change_history: "变更历史",
+    change_content: "变更内容"
   }
 };

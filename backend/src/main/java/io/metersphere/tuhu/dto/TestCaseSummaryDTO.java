@@ -6,6 +6,7 @@ import lombok.Data;
 public class TestCaseSummaryDTO {
     private String department;
     private String team;
+    private String wsId;
     private String project;
     private String projectId;
     private long apiCount;

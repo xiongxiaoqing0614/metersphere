@@ -26,6 +26,7 @@ import vueMinderEditor from 'vue-minder-editor-plus'
 
 import mavonEditor from 'mavon-editor'
 import 'mavon-editor/dist/css/index.css'
+
 Vue.use(mavonEditor)
 
 Vue.use(vueMinderEditor)
@@ -49,6 +50,12 @@ Vue.use(YanProgress);
 Vue.use(VueFab);
 Vue.use(JSONPathPicker);
 Vue.use(VueClipboard)
+import 'xe-utils'
+import VXETable from 'vxe-table'
+import 'vxe-table/lib/style.css'
+Vue.use(VXETable);
+
+// createApp(App).use(VXETable).mount('#app')
 
 // v-permission
 Vue.directive('permission', permission);
@@ -57,8 +64,6 @@ Vue.directive('permission', permission);
 Vue.directive('roles', roles);
 
 Vue.directive('xpack', xpack);
-
-Vue.directive('tester', tester);
 
 Vue.directive('modules', modules);
 

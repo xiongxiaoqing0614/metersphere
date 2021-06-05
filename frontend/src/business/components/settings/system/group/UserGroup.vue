@@ -7,7 +7,7 @@
       </template>
 
       <el-table :data="groups" border class="adjust-table" style="width: 100%"
-                :height="screenHeight">
+                :height="screenHeight" @sort-change="sort">
         <el-table-column prop="name" :label="$t('commons.name')"/>
         <el-table-column prop="type" label="所属类型">
           <template v-slot="scope">
@@ -15,12 +15,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="scopeName" label="应用范围"/>
-        <el-table-column prop="createTime" :label="$t('commons.create_time')">
+        <el-table-column prop="createTime" :label="$t('commons.create_time')" sortable>
           <template v-slot:default="scope">
             <span>{{ scope.row.createTime | timestampFormatDate }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="updateTime" :label="$t('commons.update_time')">
+        <el-table-column prop="updateTime" :label="$t('commons.update_time')" sortable>
           <template v-slot:default="scope">
             <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
           </template>
@@ -29,14 +29,18 @@
         <el-table-column prop="description" label="描述"/>
         <el-table-column :label="$t('commons.operating')" min-width="120">
           <template v-slot:default="scope">
-            <ms-table-operator :edit-permission="['SYSTEM_GROUP:READ+EDIT', 'ORGANIZATION_GROUP:READ+EDIT']"
-                               :delete-permission="['SYSTEM_GROUP:READ+DELETE', 'ORGANIZATION_GROUP:READ+DELETE']"
-              @editClick="edit(scope.row)" @deleteClick="del(scope.row)">
-              <template v-slot:middle>
-                <!--                <ms-table-operator-button tip="复制" icon="el-icon-document-copy" @exec="copy(scope.row)"/>-->
-                <ms-table-operator-button v-permission="['SYSTEM_GROUP:READ+SETTING_PERMISSION', 'ORGANIZATION_GROUP:READ+SETTING_PERMISSION']" tip="设置权限" icon="el-icon-s-tools" @exec="setPermission(scope.row)"/>
-              </template>
-            </ms-table-operator>
+            <div>
+              <ms-table-operator :edit-permission="['SYSTEM_GROUP:READ+EDIT', 'ORGANIZATION_GROUP:READ+EDIT']"
+                                 :delete-permission="['SYSTEM_GROUP:READ+DELETE', 'ORGANIZATION_GROUP:READ+DELETE']"
+                                 @editClick="edit(scope.row)" @deleteClick="del(scope.row)">
+                <template v-slot:middle>
+                  <!--                <ms-table-operator-button tip="复制" icon="el-icon-document-copy" @exec="copy(scope.row)"/>-->
+                  <ms-table-operator-button
+                    v-permission="['SYSTEM_GROUP:READ+SETTING_PERMISSION', 'ORGANIZATION_GROUP:READ+SETTING_PERMISSION']"
+                    tip="设置权限" icon="el-icon-s-tools" @exec="setPermission(scope.row)"/>
+                </template>
+              </ms-table-operator>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -60,6 +64,7 @@ import EditUserGroup from "@/business/components/settings/system/group/EditUserG
 import MsTableOperatorButton from "@/business/components/common/components/MsTableOperatorButton";
 import EditPermission from "@/business/components/settings/system/group/EditPermission";
 import MsDeleteConfirm from "@/business/components/common/components/MsDeleteConfirm";
+import {_sort} from "@/common/js/tableUtils";
 
 export default {
   name: "UserGroup",
@@ -118,8 +123,8 @@ export default {
       });
     },
     del(row) {
-      if (row.id === "admin") {
-        this.$warning("系统管理员不支持删除！");
+      if (row.system) {
+        this.$warning("系统用户组不支持删除！");
         return ;
       }
       this.$refs.deleteConfirm.open(row);
@@ -129,6 +134,14 @@ export default {
     },
     setPermission(row) {
       this.$refs.editPermission.open(row);
+    },
+    sort(column) {
+      // 每次只对一个字段排序
+      if (this.condition.orders) {
+        this.condition.orders = [];
+      }
+      _sort(column, this.condition);
+      this.initData();
     },
   }
 };

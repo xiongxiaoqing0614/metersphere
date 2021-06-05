@@ -20,7 +20,7 @@
     components: {KanbanHeaderMenus},
     data() {
       return {
-        baseUrl: "kanban"
+        baseUrl: "okr"
       }
     }
   }

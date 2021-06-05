@@ -6,6 +6,7 @@ import io.metersphere.base.mapper.*;
 import io.metersphere.base.mapper.ext.ExtOrganizationMapper;
 import io.metersphere.base.mapper.ext.ExtUserGroupMapper;
 import io.metersphere.base.mapper.ext.ExtUserRoleMapper;
+import io.metersphere.commons.constants.UserGroupConstants;
 import io.metersphere.commons.constants.UserGroupType;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.user.SessionUser;
@@ -13,13 +14,14 @@ import io.metersphere.commons.utils.SessionUtils;
 import io.metersphere.controller.request.OrganizationRequest;
 import io.metersphere.dto.OrganizationMemberDTO;
 import io.metersphere.dto.OrganizationResource;
+import io.metersphere.dto.RelatedSource;
 import io.metersphere.dto.UserDTO;
-import io.metersphere.dto.UserGroupHelpDTO;
 import io.metersphere.i18n.Translator;
 import io.metersphere.log.utils.ReflexObjectUtil;
 import io.metersphere.log.vo.DetailColumn;
 import io.metersphere.log.vo.OperatingLogDetails;
 import io.metersphere.log.vo.system.SystemReference;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,6 +77,16 @@ public class OrganizationService {
         organization.setUpdateTime(currentTimeMillis);
         organization.setCreateUser(SessionUtils.getUserId());
         organizationMapper.insertSelective(organization);
+
+        // 创建组织为当前用户添加用户组
+        UserGroup userGroup = new UserGroup();
+        userGroup.setId(UUID.randomUUID().toString());
+        userGroup.setUserId(SessionUtils.getUserId());
+        userGroup.setCreateTime(System.currentTimeMillis());
+        userGroup.setUpdateTime(System.currentTimeMillis());
+        userGroup.setGroupId(UserGroupConstants.ORG_ADMIN);
+        userGroup.setSourceId(organization.getId());
+        userGroupMapper.insert(userGroup);
         return organization;
     }
 
@@ -118,10 +130,10 @@ public class OrganizationService {
             workspaceService.deleteWorkspace(workspaceId);
         }
 
-        // delete organization member
-        UserRoleExample userRoleExample = new UserRoleExample();
-        userRoleExample.createCriteria().andSourceIdEqualTo(organizationId);
-        userRoleMapper.deleteByExample(userRoleExample);
+        // delete user group
+        UserGroupExample userGroupExample = new UserGroupExample();
+        userGroupExample.createCriteria().andSourceIdEqualTo(organizationId);
+        userGroupMapper.deleteByExample(userGroupExample);
 
         // delete org
         organizationMapper.deleteByPrimaryKey(organizationId);
@@ -135,21 +147,17 @@ public class OrganizationService {
     }
 
     public List<Organization> getOrganizationListByUserId(String userId) {
-        List<UserGroupHelpDTO> userGroupHelpDTOList = extUserGroupMapper.getUserRoleHelpList(userId);
-        List<String> list = new ArrayList<>();
-        userGroupHelpDTOList.forEach(r -> {
-            if (StringUtils.isEmpty(r.getParentId())) {
-                list.add(r.getSourceId());
-            } else {
-                list.add(r.getParentId());
-            }
-        });
-
-        // ignore list size is 0
-        list.add("no_such_id");
-
+        List<RelatedSource> relatedSource = extUserGroupMapper.getRelatedSource(userId);
+        List<String> organizationIds = relatedSource
+                .stream()
+                .map(RelatedSource::getOrganizationId)
+                .distinct()
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(organizationIds)) {
+            return new ArrayList<>();
+        }
         OrganizationExample organizationExample = new OrganizationExample();
-        organizationExample.createCriteria().andIdIn(list);
+        organizationExample.createCriteria().andIdIn(organizationIds);
         return organizationMapper.selectByExample(organizationExample);
     }
 

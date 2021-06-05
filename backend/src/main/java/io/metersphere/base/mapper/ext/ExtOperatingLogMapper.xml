@@ -20,9 +20,18 @@
             LEFT JOIN project t2 ON t.project_id = t2.id
             LEFT JOIN workspace w on t2.workspace_id = w.id
         <where>
+            (
+                <if test="request.projectIds != null and request.projectIds.size > 0 ">
+                    t.project_id in
+                    <foreach collection="request.projectIds" item="projectId" separator="," open="(" close=")">
+                        #{projectId}
+                    </foreach>
+                </if>
+                or t.project_id is null
+                or t.project_id = ""
+            )
             <if test="request.operUser != null and request.operUser != ''">
-                and t.oper_user like #{request.operUser, jdbcType=VARCHAR}
-                or t1.NAME like  #{request.operUser, jdbcType=VARCHAR}
+                and (t.oper_user like #{request.operUser, jdbcType=VARCHAR} or  t1.name like  #{request.operUser, jdbcType=VARCHAR})
             </if>
             <if test="request.projectId != null and request.projectId !=''">
                 and t.project_id = #{request.projectId}

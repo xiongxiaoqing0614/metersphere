@@ -88,22 +88,20 @@ public class ProjectController {
     }
 
     /**
-     * 切换项目
-     *
-     * @param request
-     * @return
+     * 在工作空间下与用户有关的项目
+     * @param request userId
+     * @return List<ProjectDTO>
      */
     @PostMapping("/list/related")
-    public List<ProjectDTO> getSwitchProject(@RequestBody ProjectRequest request) {
+    public List<ProjectDTO> getUserProject(@RequestBody ProjectRequest request) {
         request.setWorkspaceId(SessionUtils.getCurrentWorkspaceId());
-        return projectService.getSwitchProject(request);
+        return projectService.getUserProject(request);
     }
 
 
     @GetMapping("/delete/{projectId}")
     @MsAuditLog(module = "project_project_manager", type = OperLogConstants.DELETE, beforeEvent = "#msClass.getLogDetails(#projectId)", msClass = ProjectService.class)
     public void deleteProject(@PathVariable(value = "projectId") String projectId) {
-        checkPermissionService.checkProjectOwner(projectId);
         projectService.deleteProject(projectId);
     }
 
@@ -115,13 +113,13 @@ public class ProjectController {
 
     @PostMapping(value = "upload/files/{projectId}", consumes = {"multipart/form-data"})
     @MsAuditLog(module = "project_file_management", type = OperLogConstants.IMPORT, content = "#msClass.getLogDetails(#projectId)", msClass = ProjectService.class)
-    public List<FileMetadata> uploadFiles(@PathVariable String projectId, @RequestPart(value = "file") List<MultipartFile> files) {
+    public List<FileMetadata> uploadFiles(@PathVariable String projectId, @RequestPart(value = "file", required = false) List<MultipartFile> files) {
         return projectService.uploadFiles(projectId, files);
     }
 
     @PostMapping(value = "/update/file/{fileId}", consumes = {"multipart/form-data"})
     @MsAuditLog(module = "project_file_management", type = OperLogConstants.IMPORT, content = "#msClass.getLogDetails(#fileId)", msClass = ProjectService.class)
-    public FileMetadata updateFile(@PathVariable String fileId, @RequestPart(value = "file") MultipartFile file) {
+    public FileMetadata updateFile(@PathVariable String fileId, @RequestPart(value = "file", required = false) MultipartFile file) {
         return projectService.updateFile(fileId, file);
     }
 

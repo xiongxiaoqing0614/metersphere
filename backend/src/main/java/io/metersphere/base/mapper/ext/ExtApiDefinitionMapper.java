@@ -11,6 +11,7 @@ import io.metersphere.controller.request.BaseQueryRequest;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ExtApiDefinitionMapper {
     List<ApiSwaggerUrlDTO> selectScheduleList(@Param("projectId") String projectId);
@@ -33,6 +34,8 @@ public interface ExtApiDefinitionMapper {
 
     Long countByProjectIDAndCreateInThisWeek(@Param("projectId") String projectId, @Param("firstDayTimestamp") long firstDayTimestamp, @Param("lastDayTimestamp") long lastDayTimestamp);
 
+    Long countByProjectIDAndTagAndCreateInThisWeek(@Param("projectId") String projectId, @Param("tag") String tag, @Param("firstDayTimestamp") long firstDayTimestamp, @Param("lastDayTimestamp") long lastDayTimestamp);
+
     List<ApiDataCountResult> countStateByProjectID(String projectId);
 
     List<ApiDataCountResult> countApiCoverageByProjectID(String projectId);
@@ -48,4 +51,6 @@ public interface ExtApiDefinitionMapper {
     List<ApiDefinition> selectEffectiveIdByProjectId(String projectId);
 
     List<ApiDefinitionResult> listByIds(@Param("ids") List<String> ids);
+
+    List<Map<String, Object>> moduleCountByCollection(@Param("request") ApiDefinitionRequest request);
 }

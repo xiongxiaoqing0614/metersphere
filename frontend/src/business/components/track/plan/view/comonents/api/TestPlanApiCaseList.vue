@@ -70,6 +70,15 @@
             :label="'创建人'"
             show-overflow-tooltip
             :key="index"/>
+          <el-table-column
+            v-if="item.id == 'maintainer'"
+            prop="userId"
+            :label="$t('custom_field.case_maintainer')"
+            show-overflow-tooltip
+            :key="index"
+            min-width="120"
+          >
+          </el-table-column>
 
           <el-table-column
             v-if="item.id == 'custom'"
@@ -120,13 +129,16 @@
             <header-label-operate @exec="customHeader"/>
           </template>
           <template v-slot:default="scope">
-            <ms-table-operator-button class="run-button" v-permission="['PROJECT_API_DEFINITION:READ+RUN']"
-                                      :tip="$t('api_test.run')"
-                                      icon="el-icon-video-play"
-                                      @exec="singleRun(scope.row)"/>
-            <ms-table-operator-button v-permission="['PROJECT_TRACK_PLAN:READ+RELEVANCE_OR_CANCEL']"
-                                      :tip="$t('test_track.plan_view.cancel_relevance')"
-                                      icon="el-icon-unlock" type="danger" @exec="handleDelete(scope.row)"/>
+            <div>
+
+              <ms-table-operator-button class="run-button" v-permission="['PROJECT_TRACK_PLAN:READ+RUN']"
+                                        :tip="$t('api_test.run')"
+                                        icon="el-icon-video-play"
+                                        @exec="singleRun(scope.row)"/>
+              <ms-table-operator-button v-permission="['PROJECT_TRACK_PLAN:READ+RELEVANCE_OR_CANCEL']"
+                                        :tip="$t('test_track.plan_view.cancel_relevance')"
+                                        icon="el-icon-unlock" type="danger" @exec="handleDelete(scope.row)"/>
+            </div>
           </template>
         </el-table-column>
 
@@ -165,7 +177,7 @@ import MsBottomContainer from "../../../../../api/definition/components/BottomCo
 import ShowMoreBtn from "../../../../case/components/ShowMoreBtn";
 import BatchEdit from "@/business/components/track/case/components/BatchEdit";
 import {API_METHOD_COLOUR, CASE_PRIORITY, RESULT_MAP} from "../../../../../api/definition/model/JsonData";
-import {strMapToObj} from "@/common/js/utils";
+import {getCurrentProjectID, strMapToObj} from "@/common/js/utils";
 import ApiListContainer from "../../../../../api/definition/components/list/ApiListContainer";
 import PriorityTableItem from "../../../../common/tableItems/planview/PriorityTableItem";
 import {getBodyUploadFiles, getUUID} from "../../../../../../../common/js/utils";
@@ -181,7 +193,7 @@ import {
   _handleSelectAll,
   _sort,
   buildBatchParam,
-  checkTableRowIsSelect,
+  checkTableRowIsSelect, deepClone,
   getLabel,
   getSelectDataCounts,
   setUnSelectIds,
@@ -230,9 +242,9 @@ export default {
       deletePath: "/test/case/delete",
       selectRows: new Set(),
       buttons: [
-        {name: this.$t('test_track.case.batch_unlink'), handleClick: this.handleDeleteBatch},
-        {name: this.$t('api_test.automation.batch_execute'), handleClick: this.handleBatchExecute},
-        {name: this.$t('test_track.case.batch_edit_case'), handleClick: this.handleBatchEdit}
+        {name: this.$t('test_track.case.batch_unlink'), handleClick: this.handleDeleteBatch, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_DELETE']},
+        {name: this.$t('api_test.automation.batch_execute'), handleClick: this.handleBatchExecute, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_RUN']},
+        {name: this.$t('test_track.case.batch_edit_case'), handleClick: this.handleBatchEdit, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_EDIT']}
       ],
       typeArr: [
         {id: 'projectEnv', name: this.$t('api_test.definition.request.run_env')},
@@ -334,11 +346,11 @@ export default {
   },
   methods: {
     customHeader() {
-      this.$refs.headerCustom.open(this.tableLabel);
+      const list = deepClone(this.tableLabel);
+      this.$refs.headerCustom.open(list);
     },
     getMaintainerOptions() {
-      let workspaceId = localStorage.getItem(WORKSPACE_ID);
-      this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
+      this.$post('/user/project/member/tester/list', {projectId: getCurrentProjectID()}, response => {
         this.valueArr.userId = response.data;
         this.userFilters = response.data.map(u => {
           return {text: u.name, value: u.id};
@@ -589,7 +601,7 @@ export default {
     },
     handleRunBatch(config) {
       let testPlan = new TestPlan();
-      let projectId = this.$store.state.projectId;
+      let projectId = getCurrentProjectID();
       if (config.mode === 'serial') {
         testPlan.serializeThreadgroups = true;
         testPlan.hashTree = [];
@@ -660,7 +672,7 @@ export default {
     },
     getProjectId() {
       if (!this.isRelevanceModel) {
-        return this.$store.state.projectId;
+        return getCurrentProjectID();
       } else {
         return this.currentCaseProjectId;
       }

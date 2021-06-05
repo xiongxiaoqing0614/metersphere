@@ -66,6 +66,7 @@ export default {
     email: '郵箱',
     phone: '電話',
     role: '角色',
+    group: '用戶組',
     personal_info: '個人信息',
     api_keys: 'API Keys',
     quota: '配額管理',
@@ -314,6 +315,8 @@ export default {
     case_template: '測試用例模板',
     default_template: '默認模板',
     system_template: '系統模板',
+    option_check: '請添加選項值',
+    option_value_check: '請填寫完整選項值',
   },
   workspace: {
     create: '創建工作空間',
@@ -468,6 +471,9 @@ export default {
       add_workspace_batch: '批量添加到工作空間',
       add_user_role_batch: '批量添加角色',
     }
+  },
+  group: {
+    add: '添加用戶組',
   },
   role: {
     please_choose_role: '請選擇角色',
@@ -752,6 +758,7 @@ export default {
         batch_move: "批量移動",
         path_valid_info: "請求路徑無效",
         other_config: "其他設置",
+        cert_alias: "證書別名",
         message_template: "報文模版",
         tcp_parameter_tip: "請求參數可以在請求模版通過${xxx}引用",
         esb_table: {
@@ -1090,7 +1097,7 @@ export default {
       swagger_url_import: "使用URL導入",
       timing_synchronization: "定時同步",
       next_synchronization_time: "下次同步時間",
-      ms_env_import_file_limit: "支持通過MeterSphere導出的json格式文件",
+      ms_env_import_file_limit: "僅支持通過MeterSphere導出的json格式文件",
       file_exceed_limit: "文件數量超出限制",
 
 
@@ -1258,7 +1265,8 @@ export default {
   test_kanban: {
     test_kanban: "看板報表",
     testcase_summary: "用例統計",
-    execution_summary: "執行統計"
+    execution_summary: "執行統計",
+    okr: "OKR",
   },
   test_track: {
     related_requirements: '關聯需求',
@@ -1383,7 +1391,8 @@ export default {
         continue_upload: "繼續上傳",
       },
       export: {
-        export: "導出用例"
+        export: "導出用例",
+        export_tip: "請切換成接口列表勾選用例導出！"
       }
     },
     plan: {
@@ -1557,6 +1566,7 @@ export default {
     },
     issue: {
       issue: "缺陷",
+      issue_management: "缺陷管理",
       issue_resource: "缺陷來源",
       create_issue: "創建缺陷",
       add_issue: "添加缺陷",
@@ -1847,5 +1857,6 @@ export default {
     after_change: "變更後",
     share: "分享",
     change_history: "變更歷史",
+    change_content: "變更内容"
   }
 };

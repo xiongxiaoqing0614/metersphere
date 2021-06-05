@@ -27,16 +27,19 @@
         <el-table-column prop="name" :label="$t('commons.username')"/>
         <el-table-column prop="email" :label="$t('commons.email')"/>
         <el-table-column prop="phone" :label="$t('commons.phone')"/>
-        <el-table-column prop="roles" :label="$t('commons.role')" width="140">
+        <el-table-column prop="roles" :label="$t('commons.group')" width="140">
           <template v-slot:default="scope">
             <ms-roles-tag :roles="scope.row.groups"/>
           </template>
         </el-table-column>
         <el-table-column :label="$t('commons.operating')">
           <template v-slot:default="scope">
-            <ms-table-operator :edit-permission="['ORGANIZATION_USER:READ+EDIT']"
-                               :delete-permission="['ORGANIZATION_USER:READ+DELETE']"
-              :tip2="$t('commons.remove')" @editClick="edit(scope.row)" @deleteClick="del(scope.row)"/>
+            <div>
+              <ms-table-operator :edit-permission="['ORGANIZATION_USER:READ+EDIT']"
+                                 :delete-permission="['ORGANIZATION_USER:READ+DELETE']"
+                                 :tip2="$t('commons.remove')" @editClick="edit(scope.row)"
+                                 @deleteClick="del(scope.row)"/>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -73,7 +76,7 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item :label="$t('commons.role')" prop="groupIds">
+        <el-form-item :label="$t('commons.group')" prop="groupIds">
           <el-select v-model="form.groupIds" multiple :placeholder="$t('role.please_choose_role')" class="select-width">
             <el-option
               v-for="item in form.groups"

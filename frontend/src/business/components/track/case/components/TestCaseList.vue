@@ -45,29 +45,47 @@
             show-overflow-tooltip>
         </el-table-column>
         <el-table-column
-            v-if="item.id === 'num' && customNum"
-            prop="customNum"
-            sortable="custom"
-            :label="$t('commons.id')"
-            :key="index"
-            min-width="80"
-            show-overflow-tooltip>
+          v-if="item.id === 'num' && customNum"
+          prop="customNum"
+          sortable="custom"
+          :label="$t('commons.id')"
+          :key="index"
+          min-width="80"
+          show-overflow-tooltip>
         </el-table-column>
         <el-table-column
-            v-if="item.id == 'name'"
-            prop="name"
-            :label="$t('commons.name')"
-            show-overflow-tooltip
-            :key="index"
-            min-width="120"
+          v-if="item.id == 'name'"
+          prop="name"
+          :label="$t('commons.name')"
+          show-overflow-tooltip
+          :key="index"
+          min-width="120"
         >
         </el-table-column>
         <el-table-column
-            v-if="item.id == 'priority'"
-            prop="priority"
-            :filters="priorityFilters"
-            column-key="priority"
-            sortable="custom"
+          v-if="item.id == 'createUser'"
+          prop="createUser"
+          :label="$t('commons.create_user')"
+          show-overflow-tooltip
+          :key="index"
+          min-width="120"
+        >
+        </el-table-column>
+        <el-table-column
+          v-if="item.id == 'maintainer'"
+          prop="maintainer"
+          :label="$t('custom_field.case_maintainer')"
+          show-overflow-tooltip
+          :key="index"
+          min-width="120"
+        >
+        </el-table-column>
+        <el-table-column
+          v-if="item.id == 'priority'"
+          prop="priority"
+          :filters="priorityFilters"
+          column-key="priority"
+          sortable="custom"
             min-width="120px"
             :label="$t('test_track.case.priority')"
             show-overflow-tooltip
@@ -122,7 +140,8 @@
           <header-label-operate @exec="customHeader"/>
         </template>
         <template v-slot:default="scope">
-          <ms-table-operator v-permission="['PROJECT_TRACK_CASE:READ+EDIT','PROJECT_TRACK_CASE:READ+DELETE']"
+          <ms-table-operator :edit-permission="['PROJECT_TRACK_CASE:READ+EDIT']"
+                             :delete-permission="['PROJECT_TRACK_CASE:READ+DELETE']"
                              @editClick="handleEdit(scope.row)"
                              @deleteClick="handleDelete(scope.row)">
             <template v-slot:middle>
@@ -177,7 +196,7 @@ import {
   _handleSelect,
   _handleSelectAll,
   _sort,
-  buildBatchParam,
+  buildBatchParam, deepClone,
   getLabel,
   getSelectDataCounts,
   initCondition,
@@ -189,6 +208,7 @@ import {Track_Test_Case} from "@/business/components/common/model/JsonData";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 import PlanStatusTableItem from "@/business/components/track/common/tableItems/plan/PlanStatusTableItem";
+import {getCurrentProjectID} from "@/common/js/utils";
 
 export default {
   name: "TestCaseList",
@@ -220,7 +240,7 @@ export default {
   data() {
     return {
       type: TEST_CASE_LIST,
-      screenHeight: document.documentElement.clientHeight - 310,
+      screenHeight: 'calc(100vh - 310px)',
       headerItems: Track_Test_Case,
       tableLabel: [],
       result: {},
@@ -265,7 +285,9 @@ export default {
           handleClick: this.handleBatchEdit,
           permissions: ['PROJECT_TRACK_CASE:READ+EDIT']
         }, {
-          name: this.$t('test_track.case.batch_move_case'), handleClick: this.handleBatchMove
+          name: this.$t('test_track.case.batch_move_case'),
+          handleClick: this.handleBatchMove,
+          permissions: ['PROJECT_TRACK_CASE:READ+EDIT']
         }, {
           name: this.$t('test_track.case.batch_delete_case'),
           handleClick: this.handleDeleteBatch,
@@ -274,8 +296,6 @@ export default {
       ],
       typeArr: [
         {id: 'priority', name: this.$t('test_track.case.priority')},
-        {id: 'type', name: this.$t('test_track.case.type')},
-        {id: 'method', name: this.$t('test_track.case.method')},
         {id: 'maintainer', name: this.$t('test_track.case.maintainer')},
       ],
       valueArr: {
@@ -316,7 +336,7 @@ export default {
   },
   computed: {
     projectId() {
-      return this.$store.state.projectId;
+      return getCurrentProjectID();
     },
     selectNodeIds() {
       return this.$store.state.testCaseSelectNodeIds;
@@ -360,7 +380,8 @@ export default {
       }
     },
     customHeader() {
-      this.$refs.headerCustom.open(this.tableLabel);
+      const list = deepClone(this.tableLabel);
+      this.$refs.headerCustom.open(list);
     },
     getSelectDataRange() {
       let dataRange = this.$route.params.dataSelectRange;
@@ -515,6 +536,7 @@ export default {
     _handleDelete(testCase) {
       let testCaseId = testCase.id;
       this.$post('/test/case/delete/' + testCaseId, {}, () => {
+        this.$emit('refreshTable');
         this.initTableData();
         this.$success(this.$t('commons.delete_success'));
       });
@@ -632,8 +654,7 @@ export default {
       this.$refs.testBatchMove.open(this.treeNodes, Array.from(this.selectRows).map(row => row.id), this.moduleOptions);
     },
     getMaintainerOptions() {
-      let workspaceId = localStorage.getItem(WORKSPACE_ID);
-      this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
+      this.$post('/user/project/member/tester/list', {projectId: getCurrentProjectID()}, response => {
         this.valueArr.maintainer = response.data;
       });
     },

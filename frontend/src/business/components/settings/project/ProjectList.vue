@@ -7,6 +7,7 @@
                          :create-tip="btnTips" :title="$t('commons.project')">
           <template v-slot:button>
             <ms-table-button icon="el-icon-box"
+                             v-permission="['PROJECT_MANAGER:READ+EDIT']"
                              :content="$t('api_test.jar_config.title')" @click="openJarConfig"/>
           </template>
         </ms-table-header>
@@ -53,24 +54,26 @@
         </el-table-column>
         <el-table-column :label="$t('commons.operating')" width="180">
           <template v-slot:default="scope">
-            <ms-table-operator
-              :edit-permission="['PROJECT_MANAGER:READ+EDIT']"
-              :delete-permission="['PROJECT_MANAGER:READ+DELETE']"
-              @editClick="edit(scope.row)"
-              :show-delete="false"
-              @deleteClick="handleDelete(scope.row)">
-              <template v-slot:behind>
-                <ms-table-operator-button
-                  v-permission="['PROJECT_MANAGER:READ+EDIT']"
-                  :tip="$t('api_test.environment.environment_config')" icon="el-icon-setting"
-                  type="info" @exec="openEnvironmentConfig(scope.row)"/>
-                <ms-table-operator-button
-                  v-permission="['PROJECT_MANAGER:READ+EDIT']"
-                  :tip="$t('load_test.other_resource')"
-                  icon="el-icon-files"
-                  type="success" @exec="openFiles(scope.row)"/>
-              </template>
-            </ms-table-operator>
+            <div>
+              <ms-table-operator
+                :edit-permission="['PROJECT_MANAGER:READ+EDIT']"
+                :delete-permission="['PROJECT_MANAGER:READ+DELETE']"
+                @editClick="edit(scope.row)"
+                :show-delete="false"
+                @deleteClick="handleDelete(scope.row)">
+                <template v-slot:behind>
+                  <ms-table-operator-button
+                    v-permission="['PROJECT_MANAGER:READ+EDIT']"
+                    :tip="$t('api_test.environment.environment_config')" icon="el-icon-setting"
+                    type="info" @exec="openEnvironmentConfig(scope.row)"/>
+                  <ms-table-operator-button
+                    v-permission="['PROJECT_MANAGER:READ+EDIT']"
+                    :tip="$t('load_test.other_resource')"
+                    icon="el-icon-files"
+                    type="success" @exec="openFiles(scope.row)"/>
+                </template>
+              </ms-table-operator>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -235,7 +238,7 @@ export default {
   methods: {
     getMaintainerOptions() {
       let workspaceId = getCurrentWorkspaceId();
-      this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
+      this.$post('/user/project/member/tester/list', {projectId: getCurrentProjectID()}, response => {
         this.userFilters = response.data.map(u => {
           return {text: u.name, value: u.id};
         });

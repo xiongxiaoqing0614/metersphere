@@ -28,13 +28,19 @@
           </el-col>
           <el-col :span="8">
             <span class="ms-report-time-desc">
-              {{ $t('report.test_duration', [this.minutes, this.seconds]) }}
+              {{ $t('report.test_duration', [minutes, seconds]) }}
             </span>
-            <span class="ms-report-time-desc">
-              {{ $t('report.test_start_time') }}：{{ startTime }}
+            <span class="ms-report-time-desc" v-if="startTime !== '0'">
+              {{ $t('report.test_start_time') }}：{{ startTime | timestampFormatDate }}
             </span>
-            <span class="ms-report-time-desc">
-              {{ $t('report.test_end_time') }}：{{ endTime }}
+            <span class="ms-report-time-desc" v-else>
+              {{ $t('report.test_start_time') }}：-
+            </span>
+            <span class="ms-report-time-desc" v-if="report.status === 'Completed' && endTime !== '0'">
+              {{ $t('report.test_end_time') }}：{{ endTime | timestampFormatDate }}
+            </span>
+            <span class="ms-report-time-desc" v-else>
+              {{ $t('report.test_end_time') }}：-
             </span>
           </el-col>
         </el-row>
@@ -83,7 +89,7 @@
 
 <script>
 
-import {checkoutTestManagerOrTestUser, exportPdf} from "@/common/js/utils";
+import {exportPdf} from "@/common/js/utils";
 import html2canvas from 'html2canvas';
 import {Message} from "element-ui";
 import MsPerformanceReportExport from "@/business/components/performance/report/PerformanceReportExport";
@@ -306,7 +312,7 @@ export default {
           // 非IE下载
           //  chrome/firefox
           let aTag = document.createElement('a');
-          aTag.download = this.reportId + ".jtl";
+          aTag.download = this.reportName + ".jtl";
           aTag.href = URL.createObjectURL(blob);
           aTag.click();
           URL.revokeObjectURL(aTag.href)
