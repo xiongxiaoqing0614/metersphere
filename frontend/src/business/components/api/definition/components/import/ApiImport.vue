@@ -172,6 +172,11 @@
           tip: this.$t('api_test.api_import.forseti_tip'),
           suffixes: new Set(['json'])
         },
+        jmeterTuhuPlanform: {
+          name: 'JmeterTuhu',
+          value: 'JmeterTuhu',
+          suffixes: new Set(['jmx'])
+        },
         postmanPlanform: {
           name: 'Postman',
           value: 'Postman',
@@ -227,6 +232,7 @@
       this.platforms.push(this.swaggerPlanform);
       this.platforms.push(this.harPlanform);
       this.platforms.push(this.forsetiPlanform);
+      this.platforms.push(this.jmeterTuhuPlanform);
       this.selectedPlatform = this.platforms[0];
     },
     watch: {
@@ -249,6 +255,7 @@
         let harPlanformIndex = this.platforms.indexOf(this.harPlanform);
         let esbPlanformIndex = this.platforms.indexOf(this.esbPlanform);
         let forsetiPlanformIndex = this.platforms.indexOf(this.forsetiPlanform);
+        let jmeterTuhuPlanformIndex = this.platforms.indexOf(this.jmeterTuhuPlanform);
         if (postmanIndex >= 0) {
           this.platforms.splice(this.platforms.indexOf(this.postmanPlanform), 1);
         }
@@ -264,6 +271,9 @@
         if(forsetiPlanformIndex>=0){
           this.platforms.splice(this.platforms.indexOf(this.forsetiPlanform),1);
         }
+        if(jmeterTuhuPlanformIndex>=0){
+          this.platforms.splice(this.platforms.indexOf(this.jmeterTuhuPlanform),1);
+        }
         if (this.propotal === 'TCP') {
           if(hasLicense()){
             this.platforms.push(this.esbPlanform);
@@ -274,11 +284,15 @@
           this.platforms.push(this.swaggerPlanform);
           this.platforms.push(this.harPlanform);
           this.platforms.push(this.forsetiPlanform);
+          this.platforms.push(this.jmeterTuhuPlanform);
           return false;
         }
       }
     },
     computed: {
+      isJMeterTuhu() {
+        return this.selectedPlatformValue === 'JmeterTuhu';
+      },
       isForseti() {
         return this.selectedPlatformValue === 'Forseti';
       },
