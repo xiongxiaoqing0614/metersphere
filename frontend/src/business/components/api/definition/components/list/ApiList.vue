@@ -28,11 +28,6 @@
                sortable>
 
             <template slot-scope="scope">
-              <!-- 判断为只读用户的话不可点击ID进行编辑操作 -->
-              <!--<span style="cursor:pointer" v-if="isReadOnly"> {{ scope.row.num }} </span>-->
-              <!--<el-tooltip v-else content="编辑">-->
-              <!--<a style="cursor:pointer" @click="editApi(scope.row)"> {{ scope.row.num }} </a>-->
-              <!--</el-tooltip>-->
               <el-tooltip content="编辑">
                 <a style="cursor:pointer" @click="editApi(scope.row)"> {{ scope.row.num }} </a>
               </el-tooltip>
@@ -423,11 +418,13 @@ export default {
       this.currentPage = 1;
       this.condition.moduleIds = [];
       this.condition.moduleIds.push(this.selectNodeIds);
+      this.closeCaseModel();
       this.initTable();
     },
     currentProtocol() {
       this.currentPage = 1;
       initCondition(this.condition, false);
+      this.closeCaseModel();
       this.initTable();
     },
     trashEnable() {
@@ -440,6 +437,7 @@ export default {
         this.condition.filters = {status: ["Prepare", "Underway", "Completed"]};
       }
       initCondition(this.condition, false);
+      this.closeCaseModel();
       this.initTable();
     }
   },
@@ -447,15 +445,16 @@ export default {
     handleBatchMove() {
       this.$refs.testCaseBatchMove.open(this.moduleTree, [], this.moduleOptions);
     },
-    initTable() {
-      if (this.$refs.apiDefinitionTable) {
-        this.$refs.apiDefinitionTable.clearSelectRows();
-      }
+    closeCaseModel(){
       //关闭案例弹窗
       if(this.$refs.caseList){
         this.$refs.caseList.handleClose();
       }
-
+    },
+    initTable() {
+      if (this.$refs.apiDefinitionTable) {
+        this.$refs.apiDefinitionTable.clearSelectRows();
+      }
 
       initCondition(this.condition, this.condition.selectAll);
       this.selectDataCounts = 0;

@@ -18,6 +18,7 @@
                                         :page-size="pageSize>total?total:pageSize"
                                         :total="total"
                                         :select-data-counts="selectDataCounts"
+                                        :table-data-count-in-page="tableData.length"
                                         @selectPageAll="isSelectDataAll(false)"
                                         @selectAll="isSelectDataAll(true)"/>
         <el-table-column v-if="!referenced" width="30" min-width="30" :resizable="false" align="center">
@@ -509,15 +510,15 @@ export default {
 </script>
 
 <style scoped>
-/deep/ .el-table__fixed-right {
-  height: 100% !important;
-}
+/*/deep/ .el-table__fixed-right {*/
+/*  height: 100% !important;*/
+/*}*/
 
-/deep/ .el-table__fixed {
-  height: 110px !important;
-}
+/*/deep/ .el-table__fixed {*/
+/*  height: 110px !important;*/
+/*}*/
 
-/deep/ .ms-select-all-fixed th:nth-child(2) .el-icon-arrow-down {
-  top: -5px;
-}
+/*/deep/ .ms-select-all-fixed th:nth-child(2) .el-icon-arrow-down {*/
+/*  top: -5px;*/
+/*}*/
 </style>
