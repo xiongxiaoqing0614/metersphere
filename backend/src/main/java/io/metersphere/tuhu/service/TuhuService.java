@@ -11,6 +11,7 @@ import io.metersphere.tuhu.mapper.TuhuCodeCoverageRateMappingMapper;
 import io.metersphere.tuhu.request.CodeCoverageBindRequest;
 import io.metersphere.tuhu.request.CodeCoverageRequest;
 import jdk.nashorn.internal.runtime.regexp.joni.exception.ValueException;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -98,6 +99,7 @@ public class TuhuService {
     private JSONArray fetchCodeCoverageData(String js) {
         String codeCoverageRateServerUrl = codeCoverageRateServerUrlPrefix + "/api/coverager/data";
         String result = restApiPost(codeCoverageRateServerUrl, js);
+        if (result == null) { return null; }
 
         JSONObject jo = JSONObject.parseObject(result);
         if (jo == null || jo.getInteger("code") != 0) {
@@ -110,15 +112,23 @@ public class TuhuService {
     public static String restApiPost(String url, String js) {
         LogUtil.info("post url: " + url);
         LogUtil.info("request json: " + js);
-        RestTemplate client = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> requestEntity = new HttpEntity<>(js, headers);
-        ResponseEntity<String> response = client.exchange(url, HttpMethod.POST, requestEntity, String.class);
 
-        String result = response.getBody();
-        LogUtil.info("pass rate response json: " + result);
-        return result;
+        try {
+            RestTemplate client = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> requestEntity = new HttpEntity<>(js, headers);
+            ResponseEntity<String> response = client.exchange(url, HttpMethod.POST, requestEntity, String.class);
+
+            String result = response.getBody();
+            LogUtil.info("pass rate response json: " + result);
+
+            return result;
+        } catch (Exception e) {
+            LogUtil.error("网络访问错误！" + e.getMessage());
+            return null;
+        }
+
     }
 
     public String getTestReportByTimestamp(CodeCoverageBindRequest codeCoverageBind) {
