@@ -61,8 +61,7 @@
 </template>
 
 <script>
-import {WORKSPACE_ID} from '../../../../common/js/constants';
-import {getCurrentUser, saveLocalStorage} from "../../../../common/js/utils";
+import {getCurrentUser, saveLocalStorage} from "@/common/js/utils";
 
 export default {
   name: "MsHeaderOrgWs",
@@ -70,6 +69,9 @@ export default {
     this.initMenuData();
     this.getCurrentUserInfo();
   },
+  inject: [
+    'reloadTopMenus',
+  ],
   data() {
     return {
       organizationList: [
@@ -154,7 +156,7 @@ export default {
         //   localStorage.removeItem(PROJECT_ID);
         // }
         this.$router.push('/').then(() => {
-          window.location.reload();
+          this.reloadTopMenus();
         }).catch(err => err);
       });
     },
@@ -172,7 +174,7 @@ export default {
         //   localStorage.removeItem(PROJECT_ID);
         // }
         this.$router.push('/').then(() => {
-          window.location.reload();
+          this.reloadTopMenus();
         }).catch(err => err);
       });
     },

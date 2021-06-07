@@ -18,6 +18,7 @@
                                         :page-size="pageSize>total?total:pageSize"
                                         :total="total"
                                         :select-data-counts="selectDataCounts"
+                                        :table-data-count-in-page="tableData.length"
                                         @selectPageAll="isSelectDataAll(false)"
                                         @selectAll="isSelectDataAll(true)"/>
         <el-table-column v-if="!referenced" width="30" min-width="30" :resizable="false" align="center">
@@ -142,13 +143,16 @@ export default {
     UserCascader,
     ShowMoreBtn
   },
+  inject: [
+    'reload'
+  ],
   data() {
     const validateConfirmPwd = (rule, value, callback) => {
-      if(value === ''){
+      if (value === '') {
         callback(new Error(this.$t('user.input_password')));
-      }else if((value !== this.ruleForm.newpassword)){
+      } else if ((value !== this.ruleForm.newpassword)) {
         callback(new Error(this.$t('member.inconsistent_passwords')));
-      }else{
+      } else {
         callback();
       }
     };
@@ -325,7 +329,7 @@ export default {
             this.$success(this.$t('commons.modify_success'));
             this.editPasswordVisible = false;
             this.search();
-            window.location.reload();
+            this.reload();
           });
         } else {
           return false;
@@ -506,15 +510,15 @@ export default {
 </script>
 
 <style scoped>
-/deep/ .el-table__fixed-right {
-  height: 100% !important;
-}
+/*/deep/ .el-table__fixed-right {*/
+/*  height: 100% !important;*/
+/*}*/
 
-/deep/ .el-table__fixed {
-  height: 110px !important;
-}
+/*/deep/ .el-table__fixed {*/
+/*  height: 110px !important;*/
+/*}*/
 
-/deep/ .ms-select-all-fixed th:nth-child(2) .el-icon-arrow-down {
-  top: -5px;
-}
+/*/deep/ .ms-select-all-fixed th:nth-child(2) .el-icon-arrow-down {*/
+/*  top: -5px;*/
+/*}*/
 </style>

@@ -28,11 +28,6 @@
                sortable>
 
             <template slot-scope="scope">
-              <!-- 判断为只读用户的话不可点击ID进行编辑操作 -->
-              <!--<span style="cursor:pointer" v-if="isReadOnly"> {{ scope.row.num }} </span>-->
-              <!--<el-tooltip v-else content="编辑">-->
-              <!--<a style="cursor:pointer" @click="editApi(scope.row)"> {{ scope.row.num }} </a>-->
-              <!--</el-tooltip>-->
               <el-tooltip content="编辑">
                 <a style="cursor:pointer" @click="editApi(scope.row)"> {{ scope.row.num }} </a>
               </el-tooltip>
@@ -70,7 +65,7 @@
           :filters="methodFilters"
           :fields-width="fieldsWidth"
           min-width="120px"
-          :label="$t('api_test.definition.api_type')">
+          :label="getApiRequestTypeName">
           <template v-slot:default="scope" class="request-method">
             <el-tag size="mini"
                     :style="{'background-color': getColor(true, scope.row.method), border: getColor(true, scope.row.method)}"
@@ -398,6 +393,13 @@ export default {
     selectRows() {
       return this.$refs.apiDefinitionTable.getSelectRows();
     },
+    getApiRequestTypeName(){
+      if(this.currentProtocol === 'TCP'){
+        return this.$t('api_test.definition.api_agreement');
+      }else{
+        return this.$t('api_test.definition.api_type');
+      }
+    }
   },
   created: function () {
     if (this.trashEnable) {
@@ -416,11 +418,13 @@ export default {
       this.currentPage = 1;
       this.condition.moduleIds = [];
       this.condition.moduleIds.push(this.selectNodeIds);
+      this.closeCaseModel();
       this.initTable();
     },
     currentProtocol() {
       this.currentPage = 1;
       initCondition(this.condition, false);
+      this.closeCaseModel();
       this.initTable();
     },
     trashEnable() {
@@ -433,6 +437,7 @@ export default {
         this.condition.filters = {status: ["Prepare", "Underway", "Completed"]};
       }
       initCondition(this.condition, false);
+      this.closeCaseModel();
       this.initTable();
     }
   },
@@ -440,10 +445,17 @@ export default {
     handleBatchMove() {
       this.$refs.testCaseBatchMove.open(this.moduleTree, [], this.moduleOptions);
     },
+    closeCaseModel(){
+      //关闭案例弹窗
+      if(this.$refs.caseList){
+        this.$refs.caseList.handleClose();
+      }
+    },
     initTable() {
       if (this.$refs.apiDefinitionTable) {
         this.$refs.apiDefinitionTable.clearSelectRows();
       }
+
       initCondition(this.condition, this.condition.selectAll);
       this.selectDataCounts = 0;
       this.condition.moduleIds = this.selectNodeIds;

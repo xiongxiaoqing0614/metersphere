@@ -23,6 +23,7 @@
         <ms-table-header-select-popover v-show="total>0"
                                         :page-size="pageSize > total ? total : pageSize"
                                         :total="total"
+                                        :table-data-count-in-page="tableData.length"
                                         @selectPageAll="isSelectDataAll(false)"
                                         @selectAll="isSelectDataAll(true)"/>
         <el-table-column width="40" :resizable="false" align="center">
@@ -455,7 +456,7 @@ export default {
       });
     },
     handleDeleteBatch() {
-      this.$alert(this.$t('api_test.definition.request.delete_confirm') + "？", '', {
+      this.$alert(this.$t('test_track.plan_view.confirm_cancel_relevance') + "？", '', {
         confirmButtonText: this.$t('commons.confirm'),
         callback: (action) => {
           if (action === 'confirm') {
