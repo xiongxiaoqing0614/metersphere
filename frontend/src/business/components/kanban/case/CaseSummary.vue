@@ -11,6 +11,7 @@
     </el-checkbox-group>
     </div>
     <el-table
+      v-loading="result.loading"
       :data="tableData"
       height="700"
       border
@@ -128,13 +129,14 @@ require('echarts/lib/component/legend');
 
 
 export default {
-  name: "KanbanHome",
+  name: "CaseSummary",
   components: {
     MsMainContainer,
     MsContainer,
   },
   data() {
     return {
+      result:{},
       tableData: null,
       orgList: null,
       wsList: null,
@@ -262,7 +264,7 @@ export default {
     },
     getSummary(){
       const _this = this;
-      this.$get("/tuhu/kanban/summary", response => {
+      this.result = this.$get("/tuhu/kanban/summary", response => {
         _this.tableData = response.data;
         console.table(_this.tableData)
         _this.orgList = new Array();

@@ -6,6 +6,7 @@ export default {
     please_select_import_mode: '請選擇導入模式',
     please_select_import_module: '請選擇導入模塊',
     pass_rate: '通過率',
+    coverage_rate: "代码覆蓋率",
     execution_times: '執行次數',
     cover: '覆蓋',
     module_title: '默認模塊',
@@ -1247,7 +1248,8 @@ export default {
   test_kanban: {
     test_kanban: "看板報表",
     testcase_summary: "用例統計",
-    execution_summary: "執行統計"
+    execution_summary: "執行統計",
+    okr: "OKR",
   },
   test_track: {
     related_requirements: '關聯需求',

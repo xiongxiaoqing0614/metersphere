@@ -3,6 +3,8 @@ package io.metersphere.base.mapper;
 import io.metersphere.base.domain.TestPlanReport;
 import io.metersphere.base.domain.TestPlanReportExample;
 import java.util.List;
+
+import io.metersphere.controller.request.CodeCoverageBindRequest;
 import org.apache.ibatis.annotations.Param;
 
 public interface TestPlanReportMapper {
@@ -27,4 +29,6 @@ public interface TestPlanReportMapper {
     int updateByPrimaryKeySelective(TestPlanReport record);
 
     int updateByPrimaryKey(TestPlanReport record);
+
+    String queryTestPlanReportId(CodeCoverageBindRequest codeCoverageBind);
 }

@@ -163,7 +163,22 @@
         </el-table-column>
       </template>
       <el-table-column
-        min-width="150"
+        prop="coverageRate"
+        min-width="100"
+        :label="$t('commons.coverage_rate')"
+        show-overflow-tooltip
+        :key="index">
+        <template v-slot:default="scope">
+          <el-button
+            @click="showCoverageRateReport(scope.row, $event)"
+            type="text"
+            size="small">
+            {{scope.row.coverageRate}}
+          </el-button>
+        </template>
+      </el-table-column>
+      <el-table-column
+        min-width="170"
         :label="$t('commons.operating')">
         <template slot="header">
           <header-label-operate @exec="customHeader"/>
@@ -201,6 +216,7 @@
                          :total="total"/>
     <test-report-template-list @openReport="openReport" ref="testReportTemplateList"/>
     <test-case-report-view @refresh="initTableData" ref="testCaseReportView"/>
+    <test-plan-code-coverage-rate-report-view @refresh="initTableData" ref="testPlanCodeCoverageRateReportView"/>
     <ms-delete-confirm :title="$t('test_track.plan.plan_delete')" @delete="_handleDelete" ref="deleteConfirm"
                        :with-tip="enableDeleteTip">
       {{ $t('test_track.plan.plan_delete_tip') }}
@@ -221,6 +237,7 @@ import PlanStageTableItem from "../../common/tableItems/plan/PlanStageTableItem"
 import {checkoutTestManagerOrTestUser, getCurrentUser} from "@/common/js/utils";
 import TestReportTemplateList from "../view/comonents/TestReportTemplateList";
 import TestCaseReportView from "../view/comonents/report/TestCaseReportView";
+import TestPlanCodeCoverageRateReportView from "@/business/components/track/report/components/TestPlanCodeCoverageRateReportView";
 import MsDeleteConfirm from "../../../common/components/MsDeleteConfirm";
 import {TEST_PLAN_CONFIGS} from "../../../common/components/search/search-components";
 import {LIST_CHANGE, TrackEvent} from "@/business/components/common/head/ListEvent";
@@ -231,6 +248,7 @@ import {Test_Plan_List} from "@/business/components/common/model/JsonData";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 import MsTag from "@/business/components/common/components/MsTag";
+import {pullAndMergeCodeCoverageRate} from "@/common/js/tuhu/testplan";
 
 
 export default {
@@ -241,6 +259,7 @@ export default {
     HeaderCustom,
     MsDeleteConfirm,
     TestCaseReportView,
+    TestPlanCodeCoverageRateReportView,
     TestReportTemplateList,
     PlanStageTableItem,
     PlanStatusTableItem,
@@ -312,16 +331,15 @@ export default {
       this.result = this.$post(this.buildPagePath(this.queryPath), this.condition, response => {
         let data = response.data;
         this.total = data.itemCount;
-        this.tableData = data.listObject;
-        this.tableData.forEach(item => {
+        data.listObject.forEach(item => {
           if (item.tags && item.tags.length > 0) {
             item.tags = JSON.parse(item.tags);
           }
           item.passRate = item.passRate + '%'
         })
+        this.tableData = pullAndMergeCodeCoverageRate(this, data.listObject);
       });
       getLabel(this, TEST_PLAN_LIST);
-
     },
     copyData(status) {
       return JSON.parse(JSON.stringify(this.dataMap.get(status)))
@@ -400,6 +418,13 @@ export default {
       row.redirectFrom = "testPlan";
       this.$refs.scheduleMaintain.open(row);
     },
+    showCoverageRateReport(row, event){
+      event.preventDefault();
+      event.stopPropagation();
+      let url = `/tuhu/testplan/report?appId=${row._appId}&branchName=${row._branchName}&commitId=${row._commitId}&stage=${row._stage}`;
+      this.$refs.testPlanCodeCoverageRateReportView.open(row.name, url);
+      // window.open(url);
+    }
   }
 }
 </script>

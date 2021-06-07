@@ -6,6 +6,7 @@ export default {
     please_select_import_mode: 'Please select import mode',
     please_select_import_module: 'Please select import module',
     pass_rate: 'Pass rate',
+    coverage_rate: 'Code Coverage rate',
     execution_times: 'Execution times',
     cover: 'Cover',
     module_title: 'Default module',
@@ -1242,7 +1243,8 @@ export default {
   test_kanban: {
     test_kanban: "Kanban",
     testcase_summary: "TestCase Summary",
-    execution_summary: "Execution Summary"
+    execution_summary: "Execution Summary",
+    okr: "OKR"
   },
   test_track: {
     related_requirements: 'Related requirements',
