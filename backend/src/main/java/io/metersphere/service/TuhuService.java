@@ -76,6 +76,10 @@ public class TuhuService {
             return null;
         }
         String rjs = fetchCodeCoverageData(JSON.toJSONString(mappingList));
+        if(rjs == null) {
+            LogUtil.info("No code coverage rate result returns!");
+            return null;
+        }
         LogUtil.info("code coverage rate result json: " + rjs);
         JSONObject jo = JSONObject.parseObject(rjs);
         if (jo == null || jo.getInteger("code") != 0) {
