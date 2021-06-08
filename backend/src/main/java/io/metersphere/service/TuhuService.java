@@ -103,13 +103,21 @@ public class TuhuService {
         String codeCoverageRateServerUrl = codeCoverageRateServerUrlPrefix + "/api/coverager/data";
         LogUtil.info("codeCoverageRateServerUrl: " + codeCoverageRateServerUrl);
         LogUtil.info("code coverage rate request json: " + js);
-        RestTemplate client = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> requestEntity = new HttpEntity<>(js, headers);
-        ResponseEntity<String> response = client.exchange(codeCoverageRateServerUrl, HttpMethod.POST, requestEntity, String.class);
+        try {
+            RestTemplate client = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> requestEntity = new HttpEntity<>(js, headers);
+            ResponseEntity<String> response = client.exchange(codeCoverageRateServerUrl, HttpMethod.POST, requestEntity, String.class);
 
-        return response.getBody();
+            String result = response.getBody()
+            LogUtil.info("pass rate response json: " + result);
+
+            return result;
+        }catch(Exception e){
+            LogUtil.error("网络访问错误！" + e.getMessage());
+            return null;
+        }
     }
 
     public String getTestReportByTimestamp(CodeCoverageBindRequest codeCoverageBind) {
