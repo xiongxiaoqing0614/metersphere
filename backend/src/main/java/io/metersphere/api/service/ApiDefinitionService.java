@@ -799,6 +799,14 @@ public class ApiDefinitionService {
         return extApiDefinitionMapper.countStateByProjectID(projectId);
     }
 
+    public List<ApiDataCountResult> countStateByProjectIDP0(String projectId) {
+        return extApiDefinitionMapper.countStateByProjectIDP0(projectId);
+    }
+
+    public List<ApiDataCountResult> countStateByProjectIDNoP4(String projectId) {
+        return extApiDefinitionMapper.countStateByProjectIDNoP4(projectId);
+    }
+
     public List<ApiDataCountResult> countApiCoverageByProjectID(String projectId) {
         return extApiDefinitionMapper.countApiCoverageByProjectID(projectId);
     }

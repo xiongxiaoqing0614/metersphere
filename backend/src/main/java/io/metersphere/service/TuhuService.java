@@ -114,7 +114,7 @@ public class TuhuService {
             HttpEntity<String> requestEntity = new HttpEntity<>(js, headers);
             ResponseEntity<String> response = client.exchange(codeCoverageRateServerUrl, HttpMethod.POST, requestEntity, String.class);
 
-            String result = response.getBody()
+            String result = response.getBody();
             LogUtil.info("pass rate response json: " + result);
 
             return result;
