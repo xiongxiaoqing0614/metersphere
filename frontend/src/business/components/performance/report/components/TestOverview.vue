@@ -7,7 +7,7 @@
             <span class="ms-card-data-digital">{{ maxUsers }}</span>
             <span class="ms-card-data-unit"> VU</span>
           </span>
-          <span class="ms-card-desc">Max Users</span>
+          <span class="ms-card-desc">{{ $t('load_test.report.ActiveThreadsChart') }}</span>
         </el-card>
       </el-col>
       <el-col :span="4">
@@ -16,7 +16,7 @@
             <span class="ms-card-data-digital">{{ avgTransactions }}</span>
             <span class="ms-card-data-unit"> TPS</span>
           </span>
-          <span class="ms-card-desc">Avg.Transactions</span>
+          <span class="ms-card-desc">{{ $t('load_test.report.TransactionsChart') }}</span>
         </el-card>
       </el-col>
       <el-col :span="4">
@@ -25,7 +25,7 @@
             <span class="ms-card-data-digital">{{ errors }}</span>
             <span class="ms-card-data-unit"> %</span>
           </span>
-          <span class="ms-card-desc">Errors</span>
+          <span class="ms-card-desc">{{ $t('load_test.report.ErrorsChart') }}</span>
         </el-card>
       </el-col>
       <el-col :span="4">
@@ -34,7 +34,7 @@
             <span class="ms-card-data-digital">{{ avgResponseTime }}</span>
             <span class="ms-card-data-unit"> s</span>
           </span>
-          <span class="ms-card-desc">Avg.Response Time</span>
+          <span class="ms-card-desc">{{ $t('load_test.report.ResponseTimeChart') }}</span>
         </el-card>
       </el-col>
       <el-col :span="4">
@@ -43,7 +43,7 @@
             <span class="ms-card-data-digital">{{ responseTime90 }}</span>
             <span class="ms-card-data-unit"> s</span>
           </span>
-          <span class="ms-card-desc">90% Response Time</span>
+          <span class="ms-card-desc">90% {{ $t('load_test.report.ResponseTimeChart') }}</span>
         </el-card>
       </el-col>
       <el-col :span="4">
@@ -52,7 +52,7 @@
             <span class="ms-card-data-digital">{{ avgBandwidth }}</span>
             <span class="ms-card-data-unit"> KiB/s</span>
           </span>
-          <span class="ms-card-desc">Avg.Bandwidth</span>
+          <span class="ms-card-desc">{{ $t('load_test.report.Network') }}</span>
         </el-card>
       </el-col>
     </el-row>
@@ -78,6 +78,8 @@
 
 <script>
 import MsChart from "@/business/components/common/chart/MsChart";
+
+const color = ['#60acfc', '#32d3eb', '#5bc49f', '#feb64d', '#ff7c7c', '#9287e7', '#ca8622', '#bda29a', '#6e7074', '#546570', '#c4ccd3'];
 
 export default {
   name: "TestOverview",
@@ -138,6 +140,7 @@ export default {
         yAxisIndex1List = this._unique(yAxisIndex1List);
 
         let loadOption = {
+          color: color,
           title: {
             text: 'Load',
             left: 'center',
@@ -217,6 +220,7 @@ export default {
         yAxisIndex1List = this._unique(yAxisIndex1List);
 
         let resOption = {
+          color: color,
           title: {
             text: 'Response Time',
             left: 'center',
@@ -298,6 +302,7 @@ export default {
         yAxisIndex0List = this._unique(yAxisIndex0List);
 
         let errorOption = {
+          color: color,
           title: {
             text: 'Errors',
             left: 'center',
@@ -369,6 +374,7 @@ export default {
         yAxisIndex0List = this._unique(yAxisIndex0List);
 
         let resCodeOption = {
+          color: color,
           title: {
             text: 'Response code',
             left: 'center',

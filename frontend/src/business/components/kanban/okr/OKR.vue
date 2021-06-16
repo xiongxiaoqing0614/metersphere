@@ -218,7 +218,7 @@ export default {
     },
     calapiCompleteRate (row) {
       if(row.okrApiTotal == 0) {
-        row.apiCompleteRate = 0
+        row.apiCompleteRate = 0.0
       }else{
         row.apiCompleteRate = ((row.apiCount/row.okrApiTotal) * 100).toFixed(1)
       }
@@ -226,7 +226,7 @@ export default {
     },
     calp0apiCompleteRate (row) {
       if(row.okrApiP0 == 0) {
-        row.p0apiCompleteRate = 0
+        row.p0apiCompleteRate = 0.0
       }else{
         row.p0apiCompleteRate = ((row.p0APICount/row.okrApiP0) * 100).toFixed(1)
       }
@@ -234,7 +234,7 @@ export default {
     },
     calcaseCompleteRate (row) {
       if(row.okrApiTestTotal == 0) {
-        row.caseCompleteRate = 0
+        row.caseCompleteRate = 0.0
       }else{
         row.caseCompleteRate = ((row.singleCount/row.okrApiTestTotal) * 100).toFixed(1)
       }
@@ -242,7 +242,7 @@ export default {
     },
     calscenarioCompleteRate (row) {
       if(row.okrScenarioTestTotal == 0) {
-        row.scenarioCompleteRate = 0
+        row.scenarioCompleteRate = 0.0
       }else{
         row.scenarioCompleteRate = ((row.scenarioCount/row.okrScenarioTestTotal)* 100).toFixed(1) 
       }
