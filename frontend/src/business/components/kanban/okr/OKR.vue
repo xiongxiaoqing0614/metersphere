@@ -60,10 +60,10 @@
       </vxe-table-column>
       <vxe-table-column field="okrScenarioTestTotal" title="季度OKR-场景用例总数" :edit-render="{name: '$input', props: {type: 'number',placeholder: '请输入OKR'}}"></vxe-table-column>
     
-      <vxe-table-column field="apiCount" title="已完成接口总数"></vxe-table-column>
-      <vxe-table-column field="p0APICount" title="已完成P0接口总数"></vxe-table-column>
-      <vxe-table-column field="singleCount" title="已完成接口用例数"></vxe-table-column>
-      <vxe-table-column field="scenarioCount" title="已完成场景用例数"></vxe-table-column>
+      <vxe-table-column field="completedAPICount" title="已完成接口总数"></vxe-table-column>
+      <vxe-table-column field="completedP0APICount" title="已完成P0接口总数"></vxe-table-column>
+      <vxe-table-column field="completedSingleCount" title="已完成接口用例数"></vxe-table-column>
+      <vxe-table-column field="completedScenarioCount" title="已完成场景用例数"></vxe-table-column>
 
       <vxe-table-column field="apiCountThisWeek" title="本周新增接口总数"></vxe-table-column>
       <vxe-table-column field="p0APICountThisWeek" title="本周新增P0接口总数"></vxe-table-column>

@@ -15,4 +15,5 @@ public class TestCaseSummaryDTO {
     private long completedSingleCount;
     private long scenarioCount;
     private long completedScenarioCount;
+    private long completedP0APICount;
 }
