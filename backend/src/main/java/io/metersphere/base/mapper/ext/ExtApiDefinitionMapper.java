@@ -34,9 +34,15 @@ public interface ExtApiDefinitionMapper {
 
     Long countByProjectIDAndCreateInThisWeek(@Param("projectId") String projectId, @Param("firstDayTimestamp") long firstDayTimestamp, @Param("lastDayTimestamp") long lastDayTimestamp);
 
+    Long countByProjectIDAndCreateInThisWeekNoP4(@Param("projectId") String projectId, @Param("firstDayTimestamp") long firstDayTimestamp, @Param("lastDayTimestamp") long lastDayTimestamp);
+
     Long countByProjectIDAndTagAndCreateInThisWeek(@Param("projectId") String projectId, @Param("tag") String tag, @Param("firstDayTimestamp") long firstDayTimestamp, @Param("lastDayTimestamp") long lastDayTimestamp);
 
     List<ApiDataCountResult> countStateByProjectID(String projectId);
+
+    List<ApiDataCountResult> countStateByProjectIDP0(String projectId);
+
+    List<ApiDataCountResult> countStateByProjectIDNoP4(String projectId);
 
     List<ApiDataCountResult> countApiCoverageByProjectID(String projectId);
 

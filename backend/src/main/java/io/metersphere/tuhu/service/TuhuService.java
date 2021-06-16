@@ -13,6 +13,7 @@ import io.metersphere.tuhu.request.CodeCoverageRequest;
 import jdk.nashorn.internal.runtime.regexp.joni.exception.ValueException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import io.metersphere.commons.utils.LogUtil;
@@ -114,7 +115,12 @@ public class TuhuService {
         LogUtil.info("request json: " + js);
 
         try {
-            RestTemplate client = new RestTemplate();
+            SimpleClientHttpRequestFactory clientHttpRequestFactory
+                    = new SimpleClientHttpRequestFactory();
+            clientHttpRequestFactory.setConnectTimeout(2 * 1000);
+            clientHttpRequestFactory.setReadTimeout(10 * 1000);
+
+            RestTemplate client = new RestTemplate(clientHttpRequestFactory);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<String> requestEntity = new HttpEntity<>(js, headers);

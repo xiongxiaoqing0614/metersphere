@@ -93,13 +93,17 @@ public class KanbanService {
             long dateP0CountByCreateInThisWeek = countByProjectIDAndTagAndCreateInThisWeek(projectId, "P0");
             allInfo.setP0APICountThisWeek(dateP0CountByCreateInThisWeek);
 
-
             ApiDataCountDTO apiCountResult = new ApiDataCountDTO();
 
-            List<ApiDataCountResult> countResultByStatelList = apiDefinitionService.countStateByProjectID(projectId);
+            List<ApiDataCountResult> countResultByStatelList = apiDefinitionService.countStateByProjectIDNoP4(projectId);
             apiCountResult.countStatus(countResultByStatelList);
             allInfo.setCompletedAPICount(apiCountResult.getFinishedCount());
             allInfo.setNonP0APICount(allInfo.getApiCount() - allInfo.getP0APICount());
+
+            ApiDataCountDTO p0ApiCountResult = new ApiDataCountDTO();
+            List<ApiDataCountResult> p0CountResultByStatelList = apiDefinitionService.countStateByProjectIDP0(projectId);
+            p0ApiCountResult.countStatus(p0CountResultByStatelList);
+            allInfo.setCompletedP0APICount(p0ApiCountResult.getFinishedCount());
 
             long dateSingleCountByCreateInThisWeek = apiTestCaseService.countByProjectIDAndCreateInThisWeek(projectId);
             allInfo.setSingleCountThisWeek(dateSingleCountByCreateInThisWeek);
