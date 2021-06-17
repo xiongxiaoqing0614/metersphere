@@ -54,7 +54,7 @@ public class TestCaseTemplateController {
     }
 
     @GetMapping("/option/{workspaceId}")
-    @RequiresRoles(value = {RoleConstants.TEST_USER, RoleConstants.TEST_MANAGER, RoleConstants.TEST_VIEWER}, logical = Logical.OR)
+//    @RequiresRoles(value = {RoleConstants.TEST_USER, RoleConstants.TEST_MANAGER, RoleConstants.TEST_VIEWER}, logical = Logical.OR)
     public List<TestCaseTemplate> list(@PathVariable String workspaceId) {
         return testCaseTemplateService.getOption(workspaceId);
     }
