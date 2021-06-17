@@ -179,6 +179,7 @@ public class KanbanService {
     private JSONArray fetchDailyAvgPassData(String js) {
         String dailyAvgPassRateServerUrl = String.format("%s/Monitor_API/passRate/avg/%d/%d", dailyAvgPassRateServerUrlPrefix, 0, 5);
         String result = TuhuService.restApiPost(dailyAvgPassRateServerUrl, js);
+        if (result == null) { return null; }
 
         JSONObject jo = JSONObject.parseObject(result);
         if (jo == null || !jo.getBoolean("success")) {
@@ -241,6 +242,8 @@ public class KanbanService {
         JSONArray ja = new JSONArray();
         ja.add(jo);
         String rep = restApiPost(url, JSONObject.toJSONString(ja));
+        if (rep == null) { return; }
+
         JSONObject repObj = JSONObject.parseObject(rep);
         if (repObj == null || !repObj.getBoolean("success")) {
             LogUtil.error("上传测试结果失败: " + rep);
@@ -324,6 +327,8 @@ public class KanbanService {
         jo.put("testplanReportId", testPlanReportId);
 
         String rep = restApiPost(url, JSONObject.toJSONString(jo));
+        if (rep == null) { return; }
+
         JSONObject repObj = JSONObject.parseObject(rep);
         if (repObj == null || !repObj.getBoolean("success")) {
             LogUtil.error("上传统计结果失败: " + rep);

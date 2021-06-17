@@ -5,7 +5,7 @@
         <component :is="licenseHeader"></component>
       </el-col>
     </el-row>
-    <el-row id="header-top" type="flex" justify="space-between" align="middle">
+    <el-row id="header-top" type="flex" justify="space-between" align="middle" v-if="isMenuShow">
       <el-col :span="12">
         <img :src="'/display/file/logo'" class="logo" alt="">
         <ms-top-menus :color="color"/>
@@ -19,7 +19,7 @@
       </el-col>
     </el-row>
 
-    <ms-view/>
+    <ms-view v-if="isShow"/>
 
     <theme/>
   </el-col>
@@ -52,6 +52,8 @@ export default {
       logoId: '_blank',
       color: '',
       sessionTimer: null,
+      isShow: true,
+      isMenuShow: true,
     };
   },
   created() {
@@ -102,6 +104,13 @@ export default {
       window.location.href = "/login";
     });
   },
+  // 提供可注入子组件属性
+  provide() {
+    return {
+      reload: this.reload,
+      reloadTopMenus: this.reloadTopMenus,
+    };
+  },
   methods: {
     initSessionTimer() {
       this.$get('/system/timeout')
@@ -137,6 +146,32 @@ export default {
         this.$refs.headerUser.logout();
       }, 1000 * timeout);
     },
+    reload() {
+      // 先隐藏
+      this.isShow = false;
+      this.$nextTick(() => {
+        this.isShow = true;
+      });
+    },
+    reloadTopMenus() {
+      this.$get("/isLogin").then(response => {
+        if (response.data.success) {
+          this.$setLang(response.data.data.language);
+          saveLocalStorage(response.data);
+          // 先隐藏
+          this.isMenuShow = false;
+          this.isShow = false;
+          this.$nextTick(() => {
+            this.isShow = true;
+            this.isMenuShow = true;
+          });
+        } else {
+          window.location.href = "/login";
+        }
+      }).catch(() => {
+        window.location.href = "/login";
+      });
+    }
   },
   components: {
     MsLanguageSwitch,
