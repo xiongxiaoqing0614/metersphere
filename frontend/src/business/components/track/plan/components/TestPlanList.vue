@@ -184,11 +184,13 @@
         show-overflow-tooltip
         :key="index">
         <template v-slot:default="scope">
-          <el-button
-            @click="showCoverageRateReport(scope.row, $event)"
-            type="text">
-            {{scope.row.coverageRate}}
-          </el-button>
+          <el-tooltip class="item" effect="dark" :content="'last appId: ' + scope.row._appId" placement="bottom">
+            <el-button
+              @click="showCoverageRateReport(scope.row, $event)"
+              type="text">
+              {{scope.row.coverageRate}}
+            </el-button>
+          </el-tooltip>
         </template>
       </el-table-column>
       <el-table-column

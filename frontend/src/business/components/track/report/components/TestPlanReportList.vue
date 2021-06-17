@@ -55,11 +55,13 @@
       </el-table-column>
       <el-table-column prop="coverageRate" min-width="100" :label="$t('commons.coverage_rate')" show-overflow-tooltip>
         <template v-slot:default="scope">
-          <el-button
-            @click="showCoverageRateReport(scope.row, $event)"
-            type="text">
-            {{scope.row.coverageRate}}
-          </el-button>
+          <el-tooltip class="item" effect="dark" :content="'appId: ' + scope.row._appId" placement="bottom">
+            <el-button
+              @click="showCoverageRateReport(scope.row, $event)"
+              type="text">
+              {{scope.row.coverageRate}}
+            </el-button>
+          </el-tooltip>
         </template>
       </el-table-column>
       <el-table-column min-width="150" :label="$t('commons.operating')">
