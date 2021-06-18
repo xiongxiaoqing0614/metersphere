@@ -14,6 +14,9 @@
           <el-menu-item :index="'/kanban/exeSummary'">
             {{ $t("test_kanban.execution_summary") }}
           </el-menu-item>
+          <el-menu-item :index="'/kanban/graph'">
+            {{ $t("test_kanban.graph") }}
+          </el-menu-item>
 
         </el-menu>
       </el-col>

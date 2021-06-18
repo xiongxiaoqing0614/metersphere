@@ -1303,6 +1303,7 @@ export default {
     testcase_summary: "用例統計",
     execution_summary: "執行統計",
     okr: "OKR",
+    graph: "圖錶",
   },
   test_track: {
     related_requirements: '關聯需求',
