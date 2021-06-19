@@ -22,6 +22,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -135,6 +137,30 @@ public class TuhuService {
             return null;
         }
 
+    }
+
+    public static String restApiGet(String url, String params, Map<String, String> headers) {
+        LogUtil.info("get url: " + url);
+        LogUtil.info("request param: " + params);
+
+        try {
+            SimpleClientHttpRequestFactory clientHttpRequestFactory
+                    = new SimpleClientHttpRequestFactory();
+            clientHttpRequestFactory.setConnectTimeout(2 * 1000);
+            clientHttpRequestFactory.setReadTimeout(10 * 1000);
+
+            RestTemplate client = new RestTemplate(clientHttpRequestFactory);
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.setContentType(MediaType.TEXT_HTML);
+            httpHeaders.setAll(headers);
+            HttpEntity<String> httpEntity = new HttpEntity<>(httpHeaders);
+            ResponseEntity<String> response = client.exchange(String.format("%s?%s", url, params), HttpMethod.GET, httpEntity, String.class);
+
+            return response.getBody();
+        } catch (Exception e) {
+            LogUtil.error("网络访问错误！" + e.getMessage());
+            return null;
+        }
     }
 
     public String getTestReportByTimestamp(CodeCoverageBindRequest codeCoverageBind) {

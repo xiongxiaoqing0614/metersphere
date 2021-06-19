@@ -29,4 +29,9 @@ public class KanbanController {
         return kanbanService.getExeSummary();
     }
 
+    @GetMapping("/graph")
+    public Object graph() {
+        return kanbanService.getGraphData();
+    }
+
 }

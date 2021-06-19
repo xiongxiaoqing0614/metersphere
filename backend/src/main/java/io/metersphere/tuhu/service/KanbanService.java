@@ -81,6 +81,9 @@ public class KanbanService {
     @Resource
     private TestPlanReportMapper testPlanReportMapper;
 
+    @Resource
+    private GraphService graphService;
+
     public List<TestCaseAllInfoDTO> getSummary() {
         List<TestCaseSummaryDTO> summaryList = kanbanMapper.getSummary();
         List<TestCaseAllInfoDTO> allInfoList = new ArrayList<TestCaseAllInfoDTO>();
@@ -351,4 +354,18 @@ public class KanbanService {
             LogUtil.error("上传统计结果失败: " + rep);
         }
     }
+
+    public JSONObject getGraphData() {
+        JSONObject jo = new JSONObject();
+        final Object serviceInData = jo.put("serviceInData", graphService.getServiceInData());
+        jo.put("teamInData", graphService.getTeamInData());
+        jo.put("apiDoneData", graphService.getApiDoneData());
+        jo.put("apiPassRateData", graphService.getApiPassRateData());
+        jo.put("apiCovRateData", graphService.getApiCovRateData());
+        jo.put("scenCovRateData", graphService.getScenCovRateData());
+        jo.put("caseFailData", graphService.getCaseFailData());
+
+        return jo;
+    }
+
 }
