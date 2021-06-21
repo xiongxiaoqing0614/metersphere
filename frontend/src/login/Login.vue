@@ -133,7 +133,7 @@ export default {
         this.form.authenticate='LOCAL'
       }
       
-    })
+    });
   },
   created: function () {
     // 主页添加键盘事件,注意,不能直接在焦点事件上添加回车

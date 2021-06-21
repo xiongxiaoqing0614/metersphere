@@ -23,6 +23,7 @@ import io.metersphere.track.request.report.QueryTestPlanReportRequest;
 import io.metersphere.track.request.report.TestPlanReportSaveRequest;
 import io.metersphere.track.request.testcase.QueryTestPlanRequest;
 import io.metersphere.track.request.testplan.LoadCaseRequest;
+import io.metersphere.tuhu.service.KanbanService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -63,6 +64,8 @@ public class TestPlanReportService {
     TestPlanLoadCaseService testPlanLoadCaseService;
     @Resource
     TestPlanService testPlanService;
+    @Resource
+    KanbanService kanbanService;
     @Resource
     LoadTestReportMapper loadTestReportMapper;
 
@@ -325,6 +328,7 @@ public class TestPlanReportService {
                 testPlanReportData.setIssuesInfo(issuesInfo);
             }
             testPlanReportDataMapper.updateByPrimaryKeyWithBLOBs(testPlanReportData);
+            kanbanService.postCountResult(testCaseReportMetricDTO, planReportId);
         }
 
         String testPlanStatus = this.getTestPlanReportStatus(testPlanReport, testPlanReportData);

@@ -130,6 +130,13 @@
             tip: this.$t('api_test.api_import.jmeter_tip'),
             exportTip: this.$t('api_test.api_import.jmeter_export_tip'),
             suffixes: new Set(['jmx'])
+          },
+          {
+            name: 'JMeter-Tuhu-Case',
+            value: 'JmeterTuhuCase',
+            tip: this.$t('api_test.api_import.jmeter_tip'),
+            exportTip: this.$t('api_test.api_import.jmeter_export_tip'),
+            suffixes: new Set(['jmx'])
           }
         ],
         selectedPlatform: {},
@@ -279,7 +286,7 @@
 <style scoped>
 
   .api-import >>> .el-dialog {
-    min-width: 830px;
+    min-width: 980px;
   }
 
   .format-tip {

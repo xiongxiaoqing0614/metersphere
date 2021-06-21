@@ -1,16 +1,11 @@
-package io.metersphere.controller;
+package io.metersphere.tuhu.controller;
 
 import com.alibaba.fastjson.JSONObject;
-import io.metersphere.base.domain.User;
-import io.metersphere.controller.request.CodeCoverageRequest;
-import io.metersphere.controller.request.CodeCoverageBindRequest;
-import io.metersphere.dto.TuhuCodeCoverageRateResultDTO;
-import io.metersphere.service.TuhuService;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.http.MediaType;
+import io.metersphere.tuhu.dto.TuhuCodeCoverageRateResultDTO;
+import io.metersphere.tuhu.request.CodeCoverageBindRequest;
+import io.metersphere.tuhu.request.CodeCoverageRequest;
+import io.metersphere.tuhu.service.TuhuService;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;

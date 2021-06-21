@@ -26,7 +26,7 @@ import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.visualizers.backend.AbstractBackendListenerClient;
 import org.apache.jmeter.visualizers.backend.BackendListenerContext;
 import org.springframework.http.HttpMethod;
-
+import io.metersphere.tuhu.service.KanbanService;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
@@ -49,6 +49,8 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
     private final List<SampleResult> queue = new ArrayList<>();
 
     private APITestService apiTestService;
+
+    private KanbanService kanbanService;
 
     private APIReportService apiReportService;
 
@@ -100,7 +102,10 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
         if (apiTestService == null) {
             LogUtil.error("apiTestService is required");
         }
-
+        kanbanService = CommonBeanFactory.getBean(KanbanService.class);
+        if (kanbanService == null) {
+            LogUtil.error("kanbanService is required");
+        }
         apiReportService = CommonBeanFactory.getBean(APIReportService.class);
         if (apiReportService == null) {
             LogUtil.error("apiReportService is required");
@@ -208,6 +213,7 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
         ApiTestReport report = null;
         ApiTestReportVariable reportTask = null;
         String reportUrl = null;
+        String scenarioReportId = testResult.getTestId();
         // 这部分后续优化只留 DEFINITION 和 SCENARIO 两部分
         if (StringUtils.equals(this.runMode, ApiRunMode.DEBUG.name())) {
             report = apiReportService.get(debugReportId);
@@ -342,7 +348,8 @@ public class APIBackendListenerClient extends AbstractBackendListenerClient impl
         }
         queue.clear();
         super.teardownTest(context);
-
+        kanbanService.postTestResult(testResult, this.debugReportId, scenarioReportId);
+        TestPlanTestCaseService testPlanTestCaseService = CommonBeanFactory.getBean(TestPlanTestCaseService.class);
         List<String> ids = testPlanTestCaseService.getTestPlanTestCaseIds(testResult.getTestId());
         if (ids.size() > 0) {
             try {

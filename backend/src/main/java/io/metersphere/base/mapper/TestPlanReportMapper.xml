@@ -368,7 +368,7 @@
       components = #{components,jdbcType=VARCHAR}
     where id = #{id,jdbcType=VARCHAR}
   </update>
-  <select id="queryTestPlanReportId" parameterType="io.metersphere.controller.request.CodeCoverageBindRequest" resultType="java.lang.String">
+  <select id="queryTestPlanReportId" parameterType="io.metersphere.tuhu.request.CodeCoverageBindRequest" resultType="java.lang.String">
     select a.id from
     test_plan_report a, test_plan b, workspace c, project d
     where b.workspace_id = c.id and b.project_id = d.id and a.test_plan_id = b.id

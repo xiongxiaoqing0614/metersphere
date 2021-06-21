@@ -648,7 +648,18 @@ export default {
     project_file_exist: "The file already exists in the project, please import it directly",
     project_file_update_type_error: 'Updated file types must be consistent',
     report: {
-      diff: "Compare"
+      diff: "Compare",
+      set_default: 'Set to Default',
+      unselect_all: 'Unselect All',
+      ActiveThreadsChart: 'Users',
+      TransactionsChart: 'Requests/Transactions',
+      ErrorsChart: 'Error',
+      ResponseTimeChart: 'Response Time',
+      ResponseTimePercentilesChart: 'Response time percentage',
+      ResponseCodeChart: 'Response Code',
+      LatencyChart: 'Latency',
+      BytesThroughputChart: 'Bytes',
+      Network: 'Network',
     },
   },
   api_test: {
@@ -849,7 +860,7 @@ export default {
       wait_controller: "Wait controller",
       if_controller: "If controller",
       loop_controller: "Loop Controller",
-      transcation_controller:"Transcation controller",
+      transcation_controller: "Transcation controller",
       scenario_import: "Scenario import",
       customize_script: "Customize script",
       customize_req: "Customize req",

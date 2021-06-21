@@ -1,15 +1,17 @@
-package io.metersphere.service;
+package io.metersphere.tuhu.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import io.metersphere.base.domain.TestPlan;
 import io.metersphere.base.mapper.TestPlanMapper;
 import io.metersphere.base.mapper.TestPlanReportMapper;
-import io.metersphere.base.mapper.TuhuCodeCoverageRateMappingMapper;
-import io.metersphere.controller.request.CodeCoverageBindRequest;
-import io.metersphere.controller.request.CodeCoverageRequest;
-import io.metersphere.dto.TuhuCodeCoverageRateResultDTO;
+import io.metersphere.tuhu.dto.TuhuCodeCoverageRateResultDTO;
+import io.metersphere.tuhu.mapper.TuhuCodeCoverageRateMappingMapper;
+import io.metersphere.tuhu.request.CodeCoverageBindRequest;
+import io.metersphere.tuhu.request.CodeCoverageRequest;
 import jdk.nashorn.internal.runtime.regexp.joni.exception.ValueException;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,8 +21,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import io.metersphere.commons.utils.LogUtil;
-import io.metersphere.base.domain.TuhuCodeCoverageRateMapping;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -43,26 +43,26 @@ public class TuhuService {
 
 
     public Integer addCodeCoverageRateMapping(CodeCoverageBindRequest codeCoverageBind) {
-        TuhuCodeCoverageRateMapping tuhuCodeCoverageRateMapping = new TuhuCodeCoverageRateMapping();
-        tuhuCodeCoverageRateMapping.setAppId(codeCoverageBind.getAppId());
-        tuhuCodeCoverageRateMapping.setBranchName(codeCoverageBind.getBranchName());
-        tuhuCodeCoverageRateMapping.setCommitId(codeCoverageBind.getCommitId());
-        tuhuCodeCoverageRateMapping.setStage(codeCoverageBind.getStage());
-        tuhuCodeCoverageRateMapping.setTestReportId(codeCoverageBind.getTestReportId());
+        TuhuCodeCoverageRateResultDTO tuhuCodeCoverageRateResultDTO = new TuhuCodeCoverageRateResultDTO();
+        tuhuCodeCoverageRateResultDTO.setAppId(codeCoverageBind.getAppId());
+        tuhuCodeCoverageRateResultDTO.setBranchName(codeCoverageBind.getBranchName());
+        tuhuCodeCoverageRateResultDTO.setCommitId(codeCoverageBind.getCommitId());
+        tuhuCodeCoverageRateResultDTO.setStage(codeCoverageBind.getStage());
+        tuhuCodeCoverageRateResultDTO.setTestReportId(codeCoverageBind.getTestReportId());
 
         TestPlan testPlan = testPlanMapper.selectByConditions(codeCoverageBind);
         if (testPlan == null) {
             return null;
         }
-        tuhuCodeCoverageRateMapping.setTestPlanId(testPlan.getId());
-        return tuhuCodeCoverageRateMappingMapper.insert(tuhuCodeCoverageRateMapping);
+        tuhuCodeCoverageRateResultDTO.setTestPlanId(testPlan.getId());
+        return tuhuCodeCoverageRateMappingMapper.insert(tuhuCodeCoverageRateResultDTO);
     }
 
     public List<TuhuCodeCoverageRateResultDTO> getCodeCoverageRateList(CodeCoverageRequest codeCoverageRequests) {
         if (codeCoverageRateServerUrlPrefix.isEmpty()) {
             throw new ValueException("未配置代码覆盖率服务URL前缀");
         }
-        List<TuhuCodeCoverageRateMapping> mappingList = null;
+        List<TuhuCodeCoverageRateResultDTO> mappingList = null;
         String[] testPlanIds = codeCoverageRequests.getTestPlanIds();
         String[] testReportIds = codeCoverageRequests.getTestReportIds();
         if (testPlanIds != null && testPlanIds.length > 0) {
@@ -75,15 +75,12 @@ public class TuhuService {
             LogUtil.info("testPlanIds or testReportIds is null");
             return null;
         }
-        String rjs = fetchCodeCoverageData(JSON.toJSONString(mappingList));
-        LogUtil.info("code coverage rate result json: " + rjs);
-        JSONObject jo = JSONObject.parseObject(rjs);
-        if (jo == null || jo.getInteger("code") != 0) {
-            return null;
-        }
+
+        JSONArray rjs = fetchCodeCoverageData(JSON.toJSONString(mappingList));
+        if (rjs == null) { return null; }
 
         List<TuhuCodeCoverageRateResultDTO> lst = new ArrayList<>();
-        for (Object j : jo.getJSONArray("data")) {
+        for (Object j : rjs) {
             TuhuCodeCoverageRateResultDTO tuhuCodeCoverageRateResultDTO = new TuhuCodeCoverageRateResultDTO();
             JSONObject t = (JSONObject)j;
             tuhuCodeCoverageRateResultDTO.setTestPlanId(t.getString("testPlanId"));
@@ -99,17 +96,39 @@ public class TuhuService {
         return lst;
     }
 
-    private String fetchCodeCoverageData(String js) {
+    private JSONArray fetchCodeCoverageData(String js) {
         String codeCoverageRateServerUrl = codeCoverageRateServerUrlPrefix + "/api/coverager/data";
-        LogUtil.info("codeCoverageRateServerUrl: " + codeCoverageRateServerUrl);
-        LogUtil.info("code coverage rate request json: " + js);
-        RestTemplate client = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> requestEntity = new HttpEntity<>(js, headers);
-        ResponseEntity<String> response = client.exchange(codeCoverageRateServerUrl, HttpMethod.POST, requestEntity, String.class);
+        String result = restApiPost(codeCoverageRateServerUrl, js);
+        if (result == null) { return null; }
 
-        return response.getBody();
+        JSONObject jo = JSONObject.parseObject(result);
+        if (jo == null || jo.getInteger("code") != 0) {
+            return null;
+        }
+
+        return jo.getJSONArray("data");
+    }
+
+    public static String restApiPost(String url, String js) {
+        LogUtil.info("post url: " + url);
+        LogUtil.info("request json: " + js);
+
+        try {
+            RestTemplate client = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> requestEntity = new HttpEntity<>(js, headers);
+            ResponseEntity<String> response = client.exchange(url, HttpMethod.POST, requestEntity, String.class);
+
+            String result = response.getBody();
+            LogUtil.info("pass rate response json: " + result);
+
+            return result;
+        } catch (Exception e) {
+            LogUtil.error("网络访问错误！" + e.getMessage());
+            return null;
+        }
+
     }
 
     public String getTestReportByTimestamp(CodeCoverageBindRequest codeCoverageBind) {
