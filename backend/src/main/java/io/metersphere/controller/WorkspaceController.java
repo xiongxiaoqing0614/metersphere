@@ -32,8 +32,7 @@ public class WorkspaceController {
     @PostMapping("add")
     @MsAuditLog(module = "system_workspace", type = OperLogConstants.CREATE, content = "#msClass.getLogDetails(#workspace.id)", msClass = WorkspaceService.class)
     public Workspace addWorkspace(@RequestBody Workspace workspace) {
-        String currentOrganizationId = SessionUtils.getCurrentOrganizationId();
-        organizationService.checkOrgOwner(currentOrganizationId);
+        organizationService.checkOrgOwner(workspace.getOrganizationId());
         return workspaceService.saveWorkspace(workspace);
     }
 
@@ -78,7 +77,6 @@ public class WorkspaceController {
 
     @PostMapping("list/{goPage}/{pageSize}")
     public Pager<List<Workspace>> getWorkspaceList(@PathVariable int goPage, @PathVariable int pageSize, @RequestBody WorkspaceRequest request) {
-        request.setOrganizationId(SessionUtils.getCurrentOrganizationId());
         Page<Object> page = PageHelper.startPage(goPage, pageSize, true);
         return PageUtils.setPageInfo(page, workspaceService.getWorkspaceList(request));
     }
@@ -98,6 +96,11 @@ public class WorkspaceController {
     public List<Workspace> getWorkspaceListByOrgIdAndUserId() {
         String currentOrganizationId = SessionUtils.getCurrentOrganizationId();
         return workspaceService.getWorkspaceListByOrgIdAndUserId(currentOrganizationId);
+    }
+
+    @GetMapping("/list/orgworkspace/{orgId}")
+    public List<WorkspaceDTO> getWorkspaceListByOrgId(@PathVariable String orgId) {
+        return workspaceService.getWorkspaceIdsByOrgId(orgId);
     }
 
     @PostMapping("/member/update")

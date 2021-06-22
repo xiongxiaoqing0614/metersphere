@@ -106,7 +106,7 @@
         <el-table-column prop="name" :label="$t('commons.username')"/>
         <el-table-column prop="email" :label="$t('commons.email')"/>
         <el-table-column prop="phone" :label="$t('commons.phone')"/>
-        <el-table-column label="用户组" width="150">
+        <el-table-column :label="$t('commons.group')" width="150">
           <template v-slot:default="scope">
             <ms-roles-tag :roles="scope.row.groups" type="success"/>
           </template>
@@ -145,8 +145,8 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="用户组" prop="groupIds">
-          <el-select filterable v-model="memberForm.groupIds" multiple placeholder="请选择用户组"
+        <el-form-item :label="$t('commons.group')" prop="groupIds">
+          <el-select filterable v-model="memberForm.groupIds" multiple :placeholder="$t('group.please_select_group')"
                      class="select-width">
             <el-option
               v-for="item in memberForm.groups"
@@ -182,9 +182,9 @@
         <el-form-item :label="$t('commons.phone')" prop="phone">
           <el-input v-model="memberForm.phone" autocomplete="off" :disabled="true"/>
         </el-form-item>
-        <el-form-item label="用户组" prop="groupIds"
-                      :rules="{required: true, message: $t('role.please_choose_role'), trigger: 'change'}">
-          <el-select filterable v-model="memberForm.groupIds" multiple placeholder="请选择用户组"
+        <el-form-item :label="$t('commons.group')" prop="groupIds"
+                      :rules="{required: true, message: $t('group.please_select_group'), trigger: 'change'}">
+          <el-select filterable v-model="memberForm.groupIds" multiple :placeholder="$t('group.please_select_group')"
                      class="select-width">
             <el-option
               v-for="item in memberForm.allgroups"
@@ -218,13 +218,11 @@ import MsTableOperator from "../../common/components/MsTableOperator";
 import MsTableOperatorButton from "../../common/components/MsTableOperatorButton";
 import MsDialogFooter from "../../common/components/MsDialogFooter";
 import {
-  getCurrentUser,
   getCurrentWorkspaceId,
   listenGoBack,
-  refreshSessionAndCookies,
   removeGoBackListener
 } from "@/common/js/utils";
-import {DEFAULT, GROUP_WORKSPACE, WORKSPACE} from "@/common/js/constants";
+import {GROUP_WORKSPACE} from "@/common/js/constants";
 import MsDeleteConfirm from "../../common/components/MsDeleteConfirm";
 
 export default {
@@ -417,12 +415,10 @@ export default {
     editMember(row) {
       this.dialogWsMemberUpdateVisible = true;
       this.memberForm = Object.assign({}, row);
-      // console.log(this.memberForm)
       let groupIds = this.memberForm.groups.map(r => r.id);
       this.result = this.$post('/user/group/list', {type: GROUP_WORKSPACE, resourceId: this.orgId}, response => {
         this.$set(this.memberForm, "allgroups", response.data);
       });
-      // console.log(this.memberForm)
       // 编辑时填充角色信息
       this.$set(this.memberForm, 'groupIds', groupIds);
       listenGoBack(this.handleClose);
@@ -437,12 +433,6 @@ export default {
         type: 'warning'
       }).then(() => {
         this.$get('/workspace/special/delete/' + workspace.id, () => {
-          let lastWorkspaceId = getCurrentWorkspaceId();
-          let sourceId = workspace.id;
-          if (lastWorkspaceId === sourceId) {
-            let sign = DEFAULT;
-            refreshSessionAndCookies(sign, sourceId);
-          }
           Message.success(this.$t('commons.delete_success'));
           this.list();
         });
@@ -460,13 +450,6 @@ export default {
         type: 'warning'
       }).then(() => {
         this.result = this.$get('/user/special/ws/member/delete/' + this.currentWorkspaceRow.id + '/' + encodeURIComponent(row.id), () => {
-          let sourceId = this.currentWorkspaceRow.id;
-          let userId = row.id;
-          let user = getCurrentUser();
-          if (user.id === userId) {
-            let sign = WORKSPACE;
-            refreshSessionAndCookies(sign, sourceId);
-          }
           this.$success(this.$t('commons.remove_success'));
           this.cellClick(this.currentWorkspaceRow);
         });
@@ -545,8 +528,8 @@ export default {
         userIds: [
           {required: true, message: this.$t('member.please_choose_member'), trigger: ['blur']}
         ],
-        roleIds: [
-          {required: true, message: this.$t('role.please_choose_role'), trigger: ['blur']}
+        groupIds: [
+          {required: true, message: this.$t('group.please_select_group'), trigger: ['blur']}
         ]
       },
       currentWorkspaceRow: {},

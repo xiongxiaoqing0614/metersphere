@@ -41,6 +41,7 @@
 import {LicenseKey} from '@/common/js/constants';
 import {mapGetters} from "vuex";
 import {hasLicense} from "@/common/js/utils";
+import {MODULE_CHANGE, ModuleEvent} from "@/business/components/common/head/ListEvent";
 
 const requireContext = require.context('@/business/components/xpack/', true, /router\.js$/);
 const report = requireContext.keys().map(key => requireContext(key).report);
@@ -83,6 +84,7 @@ export default {
       }
     }
 
+    this.registerEvents();
   },
   computed: {
     ...mapGetters([
@@ -109,6 +111,15 @@ export default {
       }
       return true;
     },
+    registerEvents() {
+      ModuleEvent.$on(MODULE_CHANGE, () => {
+        if (module.default) {
+          module.default.listModules(this).then(() => {
+            this.menuKey++;
+          });
+        }
+      });
+    }
   }
 };
 </script>

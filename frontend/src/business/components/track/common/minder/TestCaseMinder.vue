@@ -123,8 +123,13 @@ name: "TestCaseMinder",
         if (deleteChild && deleteChild.length > 0) {
           deleteCases.push(...deleteChild);
         }
-        if (data.type !== 'node') {
+        if (data.type !== 'node' && data.type !== 'tmp') {
           let tip = '用例(' + data.text + ')未添加用例标签！';
+          this.$error(tip)
+          throw new Error(tip);
+        }
+        if (data.id === null) {
+          let tip = '脑图编辑无法创建模块：' + data.text + '';
           this.$error(tip)
           throw new Error(tip);
         }

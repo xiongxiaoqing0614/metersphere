@@ -79,7 +79,7 @@
         <el-table-column prop="name" :label="$t('commons.username')"/>
         <el-table-column prop="email" :label="$t('commons.email')"/>
         <el-table-column prop="phone" :label="$t('commons.phone')"/>
-        <el-table-column label="用户组" width="150">
+        <el-table-column :label="$t('commons.group')" width="150">
           <template v-slot:default="scope">
             <ms-roles-tag :roles="scope.row.groups" type="success"/>
           </template>
@@ -102,49 +102,7 @@
     </el-dialog>
 
     <!-- add workspace member dialog -->
-    <el-dialog :close-on-click-modal="false" :title="$t('member.create')" :visible.sync="dialogWsMemberAddVisible"
-               width="30%"
-               :destroy-on-close="true"
-               @close="closeFunc">
-      <el-form :model="memberForm" ref="form" :rules="wsMemberRule" label-position="right" label-width="100px"
-               size="small">
-        <el-form-item :label="$t('commons.member')" prop="memberSign"
-                      :rules="{required: true, message: $t('member.input_id_or_email'), trigger: 'change'}">
-          <el-autocomplete
-            class="input-with-autocomplete"
-            v-model="memberForm.memberSign"
-            :placeholder="$t('member.input_id_or_email')"
-            :trigger-on-focus="false"
-            :fetch-suggestions="querySearch"
-            size="small"
-            highlight-first-item
-            value-key="email"
-            @select="handleSelect"
-          >
-            <template v-slot:default="scope">
-              <span class="ws-member-name">{{ scope.item.id }}</span>
-              <span class="ws-member-email">{{ scope.item.email }}</span>
-            </template>
-          </el-autocomplete>
-        </el-form-item>
-        <el-form-item label="用户组" prop="groupIds">
-          <el-select v-model="memberForm.groupIds" multiple placeholder="请选择用户组"
-                     class="select-width">
-            <el-option
-              v-for="item in memberForm.groups"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id">
-            </el-option>
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template v-slot:footer>
-        <ms-dialog-footer
-          @cancel="dialogWsMemberAddVisible = false"
-          @confirm="submitForm('form')"/>
-      </template>
-    </el-dialog>
+    <add-member :group-type="'WORKSPACE'" :group-scope-id="orgId" ref="addMember" @submit="submitForm"/>
 
     <!-- update workspace member dialog -->
     <el-dialog :close-on-click-modal="false" :title="$t('member.modify')" :visible.sync="dialogWsMemberUpdateVisible"
@@ -164,9 +122,9 @@
         <el-form-item :label="$t('commons.phone')" prop="phone">
           <el-input v-model="memberForm.phone" autocomplete="off" :disabled="true"/>
         </el-form-item>
-        <el-form-item label="用户组" prop="groupIds"
-                      :rules="{required: true, message: $t('role.please_choose_role'), trigger: 'change'}">
-          <el-select v-model="memberForm.groupIds" multiple placeholder="请选择用户组"
+        <el-form-item :label="$t('commons.group')" prop="groupIds"
+                      :rules="{required: true, message: $t('group.please_select_group'), trigger: 'change'}">
+          <el-select v-model="memberForm.groupIds" multiple :placeholder="$t('group.please_select_group')"
                      class="select-width">
             <el-option
               v-for="item in memberForm.allgroups"
@@ -192,7 +150,7 @@
 <script>
 import MsCreateBox from "../CreateBox";
 import {Message} from "element-ui";
-import {DEFAULT, GROUP_WORKSPACE} from "../../../../common/js/constants";
+import {GROUP_WORKSPACE} from "../../../../common/js/constants";
 import MsTablePagination from "../../common/pagination/TablePagination";
 import MsTableHeader from "../../common/components/MsTableHeader";
 import MsRolesTag from "../../common/components/MsRolesTag";
@@ -204,10 +162,10 @@ import {
   getCurrentUser,
   getCurrentWorkspaceId,
   listenGoBack,
-  refreshSessionAndCookies,
   removeGoBackListener
 } from "../../../../common/js/utils";
 import MsDeleteConfirm from "../../common/components/MsDeleteConfirm";
+import AddMember from "@/business/components/settings/common/AddMember";
 
 export default {
   name: "MsOrganizationWorkspace",
@@ -219,7 +177,8 @@ export default {
     MsRolesTag,
     MsTableOperator,
     MsDialogFooter,
-    MsTableOperatorButton
+    MsTableOperatorButton,
+    AddMember
   },
   activated() {
     this.list();
@@ -230,6 +189,9 @@ export default {
     },
     workspaceId() {
       return getCurrentWorkspaceId();
+    },
+    orgId() {
+      return getCurrentOrganizationId();
     }
   },
   inject: [
@@ -247,6 +209,7 @@ export default {
           if (this.form.id) {
             saveType = 'update';
           }
+          this.form.organizationId = getCurrentOrganizationId();
           this.$post("/workspace/" + saveType, this.form, () => {
             this.dialogWsAddVisible = false;
             this.dialogWsUpdateVisible = false;
@@ -277,12 +240,6 @@ export default {
         type: 'warning'
       }).then(() => {
         this.$get('/workspace/delete/' + workspace.id, () => {
-          let lastWorkspaceId = getCurrentWorkspaceId();
-          let sourceId = workspace.id;
-          if (lastWorkspaceId === sourceId) {
-            let sign = DEFAULT;
-            refreshSessionAndCookies(sign, sourceId);
-          }
           this.$success(this.$t('commons.delete_success'));
           this.list();
         });
@@ -296,37 +253,8 @@ export default {
     },
     list() {
       let url = '/workspace/list/' + this.currentPage + '/' + this.pageSize;
-      let lastOrganizationId = this.currentUser.lastOrganizationId;
-      // let userRole = this.currentUser.userRoles.filter(r => r.sourceId === lastOrganizationId);
-      // if (userRole.length > 0) {
-      //   let isOrg_admin = false;
-      //   userRole.forEach(row=>{
-      //     if(row.roleId === "org_admin" ){
-      //       isOrg_admin = true;
-      //       return;
-      //     }
-      //   });
-      //   if (isOrg_admin) {
-      //     this.result = this.$post(url, this.condition, response => {
-      //       let data = response.data;
-      //       this.items = data.listObject;
-      //       for (let i = 0; i < this.items.length; i++) {
-      //         let param = {
-      //           name: '',
-      //           workspaceId: this.items[i].id
-      //         }
-      //         let path = "user/ws/member/list/all";
-      //         this.$post(path, param, res => {
-      //           let member = res.data;
-      //           this.$set(this.items[i], "memberSize", member.length);
-      //         })
-      //       }
-      //       this.total = data.itemCount;
-      //     });
-      //   } else {
-      //     this.items = [];
-      //     this.total = 0;
-      //   }
+      let lastOrganizationId = getCurrentOrganizationId();
+      this.condition.organizationId = lastOrganizationId;
       this.result = this.$post(url, this.condition, response => {
         let data = response.data;
         this.items = data.listObject;
@@ -347,14 +275,7 @@ export default {
 
     },
     addMember() {
-      this.dialogWsMemberAddVisible = true;
-      this.memberForm = {};
-      this.result = this.$get('/user/list/', response => {
-        this.userList = response.data;
-      });
-      this.result = this.$post('/user/group/list', {type: GROUP_WORKSPACE, resourceId: getCurrentOrganizationId()}, response => {
-        this.$set(this.memberForm, "groups", response.data);
-      });
+      this.$refs.addMember.open();
       listenGoBack(this.close);
     },
     cellClick(row) {
@@ -404,33 +325,12 @@ export default {
     closeFunc() {
       this.form = {};
     },
-    submitForm(formName) {
-      this.$refs[formName].validate((valid) => {
-        if (valid) {
-          let userIds = [];
-          let userId = this.memberForm.userId;
-          let email = this.memberForm.memberSign;
-          let member = this.userList.find(user => user.id === email || user.email === email);
-          if (!member) {
-            this.$warning(this.$t('member.no_such_user'));
-            return false;
-          } else {
-            userId = member.id;
-          }
-          userIds.push(userId);
-          let param = {
-            userIds: userIds,
-            groupIds: this.memberForm.groupIds,
-            workspaceId: this.currentWorkspaceRow.id
-          };
-          this.result = this.$post("user/ws/member/add", param, () => {
-            this.$success(this.$t('commons.save_success'));
-            this.cellClick(this.currentWorkspaceRow);
-            this.dialogWsMemberAddVisible = false;
-          });
-        } else {
-          return false;
-        }
+    submitForm(param) {
+      param['workspaceId'] = this.currentWorkspaceRow.id;
+      this.result = this.$post("user/ws/member/add", param, () => {
+        this.$success(this.$t('commons.save_success'));
+        this.cellClick(this.currentWorkspaceRow);
+        this.$refs.addMember.close();
       });
     },
     editMember(row) {
@@ -547,7 +447,7 @@ export default {
           {required: true, message: this.$t('member.please_choose_member'), trigger: ['blur']}
         ],
         groupIds: [
-          {required: true, message: this.$t('role.please_choose_role'), trigger: ['blur']}
+          {required: true, message: this.$t('group.please_select_group'), trigger: ['blur']}
         ]
       },
       currentWorkspaceRow: {},

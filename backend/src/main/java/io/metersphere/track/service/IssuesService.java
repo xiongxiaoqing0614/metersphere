@@ -24,6 +24,7 @@ import io.metersphere.log.vo.track.TestPlanReference;
 import io.metersphere.notice.sender.NoticeModel;
 import io.metersphere.notice.service.NoticeSendService;
 import io.metersphere.service.IntegrationService;
+import io.metersphere.service.IssueTemplateService;
 import io.metersphere.service.ProjectService;
 import io.metersphere.track.issue.*;
 import io.metersphere.track.issue.domain.PlatformUser;
@@ -33,7 +34,6 @@ import io.metersphere.track.request.testcase.IssuesUpdateRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,6 +69,8 @@ public class IssuesService {
     private ExtIssuesMapper extIssuesMapper;
     @Resource
     private WorkspaceMapper workspaceMapper;
+    @Resource
+    private IssueTemplateService issueTemplateService;
 
     public void testAuth(String platform) {
         AbstractIssuePlatform abstractPlatform = IssueFactory.createPlatform(platform, new IssuesRequest());
@@ -161,11 +163,16 @@ public class IssuesService {
 
     public String getIssueTemplate(String projectId) {
         Project project = projectService.getProjectById(projectId);
+        IssueTemplate issueTemplate = null;
         String id = project.getIssueTemplateId();
         if (StringUtils.isBlank(id)) {
+            issueTemplate = issueTemplateService.getDefaultTemplate(project.getWorkspaceId());
+        } else {
+            issueTemplate = issueTemplateMapper.selectByPrimaryKey(id);
+        }
+        if (issueTemplate == null) {
             MSException.throwException("project issue template id is null.");
         }
-        IssueTemplate issueTemplate = issueTemplateMapper.selectByPrimaryKey(id);
         String platform = issueTemplate.getPlatform();
         if (StringUtils.equals(platform, "metersphere")) {
             return IssuesManagePlatform.Local.name();
@@ -380,14 +387,7 @@ public class IssuesService {
                     issue.setStatus(tapdIssues.getStatus());
                 } else if (StringUtils.equals(platform, IssuesManagePlatform.Jira.name())) {
                     JiraPlatform jiraPlatform = new JiraPlatform(new IssuesRequest());
-                    String config = getConfig(orgId, IssuesManagePlatform.Jira.toString());
-                    JSONObject object = JSON.parseObject(config);
-                    HttpHeaders headers = jiraPlatform.getAuthHeader(object);
-                    String url = object.getString("url");
-                    IssuesDao jiraIssues = jiraPlatform.getJiraIssues(headers, url, issue.getId());
-                    issue.setTitle(jiraIssues.getTitle());
-                    issue.setDescription(jiraIssues.getDescription());
-                    issue.setStatus(jiraIssues.getStatus());
+                    jiraPlatform.getJiraIssues(issue, issue.getId());
                 } else if (StringUtils.equals(platform, IssuesManagePlatform.Zentao.name())) {
                     String config = getConfig(orgId, IssuesManagePlatform.Zentao.toString());
                     JSONObject object = JSON.parseObject(config);

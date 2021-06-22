@@ -658,7 +658,7 @@ public class ApiTestCaseService {
         MsThreadGroup group = new MsThreadGroup();
         group.setLabel(testCaseWithBLOBs.getName());
         group.setName(testCaseWithBLOBs.getId());
-
+        group.setOnSampleError(true);
         LinkedList<MsTestElement> hashTrees = new LinkedList<>();
         hashTrees.add(element);
         group.setHashTree(hashTrees);
@@ -699,7 +699,12 @@ public class ApiTestCaseService {
             ids.removeAll(request.getUnSelectIds());
             request.setIds(ids);
         }
-        List<ApiTestCaseInfo> list = extApiTestCaseMapper.getCaseInfo(request);
+        List<ApiTestCaseInfo> list = null;
+        if(StringUtils.isEmpty(request.getId()) && CollectionUtils.isEmpty(request.getIds())){
+            list = new ArrayList<>();
+        }else {
+            list = extApiTestCaseMapper.getCaseInfo(request);
+        }
         for (ApiTestCaseInfo model : list) {
             if (StringUtils.equalsIgnoreCase(model.getApiMethod(), "esb")) {
                 esbApiParamService.handleApiEsbParams(model);
@@ -751,5 +756,9 @@ public class ApiTestCaseService {
             return JSON.toJSONString(details);
         }
         return null;
+    }
+
+    public ApiDefinition findApiUrlAndMethodById(String id) {
+        return extApiTestCaseMapper.findApiUrlAndMethodById(id);
     }
 }

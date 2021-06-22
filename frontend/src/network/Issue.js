@@ -5,6 +5,9 @@ export function buildIssues(page) {
   let data = page.data;
   for (let i = 0; i < data.length; i++) {
     if (data[i]) {
+      if (data[i].customFields) {
+        data[i].customFields = JSON.parse(data[i].customFields);
+      }
       if (data[i].platform !== 'Local') {
         page.result = buildPlatformIssue(data[i]);
       }
@@ -29,12 +32,14 @@ export function getIssuesByCaseId(caseId, page) {
 }
 
 export function buildPlatformIssue(data) {
+  data.customFields = JSON.stringify(data.customFields);
   return post("issues/get/platform/issue", data).then(response => {
     let issues = response.data.data;
     if (issues) {
       data.title = issues.title ? issues.title : '--';
       data.description = issues.description ? issues.description : '--';
       data.status = issues.status ? issues.status : 'delete';
+      data.customFields = JSON.parse(data.customFields);
     }
   }).catch(() => {
     data.title = '--';

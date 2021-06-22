@@ -1,5 +1,7 @@
 export default {
   commons: {
+    failure_continues: "失敗繼續",
+    full_screen_editing: "全屏編輯",
     yes: "是",
     no: "否",
     default: "默認值",
@@ -496,7 +498,8 @@ export default {
     functional_menu: '功能菜單',
     operation_object: '操作對象',
     check_all: '全選',
-    permission: '權限'
+    permission: '權限',
+    please_select_group: '請選擇用戶組'
   },
   role: {
     please_choose_role: '請選擇角色',
@@ -796,6 +799,7 @@ export default {
         cert_alias: "證書別名",
         message_template: "報文模版",
         tcp_parameter_tip: "請求參數可以在請求模版通過${xxx}引用",
+        step_message: "步驟過多，是否展開前 30 個步驟？",
         esb_table: {
           name: "參數名",
           type: "類型",
@@ -1326,6 +1330,11 @@ export default {
     actual_result: ": 實際結果為空",
     cancel_relevance_success: "取消關聯成功",
     switch_project: "切換項目",
+    functional_test_case: "功能測試用例",
+    api_test_case: "接口測試用例",
+    performance_test_case: "性能測試用例",
+    scenario_test_case: "場景測試用例",
+    report_statistics: "報告統計",
     case: {
       list: "列表",
       minder: "腦圖",
@@ -1546,7 +1555,22 @@ export default {
       my_plan: "我的計劃",
       test_rate: "測試進度",
       tested_case: "已測用例",
-      review_progress: "評審進度"
+      review_progress: "評審進度",
+      case_count: "用例數量統計",
+      relevance_case: "關聯用例數量統計",
+      case_maintenance: "用例維護人分佈",
+      bug_count: "遺留缺陷統計",
+      case_review: "用例評審",
+      review_rate: "評審率",
+      coverage: "覆蓋率",
+      function_case_count: "功能用例數",
+      relevance_case_count: "關聯用例數",
+      serial_number: "序號",
+      test_plan_name: "測試計劃名稱",
+      case_size: "用例數",
+      bug_size: "缺陷數",
+      passing_rate: "通過率",
+      percentage: "佔比"
     },
     plan_view: {
       plan: "計劃",

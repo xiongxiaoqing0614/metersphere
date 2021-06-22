@@ -37,6 +37,7 @@ import {saveScenario} from "@/business/components/api/automation/api-automation"
         threadGroup.hashTree = [];
         threadGroup.name = this.reportId;
         threadGroup.enableCookieShare = this.runData.enableCookieShare;
+        threadGroup.onSampleError = this.runData.onSampleError;
         let map = this.environment;
         this.runData.projectId = getCurrentProjectID();
         threadGroup.hashTree.push(this.runData);

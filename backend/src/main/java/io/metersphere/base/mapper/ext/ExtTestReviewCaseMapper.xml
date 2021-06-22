@@ -110,6 +110,22 @@
         left join test_case_node on test_case_node.id=test_case.node_id
         inner join project on project.id = test_case.project_id
         <include refid="queryWhereCondition"/>
+        <if test="request.orders != null and request.orders.size() > 0">
+            order by
+            <foreach collection="request.orders" separator="," item="order">
+                <choose>
+                    <when test="order.name == 'custom_num'">
+                        customNum ${order.type}
+                    </when>
+                    <when test="order.name == 'priority'">
+                        test_case.priority ${order.type}
+                    </when>
+                    <otherwise>
+                        test_case_review_test_case.${order.name} ${order.type}
+                    </otherwise>
+                </choose>
+            </foreach>
+        </if>
         <include refid="io.metersphere.base.mapper.ext.ExtBaseMapper.orders"/>
     </select>
     <sql id="queryWhereCondition">
@@ -392,7 +408,8 @@
                test_case.id as caseId, test_case.name, test_case.priority,
                test_case.type, test_case.node_path, test_case.method, test_case.review_status,
                test_case.remark as remark, test_case.maintainer, test_case.steps as steps,
-               test_case.node_id as nodeId
+               test_case.node_id as nodeId,
+               test_case.prerequisite, test_case.step_description, test_case.expected_result, test_case.step_model
         from test_case_review_test_case tcrtc
         inner join test_case
         on tcrtc.case_id = test_case.id

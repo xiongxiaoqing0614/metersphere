@@ -1,5 +1,7 @@
 export default {
   commons: {
+    failure_continues: "Failure continues",
+    full_screen_editing: "Full screen editing",
     yes: "yes",
     no: "no",
     default: "default",
@@ -498,7 +500,8 @@ export default {
     functional_menu: 'Functional Menu',
     operation_object: 'Operation Object',
     check_all: 'ALL',
-    permission: 'Permission'
+    permission: 'Permission',
+    please_select_group: 'Please Select Group'
   },
   role: {
     please_choose_role: 'Please Choose Role',
@@ -796,6 +799,7 @@ export default {
         cert_alias: "Certificate Alias",
         message_template: "Message Template",
         tcp_parameter_tip: "The request parameters can be referenced in the request template ${XXX}",
+        step_message: "Too many steps, whether to expand the first 30 steps？",
         esb_table: {
           name: "name",
           type: "type",
@@ -1322,6 +1326,11 @@ export default {
     actual_result: ": The actual result is empty",
     cancel_relevance_success: "Unlinked successfully",
     switch_project: "Switch project",
+    functional_test_case: "Functional Case",
+    api_test_case: "Api Case",
+    performance_test_case: "Performance Case",
+    scenario_test_case: "Scenario Case",
+    report_statistics: "Report Statistics",
     case: {
       list: "List",
       minder: "Minder",
@@ -1493,7 +1502,8 @@ export default {
       input_review_project: "Please select the project",
       input_reviewer: "Please select reviewer",
       no_link_case: "No associated use cases!",
-      pass: "pass",
+      prepare: "Prepare",
+      pass: "Pass",
       un_pass: "UnPass",
       comment: "Comment",
       my_review: "My Review",
@@ -1537,11 +1547,26 @@ export default {
       project_name: "Project"
     },
     home: {
-      recent_test: "Recent test",
-      my_plan: "My plan",
-      test_rate: "Test rate",
-      tested_case: "Tested case",
-      review_progress: "Review progress"
+      recent_test: "Recent Test",
+      my_plan: "My Plan",
+      test_rate: "Test Rate",
+      tested_case: "Tested Case",
+      review_progress: "Review Progress",
+      case_count: "Statistics of the number of use cases",
+      relevance_case: "Relevance Case",
+      case_maintenance: "Use case maintainer distribution",
+      bug_count: "Statistics of remaining defects",
+      case_review: "Use case review",
+      review_rate: "Rate",
+      coverage: "Coverage",
+      function_case_count: "Function Case Count",
+      relevance_case_count: "Relevance Case Count",
+      serial_number: "Index",
+      test_plan_name: "Plan Name",
+      case_size: "Case count",
+      bug_size: "Bug count",
+      passing_rate: "Pass Rate",
+      percentage: "Percentage"
     },
     plan_view: {
       plan: "Plan",

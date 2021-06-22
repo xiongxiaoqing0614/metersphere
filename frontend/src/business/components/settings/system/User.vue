@@ -3,8 +3,9 @@
 
     <el-card class="table-card">
       <template v-slot:header>
-        <ms-table-header :create-permission="['SYSTEM_USER:READ+CREATE']" :condition.sync="condition" @search="search" @create="create"
-                         :create-tip="$t('user.create')" :title="$t('commons.user')"/>
+        <ms-table-header :create-permission="['SYSTEM_USER:READ+CREATE']" :condition.sync="condition" @search="search"
+                         @import="importUserDialogOpen" :show-import="true" :import-tip="$t('commons.import_user')"
+                         @create="create" :create-tip="$t('user.create')" :title="$t('commons.user')"/>
 
       </template>
 
@@ -109,9 +110,8 @@ import MsTableHeader from "../../common/components/MsTableHeader";
 import MsTableOperator from "../../common/components/MsTableOperator";
 import MsDialogFooter from "../../common/components/MsDialogFooter";
 import MsTableOperatorButton from "../../common/components/MsTableOperatorButton";
-import {getCurrentProjectID, getUUID, hasRole, listenGoBack, removeGoBackListener} from "@/common/js/utils";
+import {getCurrentProjectID, listenGoBack, removeGoBackListener} from "@/common/js/utils";
 import MsRolesTag from "../../common/components/MsRolesTag";
-import {ROLE_ADMIN} from "@/common/js/constants";
 import {getCurrentUser} from "../../../../common/js/utils";
 import {PHONE_REGEX} from "@/common/js/regex";
 import UserImport from "@/business/components/settings/system/components/UserImport";

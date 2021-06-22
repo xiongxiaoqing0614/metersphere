@@ -5,6 +5,7 @@ import com.github.pagehelper.PageHelper;
 import io.metersphere.api.service.ApiTestEnvironmentService;
 import io.metersphere.base.domain.FileMetadata;
 import io.metersphere.base.domain.Project;
+import io.metersphere.base.domain.UserGroup;
 import io.metersphere.commons.constants.OperLogConstants;
 import io.metersphere.commons.utils.PageUtils;
 import io.metersphere.commons.utils.Pager;
@@ -16,12 +17,16 @@ import io.metersphere.dto.WorkspaceMemberDTO;
 import io.metersphere.log.annotation.MsAuditLog;
 import io.metersphere.service.CheckPermissionService;
 import io.metersphere.service.ProjectService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/project")
@@ -82,19 +87,18 @@ public class ProjectController {
 
     @PostMapping("/list/{goPage}/{pageSize}")
     public Pager<List<ProjectDTO>> getProjectList(@PathVariable int goPage, @PathVariable int pageSize, @RequestBody ProjectRequest request) {
-        request.setWorkspaceId(SessionUtils.getCurrentWorkspaceId());
         Page<Object> page = PageHelper.startPage(goPage, pageSize, true);
         return PageUtils.setPageInfo(page, projectService.getProjectList(request));
     }
 
     /**
      * 在工作空间下与用户有关的项目
+     *
      * @param request userId
      * @return List<ProjectDTO>
      */
     @PostMapping("/list/related")
     public List<ProjectDTO> getUserProject(@RequestBody ProjectRequest request) {
-        request.setWorkspaceId(SessionUtils.getCurrentWorkspaceId());
         return projectService.getUserProject(request);
     }
 
@@ -133,5 +137,10 @@ public class ProjectController {
     @MsAuditLog(module = "project_project_member", type = OperLogConstants.UPDATE, beforeEvent = "#msClass.getLogDetails(#memberDTO)", content = "#msClass.getLogDetails(#memberDTO)", msClass = ProjectService.class)
     public void updateMember(@RequestBody WorkspaceMemberDTO memberDTO) {
         projectService.updateMember(memberDTO);
+    }
+
+    @GetMapping("/getOwnerProjectIds")
+    public Collection<String> getOwnerProjectIds() {
+        return checkPermissionService.getUserRelatedProjectIds();
     }
 }

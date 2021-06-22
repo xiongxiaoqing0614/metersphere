@@ -13,6 +13,7 @@
           @setModuleOptions="setModuleOptions"
           @setNodeTree="setNodeTree"
           @enableTrash="enableTrash"
+          @schedule="handleTabsEdit($t('api_test.api_import.timing_synchronization'), 'SCHEDULE')"
           :type="'edit'"
           page-source="definition"
           ref="nodeTree"/>
@@ -118,6 +119,12 @@
                                       :project-id="projectId"
                                       @saveAsApi="editApi" @refresh="refresh" v-if="currentProtocol==='DUBBO'"/>
             </div>
+
+            <!-- 定时任务 -->
+            <div v-if="item.type=== 'SCHEDULE'" class="ms-api-div">
+              <api-schedule :module-options="nodeTree"/>
+            </div>
+
             <div v-else-if="item.type=== 'MOCK'" class="ms-api-div">
               <mock-config :base-mock-config-data="item.mock"></mock-config>
             </div>
@@ -170,9 +177,9 @@ import ApiCaseSimpleList from "./components/list/ApiCaseSimpleList";
 import ApiDocumentsPage from "@/business/components/api/definition/components/list/ApiDocumentsPage";
 import MsTableButton from "@/business/components/common/components/MsTableButton";
 import MsTabButton from "@/business/components/common/components/MsTabButton";
-import {getLabel} from "@/common/js/tableUtils";
 
 import MockConfig from "@/business/components/api/definition/components/mock/MockConfig";
+import ApiSchedule from "@/business/components/api/definition/components/import/ApiSchedule";
 
 export default {
   name: "ApiDefinition",
@@ -191,6 +198,7 @@ export default {
     },
   },
   components: {
+    ApiSchedule,
     MsTabButton,
     MsTableButton,
     ApiCaseSimpleList,

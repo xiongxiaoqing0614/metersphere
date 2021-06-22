@@ -33,6 +33,7 @@
         </template>
       </el-table-column>
 
+      <el-table-column width="1"/>
       <slot></slot>
 
       <el-table-column
@@ -55,8 +56,9 @@
 
     <ms-custom-table-header
       v-if="fieldKey"
-      @reload="reloadTable"
+      @reload="resetHeader"
       :type="fieldKey"
+      :custom-fields="customFields"
       ref="customTableHeader"/>
 
   </div>
@@ -186,6 +188,7 @@ export default {
     },
     fields: Array,
     fieldKey: String,
+    customFields: Array
   },
   mounted() {
     getLabel(this, TEST_CASE_LIST);
@@ -255,8 +258,8 @@ export default {
     handleBatchMove() {
       this.$refs.testBatchMove.open(this.treeNodes, Array.from(this.selectRows).map(row => row.id), this.moduleOptions);
     },
-    handleRowClick() {
-      this.$emit("handleRowClick");
+    handleRowClick(row) {
+      this.$emit("handleRowClick", row);
     },
     handleRefresh() {
       this.clear();
@@ -290,8 +293,11 @@ export default {
     openCustomHeader() {
       this.$refs.customTableHeader.open(this.fields);
     },
+    resetHeader() {
+      this.$emit('update:fields', getCustomTableHeader(this.fieldKey, this.customFields));
+      this.reloadTable();
+    },
     reloadTable() {
-      this.$emit('update:fields', getCustomTableHeader(this.fieldKey));
       this.tableActive = false;
       this.$nextTick(() => {
         this.tableActive = true;
