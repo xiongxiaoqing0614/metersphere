@@ -81,6 +81,9 @@ public class KanbanService {
     @Resource
     private TestPlanReportMapper testPlanReportMapper;
 
+    @Resource
+    private GraphService graphService;
+
     public List<TestCaseAllInfoDTO> getSummary() {
         List<TestCaseSummaryDTO> summaryList = kanbanMapper.getSummary();
         List<TestCaseAllInfoDTO> allInfoList = new ArrayList<TestCaseAllInfoDTO>();
@@ -93,13 +96,17 @@ public class KanbanService {
             long dateP0CountByCreateInThisWeek = countByProjectIDAndTagAndCreateInThisWeek(projectId, "P0");
             allInfo.setP0APICountThisWeek(dateP0CountByCreateInThisWeek);
 
-
             ApiDataCountDTO apiCountResult = new ApiDataCountDTO();
 
-            List<ApiDataCountResult> countResultByStatelList = apiDefinitionService.countStateByProjectID(projectId);
+            List<ApiDataCountResult> countResultByStatelList = apiDefinitionService.countStateByProjectIDNoP4(projectId);
             apiCountResult.countStatus(countResultByStatelList);
             allInfo.setCompletedAPICount(apiCountResult.getFinishedCount());
             allInfo.setNonP0APICount(allInfo.getApiCount() - allInfo.getP0APICount());
+
+            ApiDataCountDTO p0ApiCountResult = new ApiDataCountDTO();
+            List<ApiDataCountResult> p0CountResultByStatelList = apiDefinitionService.countStateByProjectIDP0(projectId);
+            p0ApiCountResult.countStatus(p0CountResultByStatelList);
+            allInfo.setCompletedP0APICount(p0ApiCountResult.getFinishedCount());
 
             long dateSingleCountByCreateInThisWeek = apiTestCaseService.countByProjectIDAndCreateInThisWeek(projectId);
             allInfo.setSingleCountThisWeek(dateSingleCountByCreateInThisWeek);
@@ -165,7 +172,12 @@ public class KanbanService {
             ja.add(testPlan.getId());
         });
 
-        JSONArray result = this.fetchDailyAvgPassData(JSONArray.toJSONString(ja));
+        JSONObject jo = new JSONObject();
+        jo.put("times", 0);
+        jo.put("days", 7);  // 拉取前7天的数据
+        jo.put("testplanIds", ja);
+
+        JSONArray result = this.fetchDailyAvgPassData(JSONArray.toJSONString(jo));
         if (result == null) { return null; }
 
         Map<String, Double> map = new HashMap<>();
@@ -177,7 +189,7 @@ public class KanbanService {
     }
 
     private JSONArray fetchDailyAvgPassData(String js) {
-        String dailyAvgPassRateServerUrl = String.format("%s/Monitor_API/passRate/avg/%d/%d", dailyAvgPassRateServerUrlPrefix, 0, 5);
+        String dailyAvgPassRateServerUrl = String.format("%s/Monitor_API/passRate/avg", dailyAvgPassRateServerUrlPrefix);
         String result = TuhuService.restApiPost(dailyAvgPassRateServerUrl, js);
         if (result == null) { return null; }
 
@@ -237,6 +249,9 @@ public class KanbanService {
             jo.put("imageUrl", "");
             jo.put("deviceSN", "V1.10");
             jo.put("deviceName", "metersphere");
+            jo.put("interfaceName", "");
+            jo.put("interfaceDescription", "");
+            jo.put("iskernel", 1);
         }
 
         JSONArray ja = new JSONArray();
@@ -275,6 +290,7 @@ public class KanbanService {
         jo.put("timeFlag", testPlanReportId);
         jo.put("testplanId", testPlanReportExtDTO.getTestPlanId());
         jo.put("testplanReportId", testPlanReportId);
+        jo.put("updateDate", (new java.text.SimpleDateFormat("yyyy-MM-dd hh:mm:ss")).format(new Date()));
 
         return jo;
     }
@@ -293,7 +309,7 @@ public class KanbanService {
         jo.put("timeCost", testPlanReportExtDTO.getEndTime() - testPlanReportExtDTO.getStartTime());
         jo.put("deviceSN", "v1.10");
         jo.put("deviceName", "metersphere");
-        jo.put("timeflag", testPlanReportId);
+        jo.put("timeFlag", testPlanReportId);
 
         int success = 0;
         int failure = 0;
@@ -317,7 +333,7 @@ public class KanbanService {
             link += item.getCount();
         }
 
-        jo.put("sucessCount", success);
+        jo.put("successCount", success);
         jo.put("failureCount", failure);
         jo.put("singleCount", single);
         jo.put("linkCount", link);
@@ -325,8 +341,12 @@ public class KanbanService {
         jo.put("testplanName", testPlanReportExtDTO.getTestPlanName());
         jo.put("testplanId", testPlanReportExtDTO.getTestPlanId());
         jo.put("testplanReportId", testPlanReportId);
+        jo.put("updateDate", (new java.text.SimpleDateFormat("yyyy-MM-dd hh:mm:ss")).format(new Date()));
 
-        String rep = restApiPost(url, JSONObject.toJSONString(jo));
+        JSONArray ja = new JSONArray();
+        ja.add(jo);
+
+        String rep = restApiPost(url, JSONObject.toJSONString(ja));
         if (rep == null) { return; }
 
         JSONObject repObj = JSONObject.parseObject(rep);
@@ -334,4 +354,18 @@ public class KanbanService {
             LogUtil.error("上传统计结果失败: " + rep);
         }
     }
+
+    public JSONObject getGraphData() {
+        JSONObject jo = new JSONObject();
+        final Object serviceInData = jo.put("serviceInData", graphService.getServiceInData());
+        jo.put("teamInData", graphService.getTeamInData());
+        jo.put("apiDoneData", graphService.getApiDoneData());
+        jo.put("apiPassRateData", graphService.getApiPassRateData());
+        jo.put("apiCovRateData", graphService.getApiCovRateData());
+        jo.put("scenCovRateData", graphService.getScenCovRateData());
+        jo.put("caseFailData", graphService.getCaseFailData());
+
+        return jo;
+    }
+
 }

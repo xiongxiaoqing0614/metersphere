@@ -282,11 +282,28 @@
         SELECT protocol AS groupField,count(id) AS countNumber FROM api_definition  WHERE project_id = #{0} AND `status` != 'Trash' GROUP BY protocol
     </select>
     <select id="countStateByProjectID" resultType="io.metersphere.api.dto.datacount.ApiDataCountResult">
-        SELECT status AS groupField,count(id) AS countNumber FROM api_definition  WHERE project_id = #{0} AND `status` != 'Trash' GROUP BY status
+        SELECT status AS groupField,count(id) AS countNumber FROM api_definition  WHERE project_id = #{0}
+        AND `status` != 'Trash' GROUP BY status
+    </select>
+    <select id="countStateByProjectIDP0" resultType="io.metersphere.api.dto.datacount.ApiDataCountResult">
+        SELECT status AS groupField,count(id) AS countNumber FROM api_definition  WHERE project_id = #{0}
+        AND tags like "%P0%"
+        AND `status` != 'Trash' GROUP BY status
+    </select>
+    <select id="countStateByProjectIDNoP4" resultType="io.metersphere.api.dto.datacount.ApiDataCountResult">
+        SELECT status AS groupField,count(id) AS countNumber FROM api_definition  WHERE project_id = #{0}
+        AND (tags not like "%P4%" OR tags is null)
+        AND `status` != 'Trash' GROUP BY status
     </select>
     <select id="countByProjectIDAndCreateInThisWeek" resultType="java.lang.Long">
         SELECT count(id) AS countNumber FROM api_definition
         WHERE project_id = #{projectId}
+        AND create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp} AND `status` != 'Trash'
+    </select>
+    <select id="countByProjectIDAndCreateInThisWeekNoP4" resultType="java.lang.Long">
+        SELECT count(id) AS countNumber FROM api_definition
+        WHERE project_id = #{projectId}
+        AND (tags not like "%P4%" OR tags is null)
         AND create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp} AND `status` != 'Trash'
     </select>
     <select id="countByProjectIDAndTagAndCreateInThisWeek" resultType="java.lang.Long">
