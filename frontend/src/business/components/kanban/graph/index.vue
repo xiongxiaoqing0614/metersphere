@@ -8,7 +8,7 @@
       </el-col>
       <el-col :span="12">
         <el-card class="box-card card-fix">
-          <PieChart ref="pieChart2" id="pieChart2" title="团队接入现状" :data="teamInData" style="height: 400px;"/>
+          <PieChart ref="pieChart4" id="pieChart4" title="执行成功率" :data="apiPassRateData" style="height: 400px;"/>
         </el-card>
       </el-col>
     </el-row>
@@ -21,20 +21,20 @@
       </el-col>
       <el-col :span="12">
         <el-card class="box-card card-fix">
-          <PieChart ref="pieChart4" id="pieChart4" title="执行成功率" :data="apiPassRateData" style="height: 400px;"/>
+          <PieChart ref="pieChart5" id="pieChart5" title="API覆盖率" :data="apiCovRateData" style="height: 400px;"/>
         </el-card>
       </el-col>
     </el-row>
 
-    <el-row :gutter="20">
+    <el-row :gutter="20" style="display: none;">
       <el-col :span="12">
         <el-card class="box-card card-fix">
-          <PieChart ref="pieChart5" id="pieChart5" title="API覆盖率" :data="apiCovRateData" style="height: 400px;"/>
+          <PieChart ref="pieChart6" id="pieChart6" title="场景覆盖率" :data="scenCovRateData" style="height: 400px;"/>
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card class="box-card card-fix">
-          <PieChart ref="pieChart6" id="pieChart6" title="场景覆盖率" :data="scenCovRateData" style="height: 400px;"/>
+          <PieChart ref="pieChart2" id="pieChart2" title="团队接入现状" :data="teamInData" style="height: 400px;"/>
         </el-card>
       </el-col>
     </el-row>

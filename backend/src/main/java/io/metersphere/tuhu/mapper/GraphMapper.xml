@@ -83,7 +83,7 @@
         ORDER BY showTable.failureTimes DESC
     </select>
     <select id="selectIdAndScenario" resultType="io.metersphere.base.domain.ApiScenarioWithBLOBs">
-        SELECT id,scenario_definition FROM api_scenario WHERE status != 'Trash'
+        SELECT id,scenario_definition FROM api_scenario WHERE status != 'Trash' limit #{start},#{step}
     </select>
     <select id="selectEffectiveId" resultType="io.metersphere.base.domain.ApiDefinition">
         select id,path

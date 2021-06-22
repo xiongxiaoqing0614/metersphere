@@ -22,7 +22,7 @@ public interface GraphMapper {
 
     List<ExecutedCaseInfoResult> findFailureCaseInfoByExecuteTimeAndLimitNumber(long startTimestamp);
 
-    List<ApiScenarioWithBLOBs> selectIdAndScenario();
+    List<ApiScenarioWithBLOBs> selectIdAndScenario(long start, long step);
 
     List<ApiDefinition> selectEffectiveId();
 

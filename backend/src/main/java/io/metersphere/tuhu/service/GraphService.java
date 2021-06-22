@@ -5,12 +5,11 @@ import com.alibaba.fastjson.JSONObject;
 import io.metersphere.api.dto.datacount.ApiDataCountResult;
 import io.metersphere.api.dto.datacount.ExecutedCaseInfoResult;
 import io.metersphere.api.dto.datacount.response.ApiDataCountDTO;
-import io.metersphere.api.dto.datacount.response.ExecutedCaseInfoDTO;
-import io.metersphere.api.service.ApiScenarioReportService;
 import io.metersphere.base.domain.ApiDefinition;
 import io.metersphere.base.domain.ApiScenarioWithBLOBs;
 import io.metersphere.base.domain.ApiTestCase;
 import io.metersphere.commons.utils.DateUtils;
+import io.metersphere.tuhu.dto.ApiScenarioUrlAndIdDTO;
 import io.metersphere.tuhu.mapper.GraphMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -124,20 +123,21 @@ public class GraphService {
     }
 
     public JSONArray getScenCovRateData() {
-        // 场景中复制的接口
-        List<ApiScenarioWithBLOBs> allScenarioInfoList = graphMapper.selectIdAndScenario();
-        // 场景中引用/复制的案例
-        List<ApiDefinition> allEffectiveApiList = graphMapper.selectEffectiveId();
-        // 场景中的自定义路径与接口定义中的匹配
-        List<ApiTestCase> allEffectiveApiCaseList = graphMapper.selectEffectiveTestCase();
-
-        if (allEffectiveApiList == null || allEffectiveApiList.isEmpty()) {
-            return fillData(0, 0, "有场景覆盖的接口");
-        }
-
-        JSONObject jo = countInterfaceCoverage(allScenarioInfoList, allEffectiveApiList, allEffectiveApiCaseList);
-
-        return fillData(jo.getLong("total"), jo.getLong("inNum"), "有场景覆盖的接口");
+        return fillData(0, 0, "有场景覆盖的接口");
+//        // 场景中复制的接口
+//        ApiScenarioUrlAndIdDTO allScenarioInfoList = selectIdAndScenarioByStep();
+//        // 场景中的自定义路径与接口定义中的匹配
+//        List<ApiDefinition> allEffectiveApiList = graphMapper.selectEffectiveId();
+//        // 场景中引用/复制的案例
+//        List<ApiTestCase> allEffectiveApiCaseList = graphMapper.selectEffectiveTestCase();
+//
+//        if (allEffectiveApiList == null || allEffectiveApiList.isEmpty()) {
+//            return fillData(0, 0, "有场景覆盖的接口");
+//        }
+//
+//        JSONObject jo = countInterfaceCoverage(allScenarioInfoList, allEffectiveApiList, allEffectiveApiCaseList);
+//
+//        return fillData(jo.getLong("total"), jo.getLong("inNum"), "有场景覆盖的接口");
     }
 
     public JSONObject getCaseFailData() {
@@ -164,6 +164,10 @@ public class GraphService {
             return new JSONObject();
         }
 
+        if (list.size() < limitNumber) {
+            limitNumber = list.size();
+        }
+
         List<ExecutedCaseInfoResult> subList = list.subList(0, limitNumber);
         for (ExecutedCaseInfoResult executedCaseInfoResult : subList) {
             caseNameList.add(executedCaseInfoResult.getCaseName());
@@ -176,7 +180,7 @@ public class GraphService {
         return jo;
     }
 
-    public JSONObject countInterfaceCoverage(List<ApiScenarioWithBLOBs> allScenarioInfoList, List<ApiDefinition> allEffectiveApiList, List<ApiTestCase> allEffectiveApiCaseList) {
+    public JSONObject countInterfaceCoverage(ApiScenarioUrlAndIdDTO allScenarioInfoList, List<ApiDefinition> allEffectiveApiList, List<ApiTestCase> allEffectiveApiCaseList) {
         /**
          * 前置工作：
          *  1。将接口集合转化数据结构: map<url,List<id>> urlMap 用来做3的筛选
@@ -215,13 +219,8 @@ public class GraphService {
             }
         }
 
-        List<String> urlList = new ArrayList<>();
-        List<String> idList = new ArrayList<>();
-
-        for (ApiScenarioWithBLOBs model : allScenarioInfoList) {
-            String scenarioDefiniton = model.getScenarioDefinition();
-            this.addUrlAndIdToList(scenarioDefiniton, urlList, idList);
-        }
+        List<String> urlList = allScenarioInfoList.getIdList();
+        List<String> idList = allScenarioInfoList.getIdList();
 
         List<String> containsApiIdList = new ArrayList<>();
 
@@ -258,6 +257,31 @@ public class GraphService {
         jo.put("inNum", containsApiIdList.size());
 
         return jo;
+    }
+
+    private ApiScenarioUrlAndIdDTO selectIdAndScenarioByStep () {
+        List<String> urlList = new ArrayList<>();
+        List<String> idList = new ArrayList<>();
+        long start = 0;
+        long step = 100;
+
+        while (true) {
+            List<ApiScenarioWithBLOBs> allScenarioInfoList = graphMapper.selectIdAndScenario(start, step);
+            if (allScenarioInfoList == null || allScenarioInfoList.size() == 0){
+                break;
+            }
+            for (ApiScenarioWithBLOBs model : allScenarioInfoList) {
+                String scenarioDefiniton = model.getScenarioDefinition();
+                this.addUrlAndIdToList(scenarioDefiniton, urlList, idList);
+            }
+            start += step;
+        }
+
+        ApiScenarioUrlAndIdDTO apiScenarioUrlAndIdDTO = new ApiScenarioUrlAndIdDTO();
+        apiScenarioUrlAndIdDTO.setUrlList(urlList);
+        apiScenarioUrlAndIdDTO.setIdList(idList);
+
+        return apiScenarioUrlAndIdDTO;
     }
 
     private void addUrlAndIdToList(String scenarioDefiniton, List<String> urlList, List<String> idList) {
