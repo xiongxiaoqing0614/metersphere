@@ -126,7 +126,6 @@
                 </choose>
             </foreach>
         </if>
-        <include refid="io.metersphere.base.mapper.ext.ExtBaseMapper.orders"/>
     </select>
     <sql id="queryWhereCondition">
         <where>
