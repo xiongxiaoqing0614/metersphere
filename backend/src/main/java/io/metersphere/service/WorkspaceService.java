@@ -70,8 +70,10 @@ public class WorkspaceService {
             MSException.throwException(Translator.get("workspace_name_is_null"));
         }
         // set organization id
-        String currentOrgId = SessionUtils.getCurrentOrganizationId();
-        workspace.setOrganizationId(currentOrgId);
+        if (StringUtils.isBlank(workspace.getOrganizationId())) {
+            String currentOrgId = SessionUtils.getCurrentOrganizationId();
+            workspace.setOrganizationId(currentOrgId);
+        }
 
         long currentTime = System.currentTimeMillis();
 
@@ -228,6 +230,10 @@ public class WorkspaceService {
 
     public List<String> getWorkspaceIdsOrgId(String orgId) {
         return extWorkspaceMapper.getWorkspaceIdsByOrgId(orgId);
+    }
+
+    public List<WorkspaceDTO> getWorkspaceIdsByOrgId(String orgId) {
+        return extWorkspaceMapper.getWorkspaceIdsOrgId(orgId);
     }
 
     public void updateWorkspaceMember(WorkspaceMemberDTO memberDTO) {

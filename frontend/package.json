@@ -45,7 +45,7 @@
     "mockjs": "^1.1.0",
     "nprogress": "^0.2.0",
     "sha.js": "^2.4.11",
-    "vue": "^2.6.10",
+    "vue": "2.6.14",
     "vue-calendar-heatmap": "^0.8.4",
     "vue-clipboard2": "^0.3.1",
     "vue-echarts": "^4.1.0",
@@ -61,7 +61,9 @@
     "vxe-table": "^3.3.5",
     "xe-utils": "^3.2.1",
     "xml-js": "^1.6.11",
-    "yan-progress": "^1.0.3"
+    "yan-progress": "^1.0.3",
+    "vue2-ace-editor": "0.0.15",
+    "pdfjs-dist": "2.5.207"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^4.1.0",
@@ -71,8 +73,7 @@
     "eslint": "^5.16.0",
     "eslint-plugin-vue": "^5.0.0",
     "file-writer": "^1.0.2",
-    "vue-template-compiler": "^2.6.10",
-    "vue2-ace-editor": "0.0.15"
+    "vue-template-compiler": "2.6.14"
   },
   "eslintConfig": {
     "root": true,

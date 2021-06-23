@@ -19,7 +19,7 @@
         />
       </template>
 
-      <el-container v-loading="result.loading">
+      <el-container v-if="!result.loading">
         <el-main>
           <div v-for="(item,index) in apiCaseList" :key="item.id ? item.id : item.uuid">
             <api-case-item v-loading="singleLoading && singleRunId === item.id || batchLoadingIds.indexOf(item.id) > -1"
@@ -346,7 +346,7 @@ export default {
     },
 
     singleRun(row) {
-      if (this.currentApi.protocol !== "DUBBO" && this.currentApi.protocol !== "dubbo://" && !this.environment) {
+      if (this.currentApi.protocol !== "SQL" && this.currentApi.protocol !== "DUBBO" && this.currentApi.protocol !== "dubbo://" && !this.environment) {
         this.$warning(this.$t('api_test.environment.select_environment'));
         return;
       }
@@ -364,7 +364,7 @@ export default {
     },
 
     batchRun() {
-      if (this.currentApi.protocol !== "DUBBO" && this.currentApi.protocol !== "dubbo://" && !this.environment) {
+      if (this.currentApi.protocol !== "SQL" && this.currentApi.protocol !== "DUBBO" && this.currentApi.protocol !== "dubbo://" && !this.environment) {
         this.$warning(this.$t('api_test.environment.select_environment'));
         return;
       }
@@ -437,7 +437,7 @@ export default {
           this.$success(this.$t('commons.save_success'));
         }
         this.selectdCases = [];
-        //this.getApiTest();
+        this.getApiTest();
       });
     },
   }

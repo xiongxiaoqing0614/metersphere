@@ -48,53 +48,7 @@
                            :total="total"/>
     </el-card>
 
-    <el-dialog :close-on-click-modal="false" :title="$t('member.create')" :visible.sync="createVisible" width="30%" :destroy-on-close="true"
-               @close="handleClose">
-      <el-form :model="form" ref="form" :rules="rules" label-position="right" label-width="100px" size="small">
-        <el-form-item :label="$t('commons.member')" prop="ids"
-                      :rules="{required: true, message: $t('member.input_id_or_email'), trigger: 'blur'}">
-          <el-select
-            v-model="form.ids"
-            multiple
-            filterable
-            remote
-            reserve-keyword
-            :popper-append-to-body="false"
-            class="select-width"
-            :placeholder="$t('member.input_id_or_email')"
-            :remote-method="remoteMethod"
-            :loading="loading">
-            <el-option
-              v-for="item in options"
-              :key="item.id"
-              :label="item.id"
-              :value="item.id">
-              <template>
-                <span class="org-member-name">{{item.id}}</span>
-                <span class="org-member-email">{{item.email}}</span>
-              </template>
-            </el-option>
-          </el-select>
-        </el-form-item>
-
-        <el-form-item :label="$t('commons.group')" prop="groupIds">
-          <el-select v-model="form.groupIds" multiple :placeholder="$t('role.please_choose_role')" class="select-width">
-            <el-option
-              v-for="item in form.groups"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id">
-            </el-option>
-          </el-select>
-        </el-form-item>
-      </el-form>
-
-      <template v-slot:footer>
-        <ms-dialog-footer
-          @cancel="createVisible = false"
-          @confirm="submitForm('form')"/>
-      </template>
-    </el-dialog>
+    <add-member :group-type="'ORGANIZATION'" :group-scope-id="orgId" ref="addMember" @submit="submitForm"/>
 
     <el-dialog :close-on-click-modal="false" :title="$t('member.modify')" :visible.sync="updateVisible" width="30%" :destroy-on-close="true"
                @close="handleClose">
@@ -111,9 +65,9 @@
         <el-form-item :label="$t('commons.phone')" prop="phone">
           <el-input v-model="form.phone" autocomplete="off" :disabled="true"/>
         </el-form-item>
-        <el-form-item label="用户组" prop="groupIds"
-                      :rules="{required: true, message: '请选择用户组', trigger: 'change'}">
-          <el-select v-model="form.groupIds" multiple placeholder="请选择用户组" class="select-width">
+        <el-form-item :label="$t('commons.group')" prop="groupIds"
+                      :rules="{required: true, message: $t('group.please_select_group'), trigger: 'change'}">
+          <el-select v-model="form.groupIds" multiple :placeholder="$t('group.please_select_group')" class="select-width">
             <el-option
               v-for="item in form.allgroups"
               :key="item.id"
@@ -152,10 +106,12 @@
   import UserCascader from "@/business/components/settings/system/components/UserCascader";
   import ShowMoreBtn from "@/business/components/track/case/components/ShowMoreBtn";
   import {GROUP_ORGANIZATION} from "@/common/js/constants";
+  import AddMember from "@/business/components/settings/common/AddMember";
 
   export default {
     name: "MsOrganizationMember",
-    components: {MsCreateBox, MsTablePagination, MsTableHeader, MsRolesTag, MsTableOperator, MsDialogFooter,
+    components: {
+      AddMember, MsCreateBox, MsTablePagination, MsTableHeader, MsRolesTag, MsTableOperator, MsDialogFooter,
       MsTableHeaderSelectPopover,UserCascader,ShowMoreBtn},
     activated() {
       this.initTableData();
@@ -174,8 +130,8 @@
           userIds: [
             {required: true, message: this.$t('member.please_choose_member'), trigger: ['blur']}
           ],
-          roleIds: [
-            {required: true, message: this.$t('role.please_choose_role'), trigger: ['blur']}
+          groupIds: [
+            {required: true, message: this.$t('group.please_select_group'), trigger: ['blur']}
           ]
         },
         multipleSelection: [],
@@ -199,6 +155,12 @@
           //   name: this.$t('user.button.add_user_role_batch'), handleClick: this.addUserRoleBatch
           // }
         ],
+        userList: []
+      }
+    },
+    computed: {
+      orgId() {
+        return getCurrentOrganizationId();
       }
     },
     methods: {
@@ -306,50 +268,16 @@
         });
       },
       create() {
-        let orgId = this.currentUser().lastOrganizationId;
-        if (!orgId) {
-          this.$warning(this.$t('organization.select_organization'));
-          return false;
-        }
-        this.form = {};
-        this.createVisible = true;
-        this.result = this.$post('/user/group/list', {type: GROUP_ORGANIZATION, resourceId: orgId}, response => {
-          this.$set(this.form, "groups", response.data);
-        })
+        this.$refs.addMember.open();
         listenGoBack(this.handleClose);
       },
-      submitForm(formName) {
-        this.$refs[formName].validate((valid) => {
-          let orgId = this.currentUser().lastOrganizationId;
-          if (valid) {
-            let param = {
-              userIds: this.form.ids,
-              groupIds: this.form.groupIds,
-              organizationId: orgId
-            };
-            this.result = this.$post("user/org/member/add", param, () => {
-              this.$success(this.$t('commons.save_success'));
-              this.initTableData();
-              this.createVisible = false;
-            })
-          } else {
-            return false;
-          }
-        });
-      },
-      remoteMethod(query) {
-        query = query.trim();
-        if (query !== '') {
-          this.loading = true;
-          setTimeout(() => {
-            this.loading = false;
-            this.$get("/user/search/" + query, response => {
-              this.options = response.data;
-            })
-          }, 200);
-        } else {
-          this.options = [];
-        }
+      submitForm(param) {
+        param['organizationId'] = this.orgId;
+        this.result = this.$post("user/org/member/add", param, () => {
+          this.$success(this.$t('commons.save_success'));
+          this.initTableData();
+          this.$refs.addMember.close();
+        })
       },
       initWorkspaceBatchProcessDataStruct(isShow){
         let organizationId = getCurrentOrganizationId();

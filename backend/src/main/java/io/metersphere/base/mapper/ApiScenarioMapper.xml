@@ -28,6 +28,7 @@
   <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="io.metersphere.base.domain.ApiScenarioWithBLOBs">
     <result column="scenario_definition" jdbcType="LONGVARCHAR" property="scenarioDefinition" />
     <result column="description" jdbcType="LONGVARCHAR" property="description" />
+    <result column="use_url" jdbcType="LONGVARCHAR" property="useUrl" />
   </resultMap>
   <sql id="Example_Where_Clause">
     <where>
@@ -93,7 +94,7 @@
     pass_rate, last_result, report_id, num, original_state, custom_num, create_user
   </sql>
   <sql id="Blob_Column_List">
-    scenario_definition, description
+    scenario_definition, description, use_url
   </sql>
   <select id="selectByExampleWithBLOBs" parameterType="io.metersphere.base.domain.ApiScenarioExample" resultMap="ResultMapWithBLOBs">
     select
@@ -151,8 +152,8 @@
       schedule, create_time, update_time, 
       pass_rate, last_result, report_id, 
       num, original_state, custom_num, 
-      create_user, scenario_definition, description
-      )
+      create_user, scenario_definition, description, 
+      use_url)
     values (#{id,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR}, #{tags,jdbcType=VARCHAR}, 
       #{userId,jdbcType=VARCHAR}, #{apiScenarioModuleId,jdbcType=VARCHAR}, #{modulePath,jdbcType=VARCHAR}, 
       #{name,jdbcType=VARCHAR}, #{level,jdbcType=VARCHAR}, #{status,jdbcType=VARCHAR}, 
@@ -160,8 +161,8 @@
       #{schedule,jdbcType=VARCHAR}, #{createTime,jdbcType=BIGINT}, #{updateTime,jdbcType=BIGINT}, 
       #{passRate,jdbcType=VARCHAR}, #{lastResult,jdbcType=VARCHAR}, #{reportId,jdbcType=VARCHAR}, 
       #{num,jdbcType=INTEGER}, #{originalState,jdbcType=VARCHAR}, #{customNum,jdbcType=VARCHAR}, 
-      #{createUser,jdbcType=VARCHAR}, #{scenarioDefinition,jdbcType=LONGVARCHAR}, #{description,jdbcType=LONGVARCHAR}
-      )
+      #{createUser,jdbcType=VARCHAR}, #{scenarioDefinition,jdbcType=LONGVARCHAR}, #{description,jdbcType=LONGVARCHAR}, 
+      #{useUrl,jdbcType=LONGVARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="io.metersphere.base.domain.ApiScenarioWithBLOBs">
     insert into api_scenario
@@ -238,6 +239,9 @@
       <if test="description != null">
         description,
       </if>
+      <if test="useUrl != null">
+        use_url,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="id != null">
@@ -311,6 +315,9 @@
       </if>
       <if test="description != null">
         #{description,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="useUrl != null">
+        #{useUrl,jdbcType=LONGVARCHAR},
       </if>
     </trim>
   </insert>
@@ -395,6 +402,9 @@
       <if test="record.description != null">
         description = #{record.description,jdbcType=LONGVARCHAR},
       </if>
+      <if test="record.useUrl != null">
+        use_url = #{record.useUrl,jdbcType=LONGVARCHAR},
+      </if>
     </set>
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -425,7 +435,8 @@
       custom_num = #{record.customNum,jdbcType=VARCHAR},
       create_user = #{record.createUser,jdbcType=VARCHAR},
       scenario_definition = #{record.scenarioDefinition,jdbcType=LONGVARCHAR},
-      description = #{record.description,jdbcType=LONGVARCHAR}
+      description = #{record.description,jdbcType=LONGVARCHAR},
+      use_url = #{record.useUrl,jdbcType=LONGVARCHAR}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>
@@ -530,6 +541,9 @@
       <if test="description != null">
         description = #{description,jdbcType=LONGVARCHAR},
       </if>
+      <if test="useUrl != null">
+        use_url = #{useUrl,jdbcType=LONGVARCHAR},
+      </if>
     </set>
     where id = #{id,jdbcType=VARCHAR}
   </update>
@@ -557,7 +571,8 @@
       custom_num = #{customNum,jdbcType=VARCHAR},
       create_user = #{createUser,jdbcType=VARCHAR},
       scenario_definition = #{scenarioDefinition,jdbcType=LONGVARCHAR},
-      description = #{description,jdbcType=LONGVARCHAR}
+      description = #{description,jdbcType=LONGVARCHAR},
+      use_url = #{useUrl,jdbcType=LONGVARCHAR}
     where id = #{id,jdbcType=VARCHAR}
   </update>
   <update id="updateByPrimaryKey" parameterType="io.metersphere.base.domain.ApiScenario">

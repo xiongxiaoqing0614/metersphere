@@ -166,7 +166,8 @@
             test_case.create_time, test_case.update_time, test_case.test_id, test_case.sort, test_case.num,
             test_case.other_test_name, test_case.review_status, test_case.tags,
             test_case.demand_id, test_case.demand_name, test_case.follow_people, test_case.`status`,
-            test_case.custom_num, test_case.step_model, test_case.create_user,u.name as createName
+            test_case.custom_num, test_case.step_model, test_case.create_user,u.name as createName,
+            test_case.custom_fields
         </if>
         from test_case left join user u on test_case.create_user=u.id
         <include refid="queryWhereCondition"/>
@@ -300,7 +301,7 @@
                                 #{value}
                             </foreach>
                         </when>
-                        <when test="key=='reviewStatus'">
+                        <when test="key=='review_status'">
                             and test_case.review_status in
                             <foreach collection="values" item="value" separator="," open="(" close=")">
                                 #{value}
@@ -480,5 +481,15 @@
         left join test_plan_test_case as T2 on test_case.id=T2.case_id and T2.plan_id =#{request.planId}
         <include refid="notInQueryWhereCondition"/>
         and T2.case_id is null
+    </select>
+    <select id="getCustomFieldsByIds" resultType="io.metersphere.base.domain.TestCaseWithBLOBs">
+        select id, custom_fields
+        from test_case
+        <where>
+            test_case.id in
+            <foreach collection="ids" item="id" separator="," open="(" close=")">
+                #{id}
+            </foreach>
+        </where>
     </select>
 </mapper>

@@ -145,7 +145,7 @@
           <el-table-column prop="name" :label="$t('commons.username')"/>
           <el-table-column prop="email" :label="$t('commons.email')"/>
           <el-table-column prop="phone" :label="$t('commons.phone')"/>
-          <el-table-column label="用户组" width="150">
+          <el-table-column :label="$t('commons.group')" width="150">
             <template v-slot:default="scope">
               <ms-roles-tag :roles="scope.row.groups" type="success"/>
             </template>
@@ -181,8 +181,8 @@
         <el-form-item :label="$t('commons.phone')" prop="phone">
           <el-input v-model="form.phone" autocomplete="off" :disabled="true"/>
         </el-form-item>
-        <el-form-item label="用户组" prop="groupIds" :rules="{required: true, message: '请选择用户组', trigger: 'change'}">
-          <el-select v-model="form.groupIds" multiple placeholder="请选择用户组" class="select-width">
+        <el-form-item :label="$t('commons.group')" prop="groupIds" :rules="{required: true, message: $t('group.please_select_group'), trigger: 'change'}">
+          <el-select v-model="form.groupIds" multiple :placeholder="$t('group.please_select_group')" style="width: 100%">
             <el-option
               v-for="item in form.allgroups"
               :key="item.id"
@@ -199,54 +199,11 @@
       </template>
     </el-dialog>
 
-
-    <el-dialog :close-on-click-modal="false" title="添加成员" :visible.sync="dialogMemberVisible" width="30%"
-               :destroy-on-close="true"
-               @close="handleMemberClose">
-      <el-form :model="memberForm" ref="form" :rules="rules" label-position="right" label-width="100px" size="small">
-        <el-form-item :label="$t('commons.member')" prop="memberSign"
-                      :rules="{required: true, message: $t('member.input_id_or_email'), trigger: 'change'}">
-          <el-autocomplete
-            class="input-with-autocomplete"
-            v-model="memberForm.memberSign"
-            :placeholder="$t('member.input_id_or_email')"
-            :trigger-on-focus="false"
-            :fetch-suggestions="querySearch"
-            size="small"
-            highlight-first-item
-            value-key="email"
-            style="width: 100%"
-          >
-            <template v-slot:default="scope">
-              <span class="workspace-member-name">{{ scope.item.id }}</span>
-              <span class="workspace-member-email">{{ scope.item.email }}</span>
-            </template>
-          </el-autocomplete>
-        </el-form-item>
-        <el-form-item label="用户组" prop="groupIds" :rules="{required: true, message: '请选择用户组', trigger: 'blur'}">
-          <el-select v-model="memberForm.groupIds" multiple placeholder="请选择用户组" style="width: 100%">
-            <el-option
-              v-for="item in memberForm.groups"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id">
-            </el-option>
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template v-slot:footer>
-        <div class="dialog-footer">
-          <el-button @click="dialogMemberVisible = false" size="medium">{{ $t('commons.cancel') }}</el-button>
-          <el-button type="primary" @click="submitForm('form')" @keydown.enter.native.prevent size="medium">
-            {{ $t('commons.confirm') }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
+    <add-member :group-type="'PROJECT'" :group-scope-id="orgId" ref="addMember" @submit="submitForm"/>
 
     <ms-delete-confirm :title="$t('project.delete')" @delete="_handleDelete" ref="deleteConfirm"/>
 
-    <api-environment-config ref="environmentConfig"/>
+    <api-environment-config ref="environmentConfig" :type="'workspace'"/>
 
     <ms-jar-config ref="jarConfig"/>
 
@@ -283,6 +240,7 @@ import MsResourceFiles from "@/business/components/performance/test/components/R
 import TemplateSelect from "@/business/components/settings/workspace/template/TemplateSelect";
 import {PROJECT_CONFIGS} from "@/business/components/common/components/search/search-components";
 import MsRolesTag from "@/business/components/common/components/MsRolesTag";
+import AddMember from "@/business/components/settings/common/AddMember";
 
 export default {
   name: "MsProject",
@@ -296,7 +254,8 @@ export default {
     MsTableOperatorButton,
     MsDeleteConfirm,
     MsMainContainer, MsRolesTag,
-    MsContainer, MsTableOperator, MsCreateBox, MsTablePagination, MsTableHeader, MsDialogFooter
+    MsContainer, MsTableOperator, MsCreateBox, MsTablePagination, MsTableHeader, MsDialogFooter,
+    AddMember
   },
   inject: [
     'reloadTopMenus'
@@ -365,6 +324,9 @@ export default {
     },
     projectId() {
       return getCurrentProjectID();
+    },
+    orgId() {
+      return getCurrentOrganizationId();
     }
   },
   destroyed() {
@@ -380,7 +342,7 @@ export default {
       });
     },
     create() {
-      let workspaceId = this.currentUser.lastWorkspaceId;
+      let workspaceId = getCurrentWorkspaceId();
       this.getOptions();
       if (!workspaceId) {
         this.$warning(this.$t('project.please_choose_workspace'));
@@ -485,6 +447,7 @@ export default {
       this.list();
     },
     list() {
+      this.condition.workspaceId = getCurrentWorkspaceId();
       let url = "/project/list/" + this.currentPage + '/' + this.pageSize;
       this.result = this.$post(url, this.condition, (response) => {
         let data = response.data;
@@ -613,44 +576,16 @@ export default {
         }
       });
     },
-    submitForm() {
-      this.$refs['form'].validate((valid) => {
-        if (valid) {
-          let userIds = [];
-          let userId = this.memberForm.userId;
-          let email = this.memberForm.memberSign;
-          let member = this.userList.find(user => user.id === email || user.email === email);
-          if (!member) {
-            this.$warning(this.$t('member.no_such_user'));
-            return false;
-          } else {
-            userId = member.id;
-          }
-          userIds.push(userId);
-          let param = {
-            userIds: userIds,
-            groupIds: this.memberForm.groupIds,
-            projectId: this.currentProjectId
-          };
-          this.result = this.$post("user/project/member/add", param, () => {
-            this.$success(this.$t('commons.save_success'));
-            this.dialogSearch();
-            this.dialogMemberVisible = false;
-          });
-        }
+    submitForm(param) {
+      param['projectId'] = this.currentProjectId;
+      this.result = this.$post("user/project/member/add", param, () => {
+        this.$success(this.$t('commons.save_success'));
+        this.dialogSearch();
+        this.$refs.addMember.close();
       });
     },
     open() {
-      this.$get('/user/list/', response => {
-        this.dialogMemberVisible = true;
-        this.userList = response.data;
-      });
-      this.result = this.$post('/user/group/list', {
-        type: GROUP_PROJECT,
-        resourceId: getCurrentOrganizationId()
-      }, response => {
-        this.$set(this.memberForm, "groups", response.data);
-      });
+      this.$refs.addMember.open();
     },
     handleMemberClose() {
       this.dialogMemberVisible = false;
@@ -686,6 +621,10 @@ pre {
 
 .dialog-css >>> .el-dialog__header {
   padding: 0px;
+}
+
+.select-width {
+  width: 100%;
 }
 
 .workspace-member-name {

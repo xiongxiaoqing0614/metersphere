@@ -5,12 +5,18 @@
       <ms-aside-container style="padding-top: 0px">
         <!-- 场景步骤内容 -->
         <div v-loading="loading">
-          <el-button class="el-icon-files ms-open-btn ms-open-btn-left" size="mini" @click="openExpansion">
-            {{ $t('api_test.automation.open_expansion') }}
-          </el-button>
-          <el-button class="el-icon-notebook-1 ms-open-btn" size="mini" @click="closeExpansion">
-            {{ $t('api_test.automation.close_expansion') }}
-          </el-button>
+          <el-tooltip :content="$t('api_test.automation.open_expansion')" placement="top" effect="light">
+            <i class="el-icon-circle-plus-outline  ms-open-btn ms-open-btn-left" v-prevent-re-click @click="openExpansion"/>
+          </el-tooltip>
+          <el-tooltip :content="$t('api_test.automation.close_expansion')" placement="top" effect="light">
+            <i class="el-icon-remove-outline ms-open-btn" size="mini" @click="closeExpansion"/>
+          </el-tooltip>
+          <el-tooltip :content="$t('api_test.scenario.disable')" placement="top" effect="light" v-if="!stepEnable">
+            <font-awesome-icon class="ms-open-btn" :icon="['fas', 'toggle-off']" @click="enableAll"/>
+          </el-tooltip>
+          <el-tooltip :content="$t('api_test.scenario.enable')" placement="top" effect="light" v-else>
+            <font-awesome-icon class="ms-open-btn" :icon="['fas', 'toggle-on']" @click="disableAll"/>
+          </el-tooltip>
           <el-tree node-key="resourceId"
                    :props="props"
                    :data="scenarioDefinition"
@@ -169,6 +175,7 @@ export default {
     moduleOptions: Array,
     currentScenario: {},
     type: String,
+    stepReEnable: Boolean,
     scenarioDefinition: Array,
     envMap: Map,
   },
@@ -234,6 +241,7 @@ export default {
       projectList: [],
       debugResult: new Map,
       expandedStatus: false,
+      stepEnable: true,
     }
   },
   created() {
@@ -242,6 +250,7 @@ export default {
     }
     this.operatingElements = ELEMENTS.get("ALL");
     this.projectEnvMap = this.envMap;
+    this.stepEnable = this.stepReEnable;
   },
   watch: {
     envMap() {
@@ -923,6 +932,9 @@ export default {
     shrinkTreeNode() {
       //改变每个节点的状态
       for (let i in this.scenarioDefinition) {
+        if (i > 30 && this.expandedStatus) {
+          continue;
+        }
         if (this.scenarioDefinition[i]) {
           if (this.expandedStatus) {
             this.expandedNode.push(this.scenarioDefinition[i].resourceId);
@@ -948,15 +960,57 @@ export default {
       }
     },
     openExpansion() {
-      this.expandedNode = [];
-      this.expandedStatus = true;
-      this.shrinkTreeNode();
+      if (this.scenarioDefinition && this.scenarioDefinition.length > 30) {
+        this.$alert(this.$t('api_test.definition.request.step_message'), '', {
+          confirmButtonText: this.$t('commons.confirm'),
+          callback: (action) => {
+            if (action === 'confirm') {
+              this.expandedNode = [];
+              this.expandedStatus = true;
+              this.shrinkTreeNode();
+            }
+          }
+        });
+      } else {
+        this.expandedNode = [];
+        this.expandedStatus = true;
+        this.shrinkTreeNode();
+      }
     },
     closeExpansion() {
       this.expandedStatus = false;
       this.expandedNode = [];
       this.shrinkTreeNode();
       this.reload();
+    },
+    stepNode() {
+      //改变每个节点的状态
+      for (let i in this.scenarioDefinition) {
+        if (this.scenarioDefinition[i]) {
+          this.scenarioDefinition[i].enable = this.stepEnable;
+          if (this.scenarioDefinition[i].hashTree && this.scenarioDefinition[i].hashTree.length > 0) {
+            this.stepStatus(this.scenarioDefinition[i].hashTree);
+          }
+        }
+      }
+    },
+    stepStatus(nodes) {
+      for (let i in nodes) {
+        if (nodes[i]) {
+          nodes[i].enable = this.stepEnable;
+          if (nodes[i].hashTree != undefined && nodes[i].hashTree.length > 0) {
+            this.stepStatus(nodes[i].hashTree);
+          }
+        }
+      }
+    },
+    enableAll() {
+      this.stepEnable = true;
+      this.stepNode();
+    },
+    disableAll() {
+      this.stepEnable = false;
+      this.stepNode();
     }
   }
 }
@@ -1131,8 +1185,13 @@ export default {
 
 .ms-open-btn {
   margin: 5px 5px 0px;
-  font-size: 10px;
+  color: #6D317C;
+  font-size: 20px;
+}
+
+.ms-open-btn:hover {
   background-color: #F2F9EE;
+  cursor: pointer;
   color: #67C23A;
 }
 

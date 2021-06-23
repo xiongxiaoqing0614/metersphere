@@ -1,5 +1,7 @@
 export default {
   commons: {
+    failure_continues: "失败继续",
+    full_screen_editing: "全屏编辑",
     yes: "是",
     no: "否",
     default: "默认值",
@@ -496,7 +498,8 @@ export default {
     functional_menu: '功能菜单',
     operation_object: '操作对象',
     check_all: '全选',
-    permission: '权限'
+    permission: '权限',
+    please_select_group: '请选择用户组'
   },
   role: {
     please_choose_role: '请选择角色',
@@ -795,6 +798,7 @@ export default {
         other_config: "其他设置",
         message_template: "报文模版",
         tcp_parameter_tip: "请求参数可以在请求模版通过${xxx}引用",
+        step_message: "步骤过多，是否展开前 30 个步骤？",
         esb_table: {
           name: "参数名",
           type: "类型",
@@ -1161,7 +1165,7 @@ export default {
         title: "场景用例数量统计",
       },
       schedule_task_count_card: {
-        title: "定时任务数量统计",
+        title: "场景定时任务数量统计",
       },
       detail_card: {
         running: "进行中",
@@ -1303,7 +1307,7 @@ export default {
     testcase_summary: "用例统计",
     execution_summary: "执行统计",
     okr: "OKR",
-    graph: "图表"
+    graph: "数据统计"
   },
   test_track: {
     related_requirements: '关联需求',
@@ -1326,6 +1330,11 @@ export default {
     actual_result: ": 实际结果为空",
     cancel_relevance_success: "取消关联成功",
     switch_project: "切换项目",
+    functional_test_case: "功能测试用例",
+    api_test_case: "接口测试用例",
+    performance_test_case: "性能测试用例",
+    scenario_test_case: "场景测试用例",
+    report_statistics: "报告统计",
     case: {
       list: "列表",
       minder: "脑图",
@@ -1546,7 +1555,22 @@ export default {
       my_plan: "我的计划",
       test_rate: "测试进度",
       tested_case: "已测用例",
-      review_progress: "评审进度"
+      review_progress: "评审进度",
+      case_count: "用例数量统计",
+      relevance_case: "关联用例数量统计",
+      case_maintenance: "用例维护人分布",
+      bug_count: "遗留缺陷统计",
+      case_review: "用例评审",
+      review_rate: "评审率",
+      coverage: "覆盖率",
+      function_case_count: "功能用例数",
+      relevance_case_count: "关联用例数",
+      serial_number: "序号",
+      test_plan_name: "测试计划名称",
+      case_size: "用例数",
+      bug_size: "缺陷数",
+      passing_rate: "通过率",
+      percentage: "占比"
     },
     plan_view: {
       plan: "计划",

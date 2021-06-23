@@ -107,13 +107,18 @@
             <!-- 调试部分 -->
             <div class="ms-debug-div" @click="showAll">
               <el-row style="margin: 5px">
-                <el-col :span="6" class="ms-col-one ms-font">
+                <el-col :span="4" class="ms-col-one ms-font">
                   <el-tooltip placement="top" effect="light">
                     <template v-slot:content>
-                      <div>{{ currentScenario.name === undefined || '' ? $t('api_test.scenario.name') : currentScenario.name }}</div>
+                      <div>{{
+                          currentScenario.name === undefined || '' ? $t('api_test.scenario.name') : currentScenario.name
+                        }}
+                      </div>
                     </template>
                     <span class="scenario-name">
-                        {{ currentScenario.name === undefined || '' ? $t('api_test.scenario.name') : currentScenario.name }}
+                        {{
+                        currentScenario.name === undefined || '' ? $t('api_test.scenario.name') : currentScenario.name
+                      }}
                     </span>
                   </el-tooltip>
                 </el-col>
@@ -128,9 +133,13 @@
                 <el-col :span="3" class="ms-col-one ms-font">
                   <el-checkbox v-model="enableCookieShare">共享cookie</el-checkbox>
                 </el-col>
-                <el-col :span="5">
+                <el-col :span="3" class="ms-col-one ms-font">
+                  <el-checkbox v-model="onSampleError">{{ $t('commons.failure_continues') }}</el-checkbox>
+                </el-col>
+                <el-col :span="4">
                   <env-popover :disabled="scenarioDefinition.length < 1" :env-map="projectEnvMap"
                                :project-ids="projectIds" @setProjectEnvMap="setProjectEnvMap" :result="envResult"
+                               :show-config-button-with-out-permission="showConfigButtonWithOutPermission"
                                :isReadOnly="scenarioDefinition.length < 1" @showPopover="showPopover"
                                :project-list="projectList" ref="envPopover"/>
                 </el-col>
@@ -139,20 +148,31 @@
                              @click="runDebug">{{ $t('api_test.request.debug') }}
                   </el-button>
                   <el-tooltip class="item" effect="dark" :content="$t('commons.refresh')" placement="right-start">
-                    <el-button :disabled="scenarioDefinition.length < 1" size="mini" icon="el-icon-refresh" v-prevent-re-click @click="getApiScenario"></el-button>
+                    <el-button :disabled="scenarioDefinition.length < 1" size="mini" icon="el-icon-refresh"
+                               v-prevent-re-click @click="getApiScenario"></el-button>
                   </el-tooltip>
-                  <font-awesome-icon class="alt-ico" :icon="['fa', 'expand-alt']" size="lg" @click="fullScreen" v-tester/>
+                  <el-tooltip class="item" effect="dark" :content="$t('commons.full_screen_editing')"
+                              placement="top-start">
+                    <font-awesome-icon class="alt-ico" :icon="['fa', 'expand-alt']" size="lg" @click="fullScreen" v-tester/>
+                  </el-tooltip>
                 </el-col>
               </el-row>
             </div>
             <!-- 场景步骤内容 -->
             <div>
-              <el-button class="el-icon-files ms-open-btn ms-open-btn-left" size="mini" v-prevent-re-click @click="openExpansion">
-                {{ $t('api_test.automation.open_expansion') }}
-              </el-button>
-              <el-button class=" el-icon-notebook-1 ms-open-btn" size="mini" @click="closeExpansion">
-                {{ $t('api_test.automation.close_expansion') }}
-              </el-button>
+              <el-tooltip :content="$t('api_test.automation.open_expansion')" placement="top" effect="light">
+                <i class="el-icon-circle-plus-outline ms-open-btn ms-open-btn-left" v-prevent-re-click @click="openExpansion"/>
+              </el-tooltip>
+              <el-tooltip :content="$t('api_test.automation.close_expansion')" placement="top" effect="light">
+                <i class="el-icon-remove-outline ms-open-btn" size="mini" v-prevent-re-click @click="closeExpansion"/>
+              </el-tooltip>
+              <el-tooltip :content="$t('api_test.scenario.disable')" placement="top" effect="light" v-if="!stepEnable">
+                <font-awesome-icon class="ms-open-btn" :icon="['fas', 'toggle-off']" v-prevent-re-click @click="enableAll"/>
+              </el-tooltip>
+              <el-tooltip :content="$t('api_test.scenario.enable')" placement="top" effect="light" v-else>
+                <font-awesome-icon class="ms-open-btn" :icon="['fas', 'toggle-on']" v-prevent-re-click @click="disableAll"/>
+              </el-tooltip>
+
               <el-tree node-key="resourceId" :props="props" :data="scenarioDefinition" class="ms-tree"
                        :default-expanded-keys="expandedNode"
                        :expand-on-click-node="false"
@@ -224,13 +244,19 @@
       <!--步骤最大化-->
       <ms-drawer :visible="drawer" :size="100" @close="close" direction="default" :show-full-screen="false" :is-show-close="false" style="overflow: hidden">
         <template v-slot:header>
-          <scenario-header :currentScenario="currentScenario" :projectEnvMap="projectEnvMap" :projectIds.sync="projectIds" :projectList="projectList" :scenarioDefinition="scenarioDefinition" :enableCookieShare="enableCookieShare"
-                           :isFullUrl.sync="isFullUrl" @closePage="close" @unFullScreen="unFullScreen" @showAllBtn="showAllBtn" @runDebug="runDebug" @setProjectEnvMap="setProjectEnvMap" @showScenarioParameters="showScenarioParameters" @setCookieShare="setCookieShare"
+          <scenario-header :currentScenario="currentScenario" :projectEnvMap="projectEnvMap"
+                           :projectIds.sync="projectIds" :projectList="projectList"
+                           :scenarioDefinition="scenarioDefinition" :enableCookieShare="enableCookieShare"
+                           :onSampleError="onSampleError"
+                           :isFullUrl.sync="isFullUrl" @closePage="close" @unFullScreen="unFullScreen"
+                           @showAllBtn="showAllBtn" @runDebug="runDebug" @setProjectEnvMap="setProjectEnvMap"
+                           @showScenarioParameters="showScenarioParameters"
+                           @setCookieShare="setCookieShare" @setSampleError="setSampleError"
                            ref="maximizeHeader"/>
         </template>
 
         <maximize-scenario :scenario-definition="scenarioDefinition" :envMap="projectEnvMap" :moduleOptions="moduleOptions"
-                           :currentScenario="currentScenario" :type="type" ref="maximizeScenario" @openScenario="openScenario"/>
+                           :currentScenario="currentScenario" :type="type" :stepReEnable="stepEnable" ref="maximizeScenario" @openScenario="openScenario"/>
       </ms-drawer>
       <ms-change-history ref="changeHistory"/>
 
@@ -304,6 +330,8 @@ export default {
   },
   data() {
     return {
+      showConfigButtonWithOutPermission: false,
+      onSampleError: true,
       props: {
         label: "label",
         children: "hashTree"
@@ -349,6 +377,7 @@ export default {
       debugData: {},
       reportId: "",
       enableCookieShare: false,
+
       globalOptions: {
         spacing: 30
       },
@@ -360,6 +389,7 @@ export default {
       drawer: false,
       isFullUrl: true,
       expandedStatus: false,
+      stepEnable: true,
       envResult: {
         loading: false
       }
@@ -374,6 +404,7 @@ export default {
     this.getMaintainerOptions();
     this.getApiScenario();
     this.addListener(); //  添加 ctrl s 监听
+
   },
   directives: {OutsideClick},
   computed: {
@@ -521,6 +552,9 @@ export default {
     },
     setCookieShare(cookie) {
       this.enableCookieShare = cookie;
+    },
+    setSampleError(sampleError) {
+      this.onSampleError = sampleError;
     },
     showAllBtn() {
       this.$refs.maximizeScenario.showAll();
@@ -857,7 +891,8 @@ export default {
                 enableCookieShare: this.enableCookieShare,
                 headers: this.currentScenario.headers,
                 environmentMap: this.projectEnvMap,
-                hashTree: this.scenarioDefinition
+                hashTree: this.scenarioDefinition,
+                onSampleError: this.onSampleError,
               };
               this.reportId = getUUID().substring(0, 8);
               // this.editScenario().then(() => {
@@ -973,6 +1008,7 @@ export default {
     },
     getApiScenario() {
       this.loading = true;
+      this.stepEnable = true;
       if (this.currentScenario.tags != undefined && this.currentScenario.tags && !(this.currentScenario.tags instanceof Array)) {
         this.currentScenario.tags = JSON.parse(this.currentScenario.tags);
       }
@@ -1017,6 +1053,11 @@ export default {
                   this.currentScenario.headers = obj.headers;
                 }
                 this.enableCookieShare = obj.enableCookieShare;
+                if (obj.onSampleError === undefined) {
+                  this.onSampleError = true;
+                } else {
+                  this.onSampleError = obj.onSampleError;
+                }
                 if (obj.hashTree) {
                   obj.hashTree.forEach(item => {
                     if (!item.hashTree) {
@@ -1050,7 +1091,9 @@ export default {
         referenced: 'Created',
         environmentMap: strMapToObj(this.projectEnvMap),
         hashTree: this.scenarioDefinition,
+        onSampleError: this.onSampleError,
         projectId: this.projectId,
+
       };
       this.currentScenario.scenarioDefinition = scenario;
       if (this.currentScenario.tags instanceof Array) {
@@ -1130,6 +1173,9 @@ export default {
     shrinkTreeNode() {
       //改变每个节点的状态
       for (let i in this.scenarioDefinition) {
+        if (i > 30 && this.expandedStatus) {
+          continue;
+        }
         if (this.scenarioDefinition[i]) {
           if (this.expandedStatus && this.expandedNode.indexOf(this.scenarioDefinition[i].resourceId) === -1) {
             this.expandedNode.push(this.scenarioDefinition[i].resourceId);
@@ -1155,15 +1201,57 @@ export default {
       }
     },
     openExpansion() {
-      this.expandedNode = [];
-      this.expandedStatus = true;
-      this.shrinkTreeNode();
+      if (this.scenarioDefinition && this.scenarioDefinition.length > 30) {
+        this.$alert(this.$t('api_test.definition.request.step_message'), '', {
+          confirmButtonText: this.$t('commons.confirm'),
+          callback: (action) => {
+            if (action === 'confirm') {
+              this.expandedNode = [];
+              this.expandedStatus = true;
+              this.shrinkTreeNode();
+            }
+          }
+        });
+      } else {
+        this.expandedNode = [];
+        this.expandedStatus = true;
+        this.shrinkTreeNode();
+      }
     },
     closeExpansion() {
       this.expandedStatus = false;
       this.expandedNode = [];
       this.shrinkTreeNode();
       this.reload();
+    },
+    stepNode() {
+      //改变每个节点的状态
+      for (let i in this.scenarioDefinition) {
+        if (this.scenarioDefinition[i]) {
+          this.scenarioDefinition[i].enable = this.stepEnable;
+          if (this.scenarioDefinition[i].hashTree && this.scenarioDefinition[i].hashTree.length > 0) {
+            this.stepStatus(this.scenarioDefinition[i].hashTree);
+          }
+        }
+      }
+    },
+    stepStatus(nodes) {
+      for (let i in nodes) {
+        if (nodes[i]) {
+          nodes[i].enable = this.stepEnable;
+          if (nodes[i].hashTree != undefined && nodes[i].hashTree.length > 0) {
+            this.stepStatus(nodes[i].hashTree);
+          }
+        }
+      }
+    },
+    enableAll() {
+      this.stepEnable = true;
+      this.stepNode();
+    },
+    disableAll() {
+      this.stepEnable = false;
+      this.stepNode();
     }
   }
 }
@@ -1322,17 +1410,22 @@ export default {
   text-overflow: ellipsis;
   vertical-align: middle;
   white-space: nowrap;
-  width: 200px;
+  width: 150px;
 }
 
 .ms-open-btn {
   margin: 5px 5px 0px;
-  font-size: 10px;
+  color: #6D317C;
+  font-size: 20px;
+}
+
+.ms-open-btn:hover {
   background-color: #F2F9EE;
+  cursor: pointer;
   color: #67C23A;
 }
 
 .ms-open-btn-left {
-  margin-left: 30px;
+  margin-left: 35px;
 }
 </style>

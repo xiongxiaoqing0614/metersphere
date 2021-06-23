@@ -48,7 +48,7 @@
         <el-table-column prop="name" :label="$t('commons.username')"/>
         <el-table-column prop="email" :label="$t('commons.email')"/>
         <el-table-column prop="phone" :label="$t('commons.phone')"/>
-        <el-table-column label="用户组" width="140">
+        <el-table-column :label="$t('commons.group')" width="140">
           <template v-slot:default="scope">
             <ms-roles-tag :roles="scope.row.groups"/>
           </template>
@@ -112,7 +112,7 @@
 
     <!-- add organization member form -->
     <el-dialog :close-on-click-modal="false" :title="$t('member.create')" :visible.sync="dialogOrgMemberAddVisible"
-               width="30%"
+               width="40%"
                :destroy-on-close="true"
                @close="closeFunc">
       <el-form :model="memberForm" ref="form" :rules="orgMemberRule" label-position="right" label-width="100px"
@@ -130,8 +130,8 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="用户组" prop="groupIds">
-          <el-select filterable v-model="memberForm.groupIds" multiple placeholder="请选择用户组"
+        <el-form-item :label="$t('commons.group')" prop="groupIds">
+          <el-select filterable v-model="memberForm.groupIds" multiple :placeholder="$t('group.please_select_group')"
                      class="select-width">
             <el-option
               v-for="item in memberForm.groups"
@@ -168,8 +168,8 @@
           <el-input v-model="memberForm.phone" autocomplete="off" :disabled="true"/>
         </el-form-item>
         <el-form-item :label="$t('commons.group')" prop="groupIds"
-                      :rules="{required: true, message: $t('role.please_choose_role'), trigger: 'change'}">
-          <el-select filterable v-model="memberForm.groupIds" multiple :placeholder="$t('role.please_choose_role')"
+                      :rules="{required: true, message: $t('group.please_select_group'), trigger: 'change'}">
+          <el-select filterable v-model="memberForm.groupIds" multiple :placeholder="$t('group.please_select_group')"
                      class="select-width">
             <el-option
               v-for="item in memberForm.allgroups"
@@ -202,9 +202,7 @@ import MsTableOperatorButton from "../../common/components/MsTableOperatorButton
 import MsDialogFooter from "../../common/components/MsDialogFooter";
 import {
   getCurrentOrganizationId,
-  getCurrentUser,
   listenGoBack,
-  refreshSessionAndCookies,
   removeGoBackListener
 } from "@/common/js/utils";
 import {DEFAULT, GROUP_ORGANIZATION, ORGANIZATION} from "@/common/js/constants";
@@ -270,8 +268,8 @@ export default {
         userIds: [
           {required: true, message: this.$t('member.please_choose_member'), trigger: ['blur']}
         ],
-        roleIds: [
-          {required: true, message: this.$t('role.please_choose_role'), trigger: ['blur']}
+        groupIds: [
+          {required: true, message: this.$t('group.please_select_group'), trigger: ['blur']}
         ]
       },
       orgId: ""
@@ -316,9 +314,6 @@ export default {
       this.dialogOrgMemberUpdateVisible = true;
       this.memberForm = Object.assign({}, row);
       let groupIds = this.memberForm.groups.map(r => r.id);
-      // this.result = this.$get('/role/list/org', response => {
-      //   this.$set(this.memberForm, "allroles", response.data);
-      // })
       this.result = this.$post('/user/group/list', {type: GROUP_ORGANIZATION, resourceId: this.orgId}, response => {
         this.$set(this.memberForm, "allgroups", response.data);
       });
@@ -381,11 +376,6 @@ export default {
         type: 'warning'
       }).then(() => {
         this.result = this.$get(this.deletePath + organization.id, () => {
-          let lastOrganizationId = getCurrentOrganizationId();
-          let sourceId = organization.id;
-          if (lastOrganizationId === sourceId) {
-            refreshSessionAndCookies(DEFAULT, sourceId);
-          }
           this.$success(this.$t('commons.delete_success'));
           this.reloadTopMenus();
         });
@@ -403,12 +393,6 @@ export default {
         type: 'warning'
       }).then(() => {
         this.result = this.$get('/user/special/org/member/delete/' + this.currentRow.id + '/' + encodeURIComponent(row.id), () => {
-          let sourceId = this.currentRow.id;
-          let currentUser = getCurrentUser();
-          let userId = row.id;
-          if (currentUser.id === userId) {
-            refreshSessionAndCookies(ORGANIZATION, sourceId);
-          }
           this.$success(this.$t('commons.remove_success'));
           this.cellClick(this.currentRow);
         });
@@ -483,9 +467,6 @@ export default {
             organizationId: this.currentRow.id
           };
           this.result = this.$post("user/special/org/member/add", param, () => {
-            let sign = "other";
-            let sourceId = this.currentRow.id;
-            refreshSessionAndCookies(sign, sourceId);
             this.cellClick(this.currentRow);
             this.dialogOrgMemberAddVisible = false;
           });

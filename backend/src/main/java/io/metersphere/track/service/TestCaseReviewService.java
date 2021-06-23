@@ -114,7 +114,9 @@ public class TestCaseReviewService {
         reviewRequest.setUpdateTime(System.currentTimeMillis());
         reviewRequest.setCreator(SessionUtils.getUser().getId());//创建人
         reviewRequest.setStatus(TestCaseReviewStatus.Prepare.name());
-        reviewRequest.setProjectId(SessionUtils.getCurrentProjectId());
+        if (StringUtils.isBlank(reviewRequest.getProjectId())) {
+            reviewRequest.setProjectId(SessionUtils.getCurrentProjectId());
+        }
         testCaseReviewMapper.insert(reviewRequest);
         // 发送通知
         String context = getReviewContext(reviewRequest, NoticeConstants.Event.CREATE);
@@ -460,6 +462,10 @@ public class TestCaseReviewService {
                 testCaseReview.setStatus(TestCaseReviewStatus.Underway.name());
                 testCaseReviewMapper.updateByPrimaryKeySelective(testCaseReview);
                 return;
+            } else if (StringUtils.equals(status, TestReviewCaseStatus.UnPass.name())) {
+                testCaseReview.setStatus(TestCaseReviewStatus.Finished.name());
+                testCaseReviewMapper.updateByPrimaryKeySelective(testCaseReview);
+                return;
             }
         }
         testCaseReview.setStatus(TestCaseReviewStatus.Completed.name());
@@ -496,7 +502,6 @@ public class TestCaseReviewService {
         } else {
             request.setReviewerId(user.getId());
         }
-        request.setWorkspaceId(SessionUtils.getCurrentWorkspaceId());
         request.setProjectId(SessionUtils.getCurrentProjectId());
         request.setReviewIds(extTestReviewCaseMapper.findRelateTestReviewId(user.getId(), SessionUtils.getCurrentWorkspaceId(), user.getLastProjectId()));
 

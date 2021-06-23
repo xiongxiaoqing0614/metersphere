@@ -48,6 +48,8 @@ public interface ExtApiDefinitionMapper {
 
     ApiDefinition getNextNum(@Param("projectId") String projectId);
 
+    ApiDefinition getNextNumByProjectId(@Param("projectId") String projectId, @Param("id") String id);
+
     List<ApiDefinitionResult> listRelevance(@Param("request") ApiDefinitionRequest request);
 
     List<ApiDefinitionResult> listRelevanceReview(@Param("request") ApiDefinitionRequest request);
@@ -59,4 +61,6 @@ public interface ExtApiDefinitionMapper {
     List<ApiDefinitionResult> listByIds(@Param("ids") List<String> ids);
 
     List<Map<String, Object>> moduleCountByCollection(@Param("request") ApiDefinitionRequest request);
+
+    ApiDefinition selectUrlAndMethodById(String id);
 }

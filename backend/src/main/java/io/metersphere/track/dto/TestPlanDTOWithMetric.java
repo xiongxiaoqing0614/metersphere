@@ -12,4 +12,5 @@ public class TestPlanDTOWithMetric extends TestPlanDTO {
     private Integer passed;
     private Integer tested;
     private Integer total;
+    private String createUser;
 }
