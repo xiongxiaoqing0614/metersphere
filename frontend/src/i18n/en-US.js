@@ -1161,7 +1161,7 @@ export default {
         title: "Scene test case count",
       },
       schedule_task_count_card: {
-        title: "Schedule task count",
+        title: "Scene schedule task count",
       },
       detail_card: {
         running: "Running",
