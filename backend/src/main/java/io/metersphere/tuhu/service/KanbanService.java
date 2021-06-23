@@ -305,7 +305,7 @@ public class KanbanService {
         jo.put("groupName", testPlanReportExtDTO.getGroupName());
         jo.put("projectName", testCaseReportMetricDTO.getProjectName());
         jo.put("testUse", "回归");
-        jo.put("caseKind", "接口测试");
+        jo.put("caseKind", "INTERFACE");
         jo.put("timeCost", testPlanReportExtDTO.getEndTime() - testPlanReportExtDTO.getStartTime());
         jo.put("deviceSN", "v1.10");
         jo.put("deviceName", "metersphere");
