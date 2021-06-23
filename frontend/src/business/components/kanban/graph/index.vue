@@ -3,12 +3,12 @@
     <el-row :gutter="20">
       <el-col :span="12">
         <el-card class="box-card card-fix">
-          <PieChart ref="pieChart1" id="pieChart1" title="服务接入现状" :data="serviceInData" style="height: 400px;"/>
+          <PieChart ref="pieChart1" id="pieChart1" title="服务接入现状" subTitle="已接入appid/全部appid" :data="serviceInData" style="height: 400px;"/>
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card class="box-card card-fix">
-          <PieChart ref="pieChart4" id="pieChart4" title="执行成功率" :data="apiPassRateData" style="height: 400px;"/>
+          <PieChart ref="pieChart4" id="pieChart4" title="执行成功率" subTitle="执行计划执行成功次数/执行计划执行总次数" :data="apiPassRateData" style="height: 400px;"/>
         </el-card>
       </el-col>
     </el-row>
@@ -16,12 +16,12 @@
     <el-row :gutter="20">
       <el-col :span="12">
         <el-card class="box-card card-fix">
-          <PieChart ref="pieChart3" id="pieChart3" title="API完成率" :data="apiDoneData" style="height: 400px;"/>
+          <PieChart ref="pieChart3" id="pieChart3" title="API完成率" subTitle="已完成API数/所有API总数" :data="apiDoneData" style="height: 400px;"/>
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card class="box-card card-fix">
-          <PieChart ref="pieChart5" id="pieChart5" title="API覆盖率" :data="apiCovRateData" style="height: 400px;"/>
+          <PieChart ref="pieChart5" id="pieChart5" title="API覆盖率" subTitle="已有用例覆盖的API数/所有API总数" :data="apiCovRateData" style="height: 400px;"/>
         </el-card>
       </el-col>
     </el-row>

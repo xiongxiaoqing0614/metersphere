@@ -7,7 +7,7 @@ import echarts from  "echarts";
 
 export default {
   name: "PieChart",
-  props: ["id", "title", "data"],
+  props: ["id", "title", "subTitle", "data"],
   data() {
     return {
       myChart: null,
@@ -15,7 +15,7 @@ export default {
           color: ['#749f83', '#c23531', '#6e7074', '#546570', '#c4ccd3', '#d48265', '#61a0a8', '#bda29a', '#ca8622', '#91c7ae', '#2f4554'],
           title: {
               text: this.title,
-              subtext: '',
+              subtext: this.subTitle,
               left: 'center'
           },
           tooltip: {

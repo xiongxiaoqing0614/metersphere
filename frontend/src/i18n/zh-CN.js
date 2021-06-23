@@ -1307,7 +1307,7 @@ export default {
     testcase_summary: "用例统计",
     execution_summary: "执行统计",
     okr: "OKR",
-    graph: "图表"
+    graph: "数据统计"
   },
   test_track: {
     related_requirements: '关联需求',
