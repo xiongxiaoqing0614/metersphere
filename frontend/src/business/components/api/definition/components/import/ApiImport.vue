@@ -239,6 +239,12 @@
             break;
           }
         }
+        if (this.selectedPlatformValue == "JmeterTuhu") {
+          this.modeOptions = [{id: 'incrementalMerge',name: this.$t('commons.not_cover')}];
+        }
+        else {
+          this.modeOptions = [{id: 'fullCoverage',name: this.$t('commons.cover')},{id: 'incrementalMerge',name: this.$t('commons.not_cover')}];
+        }
       },
       propotal() {
         let postmanIndex = this.platforms.indexOf(this.postmanPlanform);

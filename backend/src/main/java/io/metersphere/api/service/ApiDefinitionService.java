@@ -105,13 +105,29 @@ public class ApiDefinitionService {
     private SystemParameterService systemParameterService;
     @Resource
     private TestPlanMapper testPlanMapper;
+    @Resource
+    private ExtApiTestCaseMapper extApiTestCaseMapper;
 
     private static Cache cache = Cache.newHardMemoryCache(0, 3600 * 24);
+
+    private int caseNum = 0;
+
+    private int caseCount = 1;
 
     public List<ApiDefinitionResult> list(ApiDefinitionRequest request) {
         request = this.initRequest(request, true, true);
         List<ApiDefinitionResult> resList = extApiDefinitionMapper.list(request);
         calculateResult(resList, request.getProjectId());
+        ApiDefinitionRequest finalRequest = request;
+        if (finalRequest.getFilters().size() > 1) {
+            if (null != finalRequest.getFilters().get("case_status")) {
+                resList = resList.stream()
+                        .filter((ApiDefinitionResult b) -> finalRequest.getFilters().get("case_status").contains(b.getCaseStatus()))
+                        .collect(Collectors.toList());
+            }
+
+        }
+
         return resList;
     }
 
@@ -362,6 +378,17 @@ public class ApiDefinitionService {
         }
     }
 
+    private int getNextNumByProjectId(String projectId, String apiDefinitionId) {
+        ApiTestCase apiTestCase = extApiTestCaseMapper.getNextNum(apiDefinitionId);
+        if (apiTestCase == null) {
+            int n = extApiDefinitionMapper.getNextNumByProjectId(projectId,apiDefinitionId).getNum();
+            return n * 1000 + 1;
+        } else {
+            return Optional.of(apiTestCase.getNum() + 1)
+                    .orElse(extApiDefinitionMapper.getNextNumByProjectId(projectId,apiDefinitionId).getNum() * 1000 + 1);
+        }
+    }
+
     private ApiDefinition importCreate(ApiDefinitionWithBLOBs apiDefinition, ApiDefinitionMapper batchMapper,
                                        ApiTestCaseMapper apiTestCaseMapper, ApiTestImportRequest apiTestImportRequest, List<ApiTestCaseWithBLOBs> cases,
                                        Boolean repeatable) {
@@ -395,6 +422,22 @@ public class ApiDefinitionService {
                 batchMapper.insert(apiDefinition);
                 apiDefinition.setRequest(requestStr);
                 importApiCase(apiDefinition, apiTestCaseMapper, apiTestImportRequest, true);
+            }
+            else {
+                if (StringUtils.equals(apiTestImportRequest.getPlatform(), ApiImportPlatform.JmeterTuhu.name())) {
+                    if (StringUtils.equalsIgnoreCase(apiDefinition.getProtocol(), RequestType.HTTP)) {
+                        //如果存在则修改
+                        apiDefinition.setId(sameRequest.get(0).getId());
+                        apiDefinition.setName(sameRequest.get(0).getName());
+                        String request = setImportHashTree(apiDefinition);
+                        apiDefinition.setModuleId(sameRequest.get(0).getModuleId());
+                        apiDefinition.setModulePath(sameRequest.get(0).getModulePath());
+                        apiDefinition.setNum(sameRequest.get(0).getNum()); //id 不变
+                        apiDefinitionMapper.updateByPrimaryKeyWithBLOBs(apiDefinition);
+                        apiDefinition.setRequest(request);
+//                    importApiCase(apiDefinition, apiTestCaseMapper, apiTestImportRequest, false);
+                    }
+                }
             }
         } else {
             _importCreate(sameRequest, batchMapper, apiDefinition, apiTestCaseMapper, apiTestImportRequest, cases);
@@ -481,7 +524,21 @@ public class ApiDefinitionService {
                     item.setCreateUserId(SessionUtils.getUserId());
                     item.setUpdateUserId(SessionUtils.getUserId());
                     item.setProjectId(SessionUtils.getCurrentProjectId());
-                    item.setNum(getNextNum(item.getApiDefinitionId()));
+//                    JSONObject jsonObject = JSON.parseObject(item.getRequest());
+//                    String path = jsonObject.getString("path");
+                    String apiDefinitionId = item.getApiDefinitionId();
+                    String projectId = SessionUtils.getCurrentProjectId();
+                    int caseCurNum = getNextNumByProjectId(projectId, apiDefinitionId);
+                    if (caseCurNum != caseNum){
+                        item.setNum(caseCurNum);
+                        caseNum = caseCurNum;
+                        caseCount = 1;
+                    }
+                    else {
+                        item.setNum(caseCurNum + caseCount);
+                        caseCount = caseCount + 1;
+                    }
+//                    item.setNum(getNextNum(item.getApiDefinitionId()));
                     apiTestCaseMapper.insert(item);
                 }
             });
@@ -721,9 +778,28 @@ public class ApiDefinitionService {
                     apiImport.getEsbApiParamsMap().put(item.getId(), model);
                 }
             } else {
-                importCreate(item, batchMapper, apiTestCaseMapper, request, apiImport.getCases(), project.getRepeatable());
+                if (StringUtils.equals(request.getPlatform(), ApiImportPlatform.JmeterTuhu.name())) {
+                    String apiDefinitionId = item.getId();
+                    importCreate(item, batchMapper, apiTestCaseMapper, request, apiImport.getCases(), project.getRepeatable());
+                    String apiDefinitionCurId = item.getId();
+                    if (!apiDefinitionId.equals(apiDefinitionCurId)) {
+                        List<ApiTestCaseWithBLOBs> cases = apiImport.getCases();
+                        for (int j = 0; j < cases.size(); j++) {
+                            if (apiDefinitionId.equals(cases.get(j).getApiDefinitionId())) {
+                                apiImport.getCases().get(j).setApiDefinitionId(apiDefinitionCurId);
+                            }
+                        }
+                    }
+                }
+                else {
+                    importCreate(item, batchMapper, apiTestCaseMapper, request, apiImport.getCases(), project.getRepeatable());
+                }
+
             }
             if (i % 300 == 0) {
+                sqlSession.flushStatements();
+            }
+            if (i % 300 != 0 && i == data.size()-1) {
                 sqlSession.flushStatements();
             }
         }

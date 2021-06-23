@@ -48,6 +48,8 @@ public interface ExtApiDefinitionMapper {
 
     ApiDefinition getNextNum(@Param("projectId") String projectId);
 
+    ApiDefinition getNextNumByProjectId(@Param("projectId") String projectId, @Param("id") String id);
+
     List<ApiDefinitionResult> listRelevance(@Param("request") ApiDefinitionRequest request);
 
     List<ApiDefinitionResult> listRelevanceReview(@Param("request") ApiDefinitionRequest request);

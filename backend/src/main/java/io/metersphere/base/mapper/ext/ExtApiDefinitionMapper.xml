@@ -324,6 +324,9 @@
     <select id="selectUrlAndMethodById" resultType="io.metersphere.base.domain.ApiDefinition">
         SELECT method,path FROM api_definition WHERE id = #{0}
     </select>
+    <select id="getNextNumByProjectId" resultType="io.metersphere.base.domain.ApiDefinition">
+        SELECT * FROM api_definition WHERE api_definition.project_id = #{projectId} and api_definition.id = #{id} ORDER BY num DESC LIMIT 1;
+    </select>
     <select id="listRelevance" resultType="io.metersphere.api.dto.definition.ApiDefinitionResult">
         select
         <include refid="io.metersphere.base.mapper.ApiDefinitionMapper.Base_Column_List"/>
