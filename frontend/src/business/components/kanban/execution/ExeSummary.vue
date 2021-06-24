@@ -41,9 +41,9 @@
       <el-table-column
         align="center"
         prop="passRateAvg"
-        label="日均用例通过率">
+        label="前7日用例通过率">
         <template slot-scope="scope">
-          <div v-if="scope.row.dailyAvgPassRate">
+          <div v-if="scope.row.dailyAvgPassRate !== null">
             {{scope.row.dailyAvgPassRate * 100}}%
           </div>
           <div v-else>
