@@ -50,6 +50,7 @@ import io.metersphere.track.request.testcase.ApiCaseRelevanceRequest;
 import io.metersphere.track.request.testcase.QueryTestPlanRequest;
 import io.metersphere.track.request.testplan.FileOperationRequest;
 import io.metersphere.track.service.TestPlanScenarioCaseService;
+import io.metersphere.tuhu.service.TuhuService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -128,6 +129,8 @@ public class ApiAutomationService {
     private ProjectMapper projectMapper;
     @Resource
     private TestPlanMapper testPlanMapper;
+    @Resource
+    private TuhuService tuhuService;
 
     public ApiScenarioWithBLOBs getDto(String id) {
         return apiScenarioMapper.selectByPrimaryKey(id);
@@ -1445,6 +1448,7 @@ public class ApiAutomationService {
         Map<String, List<String>> mapping = request.getMapping();
         Map<String, String> envMap = request.getEnvMap();
         Set<String> set = mapping.keySet();
+        Map<String, Map<String, String>> defaultEnvMap = tuhuService.getDefaultEnvMap(set);
         if (set.isEmpty()) {
             return;
         }
@@ -1455,16 +1459,27 @@ public class ApiAutomationService {
                 list.forEach(l -> {
                     newEnvMap.put(l, envMap.get(l));
                 });
+            } else {    // 未传测试环境时，使用场景默认的测试环境
+                List<String> list = mapping.get(id);
+                list.forEach(l -> {
+                    Map<String, String> tmpEnv = defaultEnvMap.get(id);
+                    if (tmpEnv != null && !tmpEnv.isEmpty()) {
+                        newEnvMap.put(l, tmpEnv.get(l));
+                    }
+                });
             }
-            TestPlanApiScenario testPlanApiScenario = new TestPlanApiScenario();
-            testPlanApiScenario.setId(UUID.randomUUID().toString());
-            testPlanApiScenario.setCreateUser(SessionUtils.getUserId());
-            testPlanApiScenario.setApiScenarioId(id);
-            testPlanApiScenario.setTestPlanId(request.getPlanId());
-            testPlanApiScenario.setCreateTime(System.currentTimeMillis());
-            testPlanApiScenario.setUpdateTime(System.currentTimeMillis());
-            testPlanApiScenario.setEnvironment(JSON.toJSONString(newEnvMap));
-            testPlanApiScenarioMapper.insert(testPlanApiScenario);
+
+            if (!newEnvMap.isEmpty()) {     // 没有获取到正确 测试环境的 场景讲无法添加到测试计划
+                TestPlanApiScenario testPlanApiScenario = new TestPlanApiScenario();
+                testPlanApiScenario.setId(UUID.randomUUID().toString());
+                testPlanApiScenario.setCreateUser(SessionUtils.getUserId());
+                testPlanApiScenario.setApiScenarioId(id);
+                testPlanApiScenario.setTestPlanId(request.getPlanId());
+                testPlanApiScenario.setCreateTime(System.currentTimeMillis());
+                testPlanApiScenario.setUpdateTime(System.currentTimeMillis());
+                testPlanApiScenario.setEnvironment(JSON.toJSONString(newEnvMap));
+                testPlanApiScenarioMapper.insert(testPlanApiScenario);
+            }
         });
     }
 

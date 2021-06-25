@@ -100,9 +100,9 @@
 
       saveCaseRelevance() {
         const sign = this.$refs.apiScenarioList.checkEnv();
-        if (!sign) {
-          return false;
-        }
+        // if (!sign) {
+        //   return false;
+        // }
         let param = {};
         let url = '/api/automation/relevance';
         const envMap = this.$refs.apiScenarioList.projectEnvMap;

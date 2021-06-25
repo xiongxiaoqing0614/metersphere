@@ -3,7 +3,9 @@ package io.metersphere.tuhu.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import io.metersphere.base.domain.ApiScenarioWithBLOBs;
 import io.metersphere.base.domain.TestPlan;
+import io.metersphere.base.mapper.ApiScenarioMapper;
 import io.metersphere.base.mapper.TestPlanMapper;
 import io.metersphere.base.mapper.TestPlanReportMapper;
 import io.metersphere.tuhu.dto.TuhuCodeCoverageRateResultDTO;
@@ -20,9 +22,7 @@ import io.metersphere.commons.utils.LogUtil;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
@@ -43,6 +43,9 @@ public class TuhuService {
 
     @Resource
     private TestPlanReportMapper testPlanReportMapper;
+
+    @Resource
+    private ApiScenarioMapper apiScenarioMapper;
 
 
     public Integer addCodeCoverageRateMapping(CodeCoverageBindRequest codeCoverageBind) {
@@ -76,6 +79,10 @@ public class TuhuService {
             mappingList = tuhuCodeCoverageRateMappingMapper.queryByTestReportIds(testReportIds);
         } else {
             LogUtil.info("testPlanIds or testReportIds is null");
+            return null;
+        }
+
+        if (mappingList.isEmpty()) {
             return null;
         }
 
@@ -187,5 +194,24 @@ public class TuhuService {
 
         LogUtil.info("redirect report url: " + url);
         response.sendRedirect(response.encodeRedirectURL(url));
+    }
+
+    /***
+     * 根据测试场景id 查询其默认的 测试环境 数据
+     * @param ids： 测试场景id 集合
+     * @return
+     */
+    public Map<String, Map<String, String>> getDefaultEnvMap(Set<String> ids) {
+        Map<String, Map<String, String>> map = new HashMap<>();
+
+        List<ApiScenarioWithBLOBs> apiScenarios = apiScenarioMapper.selectByPrimaryKeys(ids);
+        for(ApiScenarioWithBLOBs apiScenario : apiScenarios) {
+            JSONObject jo = JSONObject.parseObject(apiScenario.getScenarioDefinition());
+            JSONObject env = jo.getJSONObject("environmentMap");
+            Map jsonMap = env.toJavaObject(Map.class);
+            map.put(apiScenario.getId(), jsonMap);
+        }
+
+        return map;
     }
 }
