@@ -4,6 +4,8 @@ import io.metersphere.base.domain.ApiScenario;
 import io.metersphere.base.domain.ApiScenarioExample;
 import io.metersphere.base.domain.ApiScenarioWithBLOBs;
 import java.util.List;
+import java.util.Set;
+
 import org.apache.ibatis.annotations.Param;
 
 public interface ApiScenarioMapper {
@@ -22,6 +24,8 @@ public interface ApiScenarioMapper {
     List<ApiScenario> selectByExample(ApiScenarioExample example);
 
     ApiScenarioWithBLOBs selectByPrimaryKey(String id);
+
+    List<ApiScenarioWithBLOBs> selectByPrimaryKeys(Set<String> ids);
 
     int updateByExampleSelective(@Param("record") ApiScenarioWithBLOBs record, @Param("example") ApiScenarioExample example);
 

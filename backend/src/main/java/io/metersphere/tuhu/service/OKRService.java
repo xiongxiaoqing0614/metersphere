@@ -165,6 +165,9 @@ public class OKRService {
                 existTeam.setScenarioCount(existTeam.getScenarioCount() + record.getScenarioCount());
             }
         }
+
+        // TODO: 查询 apps 的覆盖率情况 并设置
+
         return returnData;
     }
 
