@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="io.metersphere.tuhu.mapper.GraphMapper">
-    <select id="queryApiModuleNameAll" resultType="String">
-        SELECT distinct name
-        FROM api_module
-        WHERE level = 1
+    <select id="queryApiAppIdList" resultType="String">
+        SELECT distinct aamp.app_id
+        FROM api_definition ad
+        LEFT JOIN tuhu_appid_api_mapping aamp on ad.path = aamp.url
+        WHERE aamp.app_id is not null
     </select>
     <select id="countApiTotal" resultType="Integer">
         SELECT count(*)
@@ -85,12 +86,8 @@
     <select id="selectIdAndScenario" resultType="io.metersphere.base.domain.ApiScenarioWithBLOBs">
         SELECT id,scenario_definition FROM api_scenario WHERE status != 'Trash' limit #{start},#{step}
     </select>
-    <select id="selectEffectiveId" resultType="io.metersphere.base.domain.ApiDefinition">
-        select id,path
-        from api_definition
-        WHERE status != 'Trash' AND protocol = 'HTTP'
-    </select>
-    <select id="selectEffectiveTestCase" resultType="io.metersphere.base.domain.ApiTestCase">
-        select id,api_definition_id from api_test_case
+    <select id="queryAppIdList" resultType="String">
+        select app_id
+        from tuhu_all_appid
     </select>
 </mapper>

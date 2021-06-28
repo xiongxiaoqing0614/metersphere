@@ -37,4 +37,27 @@
         scenario_test_total = #{record.okrScenarioTestTotal,jdbcType=LONGVARCHAR}
         WHERE name = #{record.name,jdbcType=VARCHAR} AND workspace_id = #{record.wsId,jdbcType=VARCHAR}
     </update>
+    <select id="getAppIdCoverage" resultType="io.metersphere.tuhu.dto.AppIdCoverageDTO">
+        SELECT org1.name dep, org1.id dep_id, ws.name team, ws.id team_id,
+                appid_all.all_app_id_num, appid_part.part_app_id_num,
+                (appid_part.part_app_id_num/appid_all.all_app_id_num) percent
+        FROM organization org1
+        LEFT JOIN workspace ws on ws.organization_id = org1.id
+        LEFT JOIN (
+            SELECT workspace_id team_id, count(distinct app_id) all_app_id_num
+            FROM tuhu_all_appid
+            GROUP BY workspace_id) appid_all on appid_all.team_id = ws.id
+        LEFT JOIN (
+            SELECT ws.id team_id, count(distinct aamp.app_id) part_app_id_num
+            FROM organization org
+            LEFT JOIN workspace ws on ws.organization_id = org.id
+            LEFT JOIN project proj on proj.workspace_id = ws.id
+            LEFT JOIN api_definition api on api.project_id = proj.id
+            LEFT JOIN tuhu_appid_api_mapping aamp on api.path = aamp.url
+            WHERE proj.name is not null AND aamp.app_id is not null
+                AND proj.name not in ('审核2.0', 'test') AND not proj.name like '%demo%'
+                AND org.name not in ('MeterSphere demo test', '平台架构中心', '默认组织')
+                GROUP BY ws.id) appid_part on appid_part.team_id = ws.id
+        WHERE org1.name not in ('MeterSphere demo test', '平台架构中心', '默认组织')
+    </select>
 </mapper>

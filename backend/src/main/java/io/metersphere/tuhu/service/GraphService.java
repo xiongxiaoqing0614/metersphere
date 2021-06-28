@@ -56,7 +56,7 @@ public class GraphService {
     }
 
     private int countServiceNum(List<String> allAppIdList) {
-        List<String> items = graphMapper.queryApiModuleNameAll();
+        List<String> items = graphMapper.queryApiAppIdList();
         // 求两个Array的交集
         items.retainAll(allAppIdList);
         return items.size();
@@ -66,21 +66,10 @@ public class GraphService {
         long totalNum = 0;
         long inNum = 0;
 
-        List<String> allAppIdList = null;
-        Map<String, String> headers = new HashMap<>();
+        List<String> allAppIdList = graphMapper.queryAppIdList();
 
-        headers.put("third-party-token", "Metersphere_JKQO314qDoi8XYlG");
-        String rep = TuhuService.restApiGet(halleyServiceCountUrl, "", headers);
-        if (rep != null) {
-            JSONObject jo = (JSONObject)JSONObject.parse(rep);
-            if (jo.getBoolean("success")) {
-                JSONObject result = jo.getJSONObject("result");
-                totalNum = result.getInteger("count");
-                allAppIdList = result.getJSONArray("list").toJavaList(String.class);
-            }
-        }
-
-        if (totalNum > 0) {
+        if (allAppIdList != null && allAppIdList.size() > 0) {
+            totalNum = allAppIdList.size();
             inNum = this.countServiceNum(allAppIdList);
         }
 
@@ -309,4 +298,25 @@ public class GraphService {
         }
     }
 
+    public void syncBaseData() {
+        syncAllAppIdFromHalley();
+        syncAppIdMappingFromForseti();
+    }
+
+    public void syncAllAppIdFromHalley() {
+        Map<String, String> headers = new HashMap<>();
+
+        headers.put("third-party-token", "Metersphere_JKQO314qDoi8XYlG");
+        String rep = TuhuService.restApiGet(halleyServiceCountUrl, "", headers);
+        if (rep != null) {
+            JSONObject jo = (JSONObject)JSONObject.parse(rep);
+            if (jo.getBoolean("success")) {
+                JSONObject result = jo.getJSONObject("result");
+            }
+        }
+    }
+
+    public void syncAppIdMappingFromForseti() {
+
+    }
 }

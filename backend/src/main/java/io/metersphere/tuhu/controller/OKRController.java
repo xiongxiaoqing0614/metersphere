@@ -34,7 +34,6 @@ public class OKRController {
         return okrService.getOKRNames();
     }
 
-
     @PostMapping(value = "/updateOKR")
     public String update(@RequestBody OKRRequest request) {
         return okrService.updateOKR(request);

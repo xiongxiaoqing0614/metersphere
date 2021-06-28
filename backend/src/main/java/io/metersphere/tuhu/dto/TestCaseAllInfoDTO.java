@@ -10,4 +10,5 @@ public class TestCaseAllInfoDTO extends TestCaseSummaryDTO {
     private long p0APICountThisWeek;
     private long singleCountThisWeek;
     private long scenarioCountThisWeek;
+    private float appIdCoverage;
 }
