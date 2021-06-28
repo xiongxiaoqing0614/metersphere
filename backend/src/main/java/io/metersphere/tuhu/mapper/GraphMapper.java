@@ -10,7 +10,7 @@ import io.metersphere.base.domain.ApiTestCase;
 import java.util.List;
 
 public interface GraphMapper {
-    List<String> queryApiModuleNameAll();
+    List<String> queryApiAppIdList();
 
     Integer countApiTotal();
 
@@ -24,7 +24,5 @@ public interface GraphMapper {
 
     List<ApiScenarioWithBLOBs> selectIdAndScenario(long start, long step);
 
-    List<ApiDefinition> selectEffectiveId();
-
-    List<ApiTestCase> selectEffectiveTestCase();
+    List<String> queryAppIdList();
 }

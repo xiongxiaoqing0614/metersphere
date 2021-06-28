@@ -1,6 +1,7 @@
 package io.metersphere.tuhu.service;
 
 import io.metersphere.tuhu.controller.OKRRequest;
+import io.metersphere.tuhu.dto.AppIdCoverageDTO;
 import io.metersphere.tuhu.dto.TestCaseAllInfoDTO;
 import io.metersphere.tuhu.dto.TuhuOKRDTO;
 import io.metersphere.tuhu.dto.TuhuOKRDisplayDTO;
@@ -10,10 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.Calendar;
+import java.util.*;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -166,7 +164,15 @@ public class OKRService {
             }
         }
 
-        // TODO: 查询 apps 的覆盖率情况 并设置
+        List<AppIdCoverageDTO> appIdCoverageList = okrMapper.getAppIdCoverage();
+        Map<String, Float> appIdsCoverageMap = new HashMap<>();
+        for(AppIdCoverageDTO appIdCoverage : appIdCoverageList) {
+            appIdsCoverageMap.put(appIdCoverage.getTeamId(), appIdCoverage.getPercent());
+        }
+
+        returnData.forEach(item -> {
+            item.setAppIdCoverage(appIdsCoverageMap.get(item.getWsId()));
+        });
 
         return returnData;
     }

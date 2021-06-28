@@ -357,7 +357,7 @@ public class KanbanService {
 
     public JSONObject getGraphData() {
         JSONObject jo = new JSONObject();
-        final Object serviceInData = jo.put("serviceInData", graphService.getServiceInData());
+        jo.put("serviceInData", graphService.getServiceInData());
         jo.put("teamInData", graphService.getTeamInData());
         jo.put("apiDoneData", graphService.getApiDoneData());
         jo.put("apiPassRateData", graphService.getApiPassRateData());
