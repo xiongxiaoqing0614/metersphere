@@ -44,4 +44,36 @@
         LEFT JOIN api_definition c ON a.api_definition_id=c.id
         WHERE b.resource_id = #{sourceId}
     </select>
+    <select id="countByProjectIDAndCreateInThisWeek" resultType="io.metersphere.tuhu.dto.ProjectIdAndCount">
+        SELECT count(id) AS countNumber,project_id AS projectId FROM api_definition
+        WHERE create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp} AND `status` != 'Trash' group by project_id
+    </select>
+    <select id="countByProjectIDAndTagAndCreateInThisWeek" resultType="io.metersphere.tuhu.dto.ProjectIdAndCount">
+        SELECT count(id) AS countNumber ,project_id as projectId  FROM api_definition
+        WHERE tags like CONCAT('%', #{tag},'%')
+        AND create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp} AND `status` != 'Trash' group by project_id
+    </select>
+    <select id="countByProjectIDAndTagAndCreateInThisWeekP4" resultType="io.metersphere.tuhu.dto.ProjectIdAndCountGroup">
+        SELECT status AS groupField,count(id) AS countNumber ,project_id as projectId FROM api_definition  WHERE
+        (tags not like "%P4%" OR tags is null)
+        AND `status` != 'Trash' GROUP BY status,project_id
+    </select>
+    <select id="countByProjectIDAndTagAndCreateInThisWeekP0" resultType="io.metersphere.tuhu.dto.ProjectIdAndCountGroup">
+        SELECT status AS groupField,count(id) AS countNumber ,project_id as projectId FROM api_definition  WHERE
+          tags like "%P0%"
+        AND `status` != 'Trash' GROUP BY status,project_id
+    </select>
+
+    <select id="testCaseCountByProjectIDAndCreateInThisWeek" resultType="io.metersphere.tuhu.dto.ProjectIdAndCount">
+        SELECT count(testCase.id) AS countNumber,testCase.project_id AS projectId FROM api_test_case testCase
+        INNER JOIN  api_definition apiDef ON testCase.api_definition_id = apiDef.id
+        WHERE apiDef.status != "Trash"
+        AND testCase.create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp}  group by testCase.project_id
+    </select>
+    <select id="countByProjectIDAndCreatInThisWeek" resultType="io.metersphere.tuhu.dto.ProjectIdAndCount">
+        SELECT count(id) AS countNumber,project_id as projectId  FROM api_scenario
+        WHERE  status != 'Trash'
+        AND create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp} group by project_id
+    </select>
+
 </mapper>

@@ -2,6 +2,7 @@ package io.metersphere.api.dto.datacount.response;
 
 import io.metersphere.api.dto.datacount.ApiDataCountResult;
 import io.metersphere.api.dto.scenario.request.RequestType;
+import io.metersphere.tuhu.dto.ProjectIdAndCountGroup;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -151,8 +152,25 @@ public class ApiDataCountDTO {
      * @param countResultList 查询参数
      */
     public void countStatus(List<ApiDataCountResult> countResultList){
-        for (ApiDataCountResult countResult :
-                countResultList) {
+        for (ApiDataCountResult countResult :countResultList) {
+            if("Underway".equals(countResult.getGroupField())){
+                //运行中
+                this.runningCount+= countResult.getCountNumber();
+            }else if("Completed".equals(countResult.getGroupField())){
+                //已完成
+                this.finishedCount+= countResult.getCountNumber();
+            }else if("Prepare".equals(countResult.getGroupField())){
+                this.notStartedCount+= countResult.getCountNumber();
+            }
+        }
+    }
+
+    /**
+     * 对Status视角对查询结果进行统计
+     * @param countResultList 查询参数
+     */
+    public void countStatusV2(List<ProjectIdAndCountGroup> countResultList){
+        for (ProjectIdAndCountGroup countResult :countResultList) {
             if("Underway".equals(countResult.getGroupField())){
                 //运行中
                 this.runningCount+= countResult.getCountNumber();
