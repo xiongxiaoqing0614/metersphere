@@ -1,6 +1,7 @@
 package io.metersphere.tuhu.controller;
 
 import io.metersphere.tuhu.dto.TestCaseAllInfoDTO;
+import io.metersphere.tuhu.service.GraphService;
 import io.metersphere.tuhu.service.KanbanService;
 import io.metersphere.service.CheckPermissionService;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,9 @@ public class KanbanController {
 
     @Resource
     private KanbanService kanbanService;
+
+    @Resource
+    private GraphService graphService;
 
     @Resource
     private CheckPermissionService checkPermissionService;
@@ -33,4 +37,9 @@ public class KanbanController {
         return kanbanService.getGraphData();
     }
 
+    @GetMapping("/sync/basedata")
+    public String syncData() {
+        graphService.syncBaseData();
+        return "done";
+    }
 }

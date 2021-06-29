@@ -171,7 +171,10 @@ public class OKRService {
         }
 
         returnData.forEach(item -> {
-            item.setAppIdCoverage(appIdsCoverageMap.get(item.getWsId()));
+            Float percent = appIdsCoverageMap.get(item.getWsId());
+            if (percent != null) {
+                item.setAppIdCoverage(percent);
+            }
         });
 
         return returnData;
