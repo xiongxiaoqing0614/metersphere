@@ -3,10 +3,7 @@ package io.metersphere.tuhu.mapper;
 
 import io.metersphere.api.dto.datacount.ApiDataCountResult;
 import io.metersphere.api.dto.datacount.ExecutedCaseInfoResult;
-import io.metersphere.base.domain.ApiDefinition;
 import io.metersphere.base.domain.ApiScenarioWithBLOBs;
-import io.metersphere.base.domain.ApiTestCase;
-
 import java.util.List;
 
 public interface GraphMapper {

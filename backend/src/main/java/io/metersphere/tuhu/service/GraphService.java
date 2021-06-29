@@ -10,7 +10,10 @@ import io.metersphere.base.domain.ApiScenarioWithBLOBs;
 import io.metersphere.base.domain.ApiTestCase;
 import io.metersphere.commons.utils.DateUtils;
 import io.metersphere.tuhu.dto.ApiScenarioUrlAndIdDTO;
+import io.metersphere.tuhu.dto.TuhuAppIdApiMappingDTO;
 import io.metersphere.tuhu.mapper.GraphMapper;
+import io.metersphere.tuhu.mapper.TuhuAllAppIdMapper;
+import io.metersphere.tuhu.mapper.TuhuAppIdApiMappingMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,8 +24,11 @@ import java.util.*;
 @Transactional(rollbackFor = Exception.class)
 public class GraphService {
 
-    @Value("${halley_service_count_url}")
-    private String halleyServiceCountUrl;
+    @Value("${halley.service.url}")
+    private String halleyServiceUrl;
+
+    @Value("${forseti.service.url}")
+    private String forsetiServiceUrl;
 
     @Resource
     private TuhuService tuhuService;
@@ -30,6 +36,11 @@ public class GraphService {
     @Resource
     private GraphMapper graphMapper;
 
+    @Resource
+    private TuhuAllAppIdMapper tuhuAllAppIdMapper;
+
+    @Resource
+    private TuhuAppIdApiMappingMapper tuhuAppIdApiMappingMapper;
 
     private JSONArray fillData(long totalNum, long inNum, String tip) {
         long outNum = totalNum - inNum;
@@ -306,17 +317,49 @@ public class GraphService {
     public void syncAllAppIdFromHalley() {
         Map<String, String> headers = new HashMap<>();
 
+        tuhuAllAppIdMapper.queryOrgAndWsInfoByName("orgName", "wsName");
         headers.put("third-party-token", "Metersphere_JKQO314qDoi8XYlG");
-        String rep = TuhuService.restApiGet(halleyServiceCountUrl, "", headers);
+        String rep = TuhuService.restApiGet(halleyServiceUrl, "", headers);
         if (rep != null) {
             JSONObject jo = (JSONObject)JSONObject.parse(rep);
             if (jo.getBoolean("success")) {
                 JSONObject result = jo.getJSONObject("result");
+                JSONArray list = result.getJSONArray("list");
+                SyncService syncService = new SyncService();
+                for (int i = 0; i < list.size(); i++) {
+                    JSONObject item = list.getJSONObject(i);
+                    syncService.convertItem(item);
+                }
+                syncService.updateAppId(tuhuAllAppIdMapper);
             }
         }
     }
 
     public void syncAppIdMappingFromForseti() {
-
+        String rep = TuhuService.restApiGet(forsetiServiceUrl, "", new HashMap<>());
+        if (rep != null) {
+            JSONObject jo = JSONObject.parseObject(rep);
+            if (jo.getBoolean("success")) {
+                JSONObject data = jo.getJSONObject("data");
+                JSONObject rels = data.getJSONObject("rels");
+                Iterator iter = rels.keySet().iterator();
+                while(iter.hasNext()){
+                    String appId = (String) iter.next();
+                    JSONArray apis = rels.getJSONArray(appId);
+                    if(apis.size()>0){
+                        List<TuhuAppIdApiMappingDTO> list = new ArrayList<>();
+                        for(int i = 0; i < apis.size(); i++){
+                            TuhuAppIdApiMappingDTO temp = new TuhuAppIdApiMappingDTO();
+                            temp.setId(UUID.randomUUID().toString());
+                            temp.setAppId(appId);
+                            temp.setUrl(apis.getString(i));
+                            list.add(temp);
+                        }
+                        tuhuAppIdApiMappingMapper.deleteByAppId(appId);
+                        tuhuAppIdApiMappingMapper.addByAppId(list);
+                    }
+                }
+            }
+        }
     }
 }

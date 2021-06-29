@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.metersphere.tuhu.mapper.TuhuAppIdApiMappingMapper">
+    <delete id="deleteByAppId" parameterType="String">
+        DELETE FROM tuhu_appid_api_mapping
+        WHERE app_id = #{appId}
+    </delete>
+    <insert id="addByAppId" parameterType="io.metersphere.tuhu.dto.TuhuAppIdApiMappingDTO">
+        INSERT INTO tuhu_appid_api_mapping (`id`, `url`, `app_id`)
+        VALUES
+        <foreach collection ="list" item="item" separator =",">
+            (#{item.id,jdbcType=VARCHAR}, #{item.url,jdbcType=VARCHAR},
+            #{item.appId,jdbcType=VARCHAR})
+        </foreach>
+    </insert>
+</mapper>
