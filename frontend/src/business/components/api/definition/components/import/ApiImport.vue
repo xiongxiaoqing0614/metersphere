@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :close-on-click-modal="false" :title="$t('api_test.api_import.title')" width="30%"
+  <el-dialog :close-on-click-modal="false" :title="$t('api_test.api_import.title')" width="90%"
              :visible.sync="visible" class="api-import" v-loading="result.loading" @close="close"
              :destroy-on-close="true">
 
@@ -23,7 +23,7 @@
 
     <el-form :model="formData" :rules="rules" label-width="100px" v-loading="result.loading" ref="form">
       <el-row>
-        <el-col :span="11">
+        <el-col :span="6">
           <el-form-item :label="$t('commons.import_module')" prop="moduleId">
             <ms-select-tree size="small" :data="moduleOptions" :defaultKey="formData.moduleId" @getValue="setModule" :obj="moduleObj" clearable checkStrictly/>
           </el-form-item>
@@ -53,17 +53,30 @@
           <el-form-item :label="'Swagger URL'" prop="swaggerUrl" class="swagger-url">
             <el-input size="small" v-model="formData.swaggerUrl" clearable show-word-limit/>
           </el-form-item>
-          <el-form-item>
+        </el-col>
+                <el-col :span="14" v-show="isForseti" style="margin-top: 40px;width:70%;">
+          <el-form-item :label="'Tuhu AppID'" prop="tuhuAppId" class="tuhu-appid">
+              <el-select size="medium" clearable filterable v-model="formData.appId" :placeholder="$t('api_test.api_import.forseti_select')" @visible-change="getAppIdList()" multiple style="width:100%;" >
+                <el-option
+                  v-for="item in formData.appIdList"
+                  :key="item"
+                  :label="item"
+                  :value="item">
+                </el-option>
+              </el-select>
+            <!--el-input size="small" v-model="formData.appId" clearable show-word-limit/-->
+          </el-form-item>
+          <!-- <el-form-item>
             <el-switch
               v-model="swaggerSynchronization"
               @click.native="scheduleEdit"
-            >
+              >
             </el-switch>
             <span style="color: #6C317C;cursor: pointer;font-weight: bold;margin-left: 10px" @click="scheduleEditByText">{{$t('api_test.api_import.timing_synchronization')}}</span>
-          </el-form-item>
+          </el-form-item> -->
         </el-col>
         <el-col :span="12"
-                v-if="selectedPlatformValue != 'Swagger2' || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEnable)">
+                v-if="(selectedPlatformValue != 'Forseti' && selectedPlatformValue != 'Swagger2') || (selectedPlatformValue == 'Swagger2' && !swaggerUrlEnable)">
           <el-upload
             class="api-upload"
             drag
@@ -87,23 +100,21 @@
       <div>
         <span>{{ $t('api_test.api_import.tip') }}：{{ selectedPlatform.tip }}</span>
       </div>
-      <div>
+      <div v-if="selectedPlatformValue != 'Forseti'">
         <span>{{ $t('api_test.api_import.export_tip') }}：{{ selectedPlatform.exportTip }}</span>
       </div>
     </div>
-    <schedule-import ref="scheduleEdit"></schedule-import>
   </el-dialog>
 </template>
 
 <script>
   import MsDialogFooter from "../../../../common/components/MsDialogFooter";
-  import {listenGoBack, removeGoBackListener,hasLicense} from "@/common/js/utils";
-  import ScheduleImport from "@/business/components/api/definition/components/import/ImportScheduleEdit";
+  import {listenGoBack, removeGoBackListener, hasLicense, getCurrentProjectID} from "@/common/js/utils";
   import MsSelectTree from "../../../../common/select-tree/SelectTree";
 
   export default {
     name: "ApiImport",
-    components: {ScheduleImport, MsDialogFooter, MsSelectTree},
+    components: {MsDialogFooter, MsSelectTree},
     props: {
       saved: {
         type: Boolean,
@@ -120,21 +131,22 @@
       return {
         visible: false,
         swaggerUrlEnable: false,
-        swaggerSynchronization: false,
         showEnvironmentSelect: true,
         showXpackCompnent:false,
         moduleObj: {
           id: 'id',
           label: 'name',
         },
-        modeOptions: [{
-          id: 'fullCoverage',
-          name: this.$t('commons.cover')
-        },
+        modeOptions: [
+          {
+            id: 'fullCoverage',
+            name: this.$t('commons.cover')
+          },
           {
             id: 'incrementalMerge',
             name: this.$t('commons.not_cover')
-          }],
+          }
+        ],
         protocol: "",
         platforms: [
           {
@@ -145,6 +157,17 @@
             suffixes: new Set(['json'])
           },
         ],
+        forsetiPlanform:{
+          name: 'Forseti',
+          value: 'Forseti',
+          tip: this.$t('api_test.api_import.forseti_tip'),
+          suffixes: new Set(['json'])
+        },
+        jmeterTuhuPlanform: {
+          name: 'JmeterTuhu',
+          value: 'JmeterTuhu',
+          suffixes: new Set(['jmx'])
+        },
         postmanPlanform: {
           name: 'Postman',
           value: 'Postman',
@@ -184,6 +207,7 @@
           swaggerUrl: '',
           modeId: this.$t('commons.not_cover'),
           moduleId: '',
+          appId: ''
         },
         rules: {
           modeId: [
@@ -194,15 +218,20 @@
         fileList: []
       }
     },
-    activated() {
-      this.selectedPlatform = this.platforms[0];
-    },
     created() {
       this.platforms.push(this.postmanPlanform);
       this.platforms.push(this.swaggerPlanform);
       this.platforms.push(this.harPlanform);
+      this.platforms.push(this.forsetiPlanform);
+      this.platforms.push(this.jmeterTuhuPlanform);
+      this.selectedPlatform = this.platforms[0];
     },
     watch: {
+      moduleOptions() {
+        if (this.moduleOptions.length > 0) {
+          this.formData.moduleId = this.moduleOptions[0].id;
+        }
+      },
       selectedPlatformValue() {
         for (let i in this.platforms) {
           if (this.platforms[i].value === this.selectedPlatformValue) {
@@ -210,12 +239,20 @@
             break;
           }
         }
+        if (this.selectedPlatformValue == "JmeterTuhu") {
+          this.modeOptions = [{id: 'incrementalMerge',name: this.$t('commons.not_cover')}];
+        }
+        else {
+          this.modeOptions = [{id: 'fullCoverage',name: this.$t('commons.cover')},{id: 'incrementalMerge',name: this.$t('commons.not_cover')}];
+        }
       },
       propotal() {
         let postmanIndex = this.platforms.indexOf(this.postmanPlanform);
         let swaggerPlanformIndex = this.platforms.indexOf(this.swaggerPlanform);
         let harPlanformIndex = this.platforms.indexOf(this.harPlanform);
         let esbPlanformIndex = this.platforms.indexOf(this.esbPlanform);
+        let forsetiPlanformIndex = this.platforms.indexOf(this.forsetiPlanform);
+        let jmeterTuhuPlanformIndex = this.platforms.indexOf(this.jmeterTuhuPlanform);
         if (postmanIndex >= 0) {
           this.platforms.splice(this.platforms.indexOf(this.postmanPlanform), 1);
         }
@@ -228,6 +265,12 @@
         if (esbPlanformIndex >= 0) {
           this.platforms.splice(this.platforms.indexOf(this.esbPlanform), 1);
         }
+        if(forsetiPlanformIndex>=0){
+          this.platforms.splice(this.platforms.indexOf(this.forsetiPlanform),1);
+        }
+        if(jmeterTuhuPlanformIndex>=0){
+          this.platforms.splice(this.platforms.indexOf(this.jmeterTuhuPlanform),1);
+        }
         if (this.propotal === 'TCP') {
           if(hasLicense()){
             this.platforms.push(this.esbPlanform);
@@ -237,11 +280,19 @@
           this.platforms.push(this.postmanPlanform);
           this.platforms.push(this.swaggerPlanform);
           this.platforms.push(this.harPlanform);
+          this.platforms.push(this.forsetiPlanform);
+          this.platforms.push(this.jmeterTuhuPlanform);
           return false;
         }
       }
     },
     computed: {
+      isJMeterTuhu() {
+        return this.selectedPlatformValue === 'JmeterTuhu';
+      },
+      isForseti() {
+        return this.selectedPlatformValue === 'Forseti';
+      },
       isSwagger2() {
         return this.selectedPlatformValue === 'Swagger2';
       },
@@ -255,23 +306,10 @@
         return this.model === 'scenario';
       },
       projectId() {
-        return this.$store.state.projectId
+        return getCurrentProjectID();
       },
     },
     methods: {
-      scheduleEdit() {
-        if (!this.formData.swaggerUrl) {
-          this.$warning(this.$t('commons.please_fill_path'));
-          this.swaggerSynchronization = !this.swaggerSynchronization
-        } else {
-          if (this.swaggerSynchronization) {
-            this.$refs.scheduleEdit.open(this.buildParam());
-          }
-        }
-      },
-      scheduleEditByText() {
-        this.$refs.scheduleEdit.open(this.buildParam());
-      },
       open(module) {
         this.currentModule = module;
         this.visible = true;
@@ -307,8 +345,7 @@
       save() {
         this.$refs.form.validate(valid => {
           if (valid) {
-            if ((this.selectedPlatformValue != 'Swagger2' || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEnable)) && !this.formData.file) {
-              this.$warning(this.$t('commons.please_upload'));
+          if (((this.selectedPlatformValue != 'Forseti' && this.selectedPlatformValue != 'Swagger2') || (this.selectedPlatformValue == 'Swagger2' && !this.swaggerUrlEnable)) && !this.formData.file) {              this.$warning(this.$t('commons.please_upload'));
               return;
             }
             let url = '/api/definition/import';
@@ -345,7 +382,23 @@
         if (!this.swaggerUrlEnable) {
           param.swaggerUrl = undefined;
         }
+        //Forseti多选框数据处理
+        if(this.selectedPlatformValue === 'Forseti') {
+					let s = [];
+					for(var i = 0; i < this.formData.appId.length; i++) {
+						s.push(this.formData.appId[i].split(":")[0]);
+					}
+					param.appId = s.join(",");
+        }else{
+          param.appId = "";
+        }
+
         return param;
+      },
+      getAppIdList() {
+        this.$get("https://shop-gateway-inner.tuhu.work/int-spring-arch-forseti-server/service/apps", response => {
+          this.$set(this.formData, "appIdList", response.data);
+        })
       },
       close() {
         this.formData = {

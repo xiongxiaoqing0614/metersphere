@@ -3,15 +3,16 @@
     <ms-main-container>
       <el-card class="table-card" v-loading="result.loading">
         <template v-slot:header>
-          <ms-table-header :is-tester-permission="true" :condition.sync="condition" @search="search"
+          <ms-table-header :condition.sync="condition" @search="search"
                            :title="$t('commons.test')"
+                           :create-permission="['PROJECT_PERFORMANCE_TEST:READ+CREATE']"
                            @create="create" :createTip="$t('load_test.create')"/>
         </template>
 
         <el-table border :data="tableData" class="adjust-table test-content"
                   @sort-change="sort"
                   @filter-change="filter"
-                  @row-click="link"
+                  :height="screenHeight"
         >
           <el-table-column
             prop="num"
@@ -22,14 +23,10 @@
           <el-table-column
             prop="name"
             :label="$t('commons.name')"
-            width="150"
             show-overflow-tooltip>
-          </el-table-column>
-          <el-table-column
-            prop="projectName"
-            :label="$t('load_test.project_name')"
-            width="150"
-            show-overflow-tooltip>
+            <template v-slot:default="scope">
+              <span @click="link(scope.row)" style="cursor: pointer;">{{ scope.row.name }}</span>
+            </template>
           </el-table-column>
           <el-table-column
             prop="userName"
@@ -37,11 +34,10 @@
             :filters="userFilters"
             column-key="user_id"
             :label="$t('load_test.user_name')"
-            width="150"
             show-overflow-tooltip>
           </el-table-column>
           <el-table-column
-            width="250"
+            width="200"
             sortable
             prop="createTime"
             :label="$t('commons.create_time')">
@@ -50,12 +46,23 @@
             </template>
           </el-table-column>
           <el-table-column
-            width="250"
+            width="200"
             sortable
             prop="updateTime"
             :label="$t('commons.update_time')">
             <template v-slot:default="scope">
               <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="reportCount"
+            :label="$t('report.load_test_report')"
+            width="150">
+            <template v-slot:default="scope">
+              <el-link v-if="scope.row.reportCount > 0" @click="reports(scope.row)">
+                {{ scope.row.reportCount }}
+              </el-link>
+              <span v-else> {{ scope.row.reportCount }}</span>
             </template>
           </el-table-column>
           <el-table-column
@@ -71,7 +78,9 @@
             width="150"
             :label="$t('commons.operating')">
             <template v-slot:default="scope">
-              <ms-table-operators :buttons="buttons" :row="scope.row"/>
+              <div>
+                <ms-table-operators :buttons="buttons" :row="scope.row"/>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -89,11 +98,9 @@ import MsContainer from "../../common/components/MsContainer";
 import MsMainContainer from "../../common/components/MsMainContainer";
 import MsPerformanceTestStatus from "./PerformanceTestStatus";
 import MsTableOperators from "../../common/components/MsTableOperators";
-import {getCurrentProjectID} from "@/common/js/utils";
+import {getCurrentProjectID, getCurrentWorkspaceId} from "@/common/js/utils";
 import MsTableHeader from "../../common/components/MsTableHeader";
 import {TEST_CONFIGS} from "../../common/components/search/search-components";
-import {LIST_CHANGE, PerformanceEvent} from "@/business/components/common/head/ListEvent";
-import {WORKSPACE_ID} from "@/common/js/constants";
 import {_filter, _sort} from "@/common/js/tableUtils";
 
 export default {
@@ -109,7 +116,6 @@ export default {
   data() {
     return {
       result: {},
-      queryPath: "/performance/list",
       deletePath: "/performance/delete",
       condition: {
         components: TEST_CONFIGS
@@ -125,13 +131,16 @@ export default {
       buttons: [
         {
           tip: this.$t('commons.edit'), icon: "el-icon-edit",
-          exec: this.handleEdit
+          exec: this.handleEdit,
+          permissions: ['PROJECT_PERFORMANCE_TEST:READ+EDIT']
         }, {
           tip: this.$t('commons.copy'), icon: "el-icon-copy-document", type: "success",
-          exec: this.handleCopy
+          exec: this.handleCopy,
+          permissions: ['PROJECT_PERFORMANCE_TEST:READ+COPY']
         }, {
           tip: this.$t('commons.delete'), icon: "el-icon-delete", type: "danger",
-          exec: this.handleDelete
+          exec: this.handleDelete,
+          permissions: ['PROJECT_PERFORMANCE_TEST:READ+DELETE']
         }
       ],
       statusFilters: [
@@ -143,10 +152,14 @@ export default {
         {text: 'Error', value: 'Error'}
       ],
       userFilters: [],
-    }
+      screenHeight: 'calc(100vh - 295px)',
+    };
   },
   watch: {
     '$route'(to) {
+      if (to.name !== 'perPlan') {
+        return;
+      }
       this.projectId = to.params.projectId;
       this.initTableData();
     }
@@ -158,24 +171,26 @@ export default {
   },
   methods: {
     getMaintainerOptions() {
-      let workspaceId = localStorage.getItem(WORKSPACE_ID);
-      this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
+      let workspaceId = getCurrentWorkspaceId();
+      this.$post('/user/project/member/tester/list', {projectId: getCurrentProjectID()}, response => {
         this.userFilters = response.data.map(u => {
-          return {text: u.name, value: u.id}
+          return {text: u.name, value: u.id};
         });
       });
     },
     initTableData() {
-      if (this.projectId !== 'all') {
-        this.condition.projectId = this.projectId;
-        if (!this.condition.projectId) {
-          return;
-        }
-      }
-      this.result = this.$post(this.buildPagePath(this.queryPath), this.condition, response => {
+      this.condition.projectId = getCurrentProjectID();
+      this.condition.workspaceId = getCurrentWorkspaceId();
+      this.result = this.$post(this.buildPagePath('/performance/list'), this.condition, response => {
         let data = response.data;
         this.total = data.itemCount;
         this.tableData = data.listObject;
+        // 查询报告数量
+        this.tableData.forEach(test => {
+          this.result = this.$get('/performance/test/report-count/' + test.id, response => {
+            this.$set(test, 'reportCount', response.data);
+          });
+        });
       });
     },
     search(combine) {
@@ -190,7 +205,7 @@ export default {
     handleEdit(test) {
       this.$router.push({
         path: '/performance/test/edit/' + test.id,
-      })
+      });
     },
     handleCopy(test) {
       this.result = this.$post("/performance/copy", {id: test.id}, () => {
@@ -216,8 +231,6 @@ export default {
       this.result = this.$post(this.deletePath, data, () => {
         this.$success(this.$t('commons.delete_success'));
         this.initTableData();
-        // 发送广播，刷新 head 上的最新列表
-        PerformanceEvent.$emit(LIST_CHANGE);
       });
     },
     sort(column) {
@@ -231,7 +244,12 @@ export default {
     link(row) {
       this.$router.push({
         path: '/performance/test/edit/' + row.id,
-      })
+      });
+    },
+    reports(row) {
+      this.$router.push({
+        path: '/performance/report/' + row.id,
+      });
     },
     create() {
       if (!getCurrentProjectID()) {
@@ -241,7 +259,7 @@ export default {
       this.$router.push('/performance/test/create');
     }
   }
-}
+};
 </script>
 
 <style scoped>
@@ -256,7 +274,4 @@ export default {
   float: right;
 }
 
-.el-table {
-  cursor: pointer;
-}
 </style>

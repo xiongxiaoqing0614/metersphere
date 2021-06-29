@@ -1,6 +1,7 @@
 package io.metersphere.track.issue;
 
-import io.metersphere.base.domain.ServiceIntegration;
+import com.alibaba.fastjson.JSONArray;
+import io.metersphere.base.domain.*;
 import io.metersphere.base.mapper.IssuesMapper;
 import io.metersphere.base.mapper.TestCaseIssuesMapper;
 import io.metersphere.base.mapper.ext.ExtIssuesMapper;
@@ -11,9 +12,11 @@ import io.metersphere.commons.utils.EncryptUtils;
 import io.metersphere.commons.utils.LogUtil;
 import io.metersphere.commons.utils.SessionUtils;
 import io.metersphere.controller.request.IntegrationRequest;
+import io.metersphere.dto.CustomFieldItemDTO;
 import io.metersphere.service.IntegrationService;
 import io.metersphere.service.ProjectService;
 import io.metersphere.track.request.testcase.IssuesRequest;
+import io.metersphere.track.request.testcase.IssuesUpdateRequest;
 import io.metersphere.track.service.TestCaseService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -22,10 +25,15 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLContext;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 public abstract class AbstractIssuePlatform implements IssuesPlatform {
 
@@ -41,6 +49,12 @@ public abstract class AbstractIssuePlatform implements IssuesPlatform {
     protected RestTemplate restTemplateIgnoreSSL;
 
     protected String testCaseId;
+    protected String projectId;
+    protected String key;
+
+    public String getKey() {
+        return key;
+    }
 
     static {
         try {
@@ -69,6 +83,7 @@ public abstract class AbstractIssuePlatform implements IssuesPlatform {
         this.issuesMapper = CommonBeanFactory.getBean(IssuesMapper.class);
         this.extIssuesMapper = CommonBeanFactory.getBean(ExtIssuesMapper.class);
         this.testCaseId = issuesRequest.getTestCaseId();
+        this.projectId = issuesRequest.getProjectId();
         //
         this.restTemplateIgnoreSSL = restTemplate;
     }
@@ -112,4 +127,66 @@ public abstract class AbstractIssuePlatform implements IssuesPlatform {
         return StringUtils.isNotBlank(integration.getId());
     }
 
+    protected void insertTestCaseIssues(String issuesId, String caseId) {
+        if (StringUtils.isNotBlank(caseId)) {
+            TestCaseIssues testCaseIssues = new TestCaseIssues();
+            testCaseIssues.setId(UUID.randomUUID().toString());
+            testCaseIssues.setIssuesId(issuesId);
+            testCaseIssues.setTestCaseId(caseId);
+            testCaseIssuesMapper.insert(testCaseIssues);
+        }
+    }
+
+    protected void handleIssueUpdate(IssuesUpdateRequest request) {
+        request.setUpdateTime(System.currentTimeMillis());
+        issuesMapper.updateByPrimaryKeySelective(request);
+        handleTestCaseIssues(request);
+    }
+
+    protected void handleTestCaseIssues(IssuesUpdateRequest issuesRequest) {
+        String issuesId = issuesRequest.getId();
+        if (StringUtils.isNotBlank(issuesRequest.getTestCaseId())) {
+          insertTestCaseIssues(issuesId, issuesRequest.getTestCaseId());
+      } else {
+          List<String> testCaseIds = issuesRequest.getTestCaseIds();
+          TestCaseIssuesExample example = new TestCaseIssuesExample();
+          example.createCriteria().andIssuesIdEqualTo(issuesId);
+          testCaseIssuesMapper.deleteByExample(example);
+          if (!CollectionUtils.isEmpty(testCaseIds)) {
+              testCaseIds.forEach(caseId -> {
+                  insertTestCaseIssues(issuesId, caseId);
+              });
+          }
+      }
+    }
+
+    protected void insertIssuesWithoutContext(String id, IssuesUpdateRequest issuesRequest) {
+        IssuesWithBLOBs issues = new IssuesWithBLOBs();
+        issues.setId(id);
+        issues.setPlatform(issuesRequest.getPlatform());
+        issues.setProjectId(issuesRequest.getProjectId());
+        issues.setCustomFields(issuesRequest.getCustomFields());
+        issues.setCreator(issuesRequest.getCreator());
+        issues.setCreateTime(System.currentTimeMillis());
+        issues.setUpdateTime(System.currentTimeMillis());
+        issues.setNum(getNextNum(issuesRequest.getProjectId()));
+        issues.setResourceId(issuesRequest.getResourceId());
+        issuesMapper.insert(issues);
+    }
+
+    protected int getNextNum(String projectId) {
+        Issues issue = extIssuesMapper.getNextNum(projectId);
+        if (issue == null || issue.getNum() == null) {
+            return 100001;
+        } else {
+            return Optional.of(issue.getNum() + 1).orElse(100001);
+        }
+    }
+
+    protected List<CustomFieldItemDTO> getCustomFields(String customFieldsStr) {
+        if (StringUtils.isNotBlank(customFieldsStr)) {
+            return JSONArray.parseArray(customFieldsStr, CustomFieldItemDTO.class);
+        }
+        return new ArrayList<>();
+    }
 }

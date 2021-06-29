@@ -4,11 +4,12 @@
              :title="$t('load_test.exist_jmx')" width="70%"
              :visible.sync="loadFileVisible">
 
-    <ms-table-header :is-tester-permission="true" title="" :condition.sync="condition" @search="getProjectFiles" :show-create="false">
+    <ms-table-header title="" :condition.sync="condition" @search="getProjectFiles"
+                     :show-create="false">
       <template v-slot:button>
         <el-upload
           style="margin-bottom: 10px;"
-          accept=".jmx,.jar,.csv,.json,.pdf,.jpg,.png,.jpeg,.doc,.docx,.xlsx"
+          accept=".jmx,.jar,.csv,.json,.pdf,.jpg,.png,.jpeg,.doc,.docx,.xlsx,.txt"
           action=""
           :limit="fileNumLimit"
           multiple
@@ -17,7 +18,7 @@
           :http-request="handleUpload"
           :on-exceed="handleExceed"
         >
-          <ms-table-button :is-tester-permission="true" icon="el-icon-upload2"
+          <ms-table-button icon="el-icon-upload2"
                            :content="$t('load_test.upload_file')"/>
         </el-upload>
       </template>
@@ -48,26 +49,26 @@
         <template v-slot:default="scope">
           <el-upload
             style="width: 38px; float: left;"
-            accept=".jmx,.jar,.csv,.json,.pdf,.jpg,.png,.jpeg,.doc,.docx,.xlsx"
+            accept=".jmx,.jar,.csv,.json,.pdf,.jpg,.png,.jpeg,.doc,.docx,.xlsx,.txt"
             action=""
             :limit="fileNumLimit"
             :show-file-list="false"
             :before-upload="beforeUploadFile"
             :http-request="handleUpdateUpload"
-            :on-exceed="handleExceed"
-          >
-            <el-button circle
-                       type="success"
-                       :disabled="!checkoutTestManagerOrTestUser()"
-                       icon="el-icon-edit"
-                       @click="handleEdit(scope.row)"
-                       size="mini"/>
+            :on-exceed="handleExceed">
+            <el-tooltip effect="dark" :content="$t('project.upload_file_again')" placement="bottom">
+              <el-button circle
+                         type="success"
+                         icon="el-icon-upload"
+                         @click="handleEdit(scope.row)"
+                         size="mini"/>
+            </el-tooltip>
           </el-upload>
-          <ms-table-operator-button :is-tester-permission="true"
-                                    icon="el-icon-delete"
-                                    type="danger"
-                                    :tip="$t('commons.delete')"
-                                    @exec="handleDelete(scope.row)">
+          <ms-table-operator-button
+            icon="el-icon-delete"
+            type="danger"
+            :tip="$t('commons.delete')"
+            @exec="handleDelete(scope.row)">
           </ms-table-operator-button>
         </template>
       </el-table-column>
@@ -82,7 +83,7 @@
 import MsTablePagination from "@/business/components/common/pagination/TablePagination";
 import MsTableButton from "@/business/components/common/components/MsTableButton";
 import MsDialogFooter from "@/business/components/common/components/MsDialogFooter";
-import {checkoutTestManagerOrTestUser, getCurrentProjectID} from "@/common/js/utils";
+import {getCurrentProjectID} from "@/common/js/utils";
 import MsTableOperatorButton from "@/business/components/common/components/MsTableOperatorButton";
 import {Message} from "element-ui";
 import MsTableHeader from "@/business/components/common/components/MsTableHeader";
@@ -90,7 +91,14 @@ import MsTableSearchBar from "@/business/components/common/components/MsTableSea
 
 export default {
   name: "MsResourceFiles",
-  components: {MsTableSearchBar, MsTableHeader, MsTableOperatorButton, MsDialogFooter, MsTableButton, MsTablePagination},
+  components: {
+    MsTableSearchBar,
+    MsTableHeader,
+    MsTableOperatorButton,
+    MsDialogFooter,
+    MsTableButton,
+    MsTablePagination
+  },
   data() {
     return {
       loadFileVisible: false,
@@ -105,10 +113,9 @@ export default {
       condition: {},
       projectId: getCurrentProjectID(),
       currentRow: null,
-    }
+    };
   },
   methods: {
-    checkoutTestManagerOrTestUser,
     open(project) {
       this.projectId = project.id;
       this.loadFileVisible = true;
@@ -123,7 +130,7 @@ export default {
         let data = res.data;
         this.total = data.itemCount;
         this.existFiles = data.listObject;
-      })
+      });
     },
     fileValidator(file) {
       /// todo: 是否需要对文件内容和大小做限制
@@ -140,7 +147,7 @@ export default {
     handleUpload(uploadResources) {
       let file = uploadResources.file;
       let formData = new FormData();
-      let url = '/project/upload/files/' + this.projectId
+      let url = '/project/upload/files/' + this.projectId;
       formData.append("file", file);
       let options = {
         method: 'POST',
@@ -149,7 +156,7 @@ export default {
         headers: {
           'Content-Type': undefined
         }
-      }
+      };
       this.$request(options, (response) => {
         this.$success(this.$t('commons.save_success'));
         this.getProjectFiles();
@@ -167,7 +174,7 @@ export default {
       }
 
       let formData = new FormData();
-      let url = '/project/update/file/' + this.currentRow.id
+      let url = '/project/update/file/' + this.currentRow.id;
       formData.append("file", file);
       let options = {
         method: 'POST',
@@ -176,7 +183,7 @@ export default {
         headers: {
           'Content-Type': undefined
         }
-      }
+      };
       this.$request(options, (response) => {
         this.$success(this.$t('commons.save_success'));
         this.currentRow = null;
@@ -205,7 +212,7 @@ export default {
       });
     }
   }
-}
+};
 </script>
 
 <style scoped>

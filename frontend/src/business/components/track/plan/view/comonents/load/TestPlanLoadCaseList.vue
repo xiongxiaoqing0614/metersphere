@@ -17,10 +17,11 @@
                 @filter-change="filter"
                 @sort-change="sort"
                 @select="handleSelectionChange" :height="screenHeight">
-        <el-table-column type="selection"/>
+        <el-table-column width="50" type="selection"/>
         <ms-table-header-select-popover v-show="total>0"
                                         :page-size="pageSize > total ? total : pageSize"
                                         :total="total"
+                                        :table-data-count-in-page="tableData.length"
                                         @selectPageAll="isSelectDataAll(false)"
                                         @selectAll="isSelectDataAll(true)"/>
         <el-table-column min-width="40" :resizable="false" align="center">
@@ -29,12 +30,13 @@
           </template>
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
-          <el-table-column v-if="item.id == 'num'" prop="num" min-width="80" label="ID" show-overflow-tooltip :key="index"/>
+          <el-table-column v-if="item.id == 'num'" prop="num" sortable min-width="80" label="ID" show-overflow-tooltip :key="index"/>
           <el-table-column
               v-if="item.id == 'caseName'"
               prop="caseName"
               :label="$t('commons.name')"
               min-width="120"
+              sortable
               show-overflow-tooltip
               :key="index">
           </el-table-column>
@@ -117,11 +119,17 @@
             <header-label-operate @exec="customHeader"/>
           </template>
           <template v-slot:default="scope">
-            <ms-table-operator-button class="run-button" :is-tester-permission="true" :tip="$t('api_test.run')"
-                                      icon="el-icon-video-play"
-                                      @exec="run(scope.row)" v-tester/>
-            <ms-table-operator-button :is-tester-permission="true" :tip="$t('test_track.plan_view.cancel_relevance')"
-                                      icon="el-icon-unlock" type="danger" @exec="handleDelete(scope.row)" v-tester/>
+            <div>
+
+              <ms-table-operator-button class="run-button"
+                                        v-permission="['PROJECT_TRACK_PLAN:READ+RUN']"
+                                        :tip="$t('api_test.run')"
+                                        icon="el-icon-video-play"
+                                        @exec="run(scope.row)"/>
+              <ms-table-operator-button v-permission="['PROJECT_TRACK_PLAN:READ+RELEVANCE_OR_CANCEL']"
+                                        :tip="$t('test_track.plan_view.cancel_relevance')"
+                                        icon="el-icon-unlock" type="danger" @exec="handleDelete(scope.row)"/>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -130,6 +138,7 @@
       <ms-table-pagination :change="initTable" :current-page.sync="currentPage" :page-size.sync="pageSize"
                            :total="total"/>
     </el-card>
+    <ms-plan-run-mode @handleRunBatch="runBatch" ref="runMode"/>
 
     <load-case-report :report-id="reportId" ref="loadCaseReport" @refresh="initTable"/>
   </div>
@@ -154,7 +163,7 @@ import {
   buildBatchParam,
   initCondition,
   toggleAllSelection,
-  checkTableRowIsSelect
+  checkTableRowIsSelect, deepClone
 } from "@/common/js/tableUtils";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import {TAPD, TEST_CASE_LIST, TEST_PLAN_LOAD_CASE} from "@/common/js/constants";
@@ -162,6 +171,7 @@ import {Test_Plan_Load_Case, Track_Test_Case} from "@/business/components/common
 import {getCurrentUser} from "@/common/js/utils";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 import MsTableHeaderSelectPopover from "@/business/components/common/components/table/MsTableHeaderSelectPopover";
+import MsPlanRunMode from "../../../common/PlanRunMode";
 
 export default {
   name: "TestPlanLoadCaseList",
@@ -174,7 +184,8 @@ export default {
     MsTablePagination,
     MsPerformanceTestStatus,
     MsTableOperatorButton,
-    MsTableHeaderSelectPopover
+    MsTableHeaderSelectPopover,
+    MsPlanRunMode
   },
   data() {
     return {
@@ -188,15 +199,15 @@ export default {
       currentPage: 1,
       pageSize: 10,
       total: 0,
-      selectDataCounts:0,
+      selectDataCounts: 0,
       status: 'default',
-      screenHeight: document.documentElement.clientHeight - 368,//屏幕高度
+      screenHeight: 'calc(100vh - 330px)',//屏幕高度
       buttons: [
         {
-          name: this.$t('test_track.plan.load_case.unlink_in_bulk'), handleClick: this.handleDeleteBatch
+          name: this.$t('test_track.plan.load_case.unlink_in_bulk'), handleClick: this.handleDeleteBatch, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_DELETE']
         },
         {
-          name: this.$t('test_track.plan.load_case.batch_exec_cases'), handleClick: this.handleRunBatch
+          name: this.$t('test_track.plan.load_case.batch_exec_cases'), handleClick: this.handleRunBatch, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_RUN']
         }
       ],
       statusFilters: [
@@ -225,11 +236,10 @@ export default {
   created() {
     this.initTable();
     this.refreshStatus();
-
-
   },
   watch: {
     selectProjectId() {
+      this.condition.selectAll = false;
       this.initTable();
     },
     planId() {
@@ -237,8 +247,62 @@ export default {
     }
   },
   methods: {
+    orderBySelectRows(rows){
+      let selectIds = Array.from(rows).map(row => row.id);
+      let array = [];
+      for(let i in this.tableData){
+        if(selectIds.indexOf(this.tableData[i].id)!==-1){
+          array.push(this.tableData[i]);
+        }
+      }
+      this.selectRows = array;
+    },
+    runBatch(config){
+      this.orderBySelectRows(this.selectRows);
+      if(this.condition != null && this.condition.selectAll){
+        let selectAllRowParams = buildBatchParam(this);
+        selectAllRowParams.ids = Array.from(this.selectRows).map(row => row.id);
+        this.$post('/test/plan/load/case/selectAllTableRows', selectAllRowParams, response => {
+          let dataRows = response.data;
+          let runArr = [];
+          dataRows.forEach(loadCase => {
+            runArr.push({
+              id: loadCase.loadCaseId,
+              testPlanLoadId: loadCase.id,
+              triggerMode: 'CASE'
+            });
+          });
+          let obj = {config: config, requests: runArr, userId: getCurrentUser().id};
+          this._runBatch(obj);
+          this.initTable();
+          this.refreshStatus();
+        });
+      }else {
+        let runArr = [];
+        this.selectRows.forEach(loadCase => {
+          runArr.push( {
+            id: loadCase.loadCaseId,
+            testPlanLoadId: loadCase.id,
+            triggerMode: 'CASE'
+          })
+        });
+        let obj = {config:config,requests:runArr,userId:getCurrentUser().id};
+        this._runBatch(obj);
+        this.initTable();
+        this.refreshStatus();
+      }
+    },
+    _runBatch(loadCases) {
+      this.$post('/test/plan/load/case/run/batch',loadCases, response => {
+      });
+      this.$success(this.$t('test_track.plan.load_case.exec'));
+      this.initTable();
+      this.refreshStatus();
+    },
+
     customHeader() {
-      this.$refs.headerCustom.open(this.tableLabel)
+      const list = deepClone(this.tableLabel);
+      this.$refs.headerCustom.open(list);
     },
     initTable() {
       this.autoCheckStatus();
@@ -338,24 +402,7 @@ export default {
       })
     },
     handleRunBatch() {
-      if(this.condition != null && this.condition.selectAll){
-        this.$alert(this.$t('commons.option_cannot_spread_pages'), '', {
-          confirmButtonText: this.$t('commons.confirm'),
-          callback: (action) => {
-            if (action === 'confirm') {
-              this.selectRows.forEach(loadCase => {
-                this._run(loadCase);
-              });
-              this.refreshStatus();
-            }
-          }
-        });
-      }else {
-        this.selectRows.forEach(loadCase => {
-          this._run(loadCase);
-        });
-        this.refreshStatus();
-      }
+      this.$refs.runMode.open();
     },
     run(loadCase) {
       this._run(loadCase);

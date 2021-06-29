@@ -7,7 +7,7 @@
             <span class="ms-card-data-digital">{{ maxUsers }}</span>
             <span class="ms-card-data-unit"> VU</span>
           </span>
-          <span class="ms-card-desc">Max Users</span>
+          <span class="ms-card-desc">{{ $t('load_test.report.ActiveThreadsChart') }}</span>
         </el-card>
       </el-col>
       <el-col :span="4">
@@ -16,7 +16,7 @@
             <span class="ms-card-data-digital">{{ avgTransactions }}</span>
             <span class="ms-card-data-unit"> TPS</span>
           </span>
-          <span class="ms-card-desc">Avg.Transactions</span>
+          <span class="ms-card-desc">{{ $t('load_test.report.TransactionsChart') }}</span>
         </el-card>
       </el-col>
       <el-col :span="4">
@@ -25,7 +25,7 @@
             <span class="ms-card-data-digital">{{ errors }}</span>
             <span class="ms-card-data-unit"> %</span>
           </span>
-          <span class="ms-card-desc">Errors</span>
+          <span class="ms-card-desc">{{ $t('load_test.report.ErrorsChart') }}</span>
         </el-card>
       </el-col>
       <el-col :span="4">
@@ -34,7 +34,7 @@
             <span class="ms-card-data-digital">{{ avgResponseTime }}</span>
             <span class="ms-card-data-unit"> s</span>
           </span>
-          <span class="ms-card-desc">Avg.Response Time</span>
+          <span class="ms-card-desc">{{ $t('load_test.report.ResponseTimeChart') }}</span>
         </el-card>
       </el-col>
       <el-col :span="4">
@@ -43,7 +43,7 @@
             <span class="ms-card-data-digital">{{ responseTime90 }}</span>
             <span class="ms-card-data-unit"> s</span>
           </span>
-          <span class="ms-card-desc">90% Response Time</span>
+          <span class="ms-card-desc">90% {{ $t('load_test.report.ResponseTimeChart') }}</span>
         </el-card>
       </el-col>
       <el-col :span="4">
@@ -52,7 +52,7 @@
             <span class="ms-card-data-digital">{{ avgBandwidth }}</span>
             <span class="ms-card-data-unit"> KiB/s</span>
           </span>
-          <span class="ms-card-desc">Avg.Bandwidth</span>
+          <span class="ms-card-desc">{{ $t('load_test.report.Network') }}</span>
         </el-card>
       </el-col>
     </el-row>
@@ -79,6 +79,8 @@
 <script>
 import MsChart from "@/business/components/common/chart/MsChart";
 
+const color = ['#60acfc', '#32d3eb', '#5bc49f', '#feb64d', '#ff7c7c', '#9287e7', '#ca8622', '#bda29a', '#6e7074', '#546570', '#c4ccd3'];
+
 export default {
   name: "TestOverview",
   components: {MsChart},
@@ -96,7 +98,7 @@ export default {
       errorOption: {},
       resCodeOption: {},
       id: ''
-    }
+    };
   },
   methods: {
     initTableData() {
@@ -118,7 +120,7 @@ export default {
         this.responseTime90 = '0';
         this.avgBandwidth = '0';
         // this.$warning(this.$t('report.generation_error'));
-      })
+      });
       this.getLoadChart();
       this.getResChart();
       this.getErrorChart();
@@ -138,6 +140,7 @@ export default {
         yAxisIndex1List = this._unique(yAxisIndex1List);
 
         let loadOption = {
+          color: color,
           title: {
             text: 'Load',
             left: 'center',
@@ -190,18 +193,18 @@ export default {
               color: '#E6113C',
             }
           ]
-        }
+        };
         yAxisIndex0List.forEach(item => {
-          setting["series"].splice(0, 0, {name: item, yAxisIndex: '0'})
-        })
+          setting["series"].splice(0, 0, {name: item, yAxisIndex: '0'});
+        });
 
         yAxisIndex1List.forEach(item => {
-          setting["series"].splice(0, 0, {name: item, yAxisIndex: '1'})
-        })
+          setting["series"].splice(0, 0, {name: item, yAxisIndex: '1'});
+        });
         this.loadOption = this.generateOption(loadOption, data, setting);
       }).catch(() => {
         this.loadOption = {};
-      })
+      });
     },
     getResChart() {
       this.$get("/performance/report/content/res_chart/" + this.id).then(res => {
@@ -217,6 +220,7 @@ export default {
         yAxisIndex1List = this._unique(yAxisIndex1List);
 
         let resOption = {
+          color: color,
           title: {
             text: 'Response Time',
             left: 'center',
@@ -265,7 +269,7 @@ export default {
             }
           ],
           series: []
-        }
+        };
         let setting = {
           series: [
             {
@@ -273,20 +277,20 @@ export default {
               color: '#0CA74A',
             }
           ]
-        }
+        };
 
         yAxisIndex0List.forEach(item => {
-          setting["series"].splice(0, 0, {name: item, yAxisIndex: '0'})
-        })
+          setting["series"].splice(0, 0, {name: item, yAxisIndex: '0'});
+        });
 
         yAxisIndex1List.forEach(item => {
-          setting["series"].splice(0, 0, {name: item, yAxisIndex: '1'})
-        })
+          setting["series"].splice(0, 0, {name: item, yAxisIndex: '1'});
+        });
 
         this.resOption = this.generateOption(resOption, data, setting);
       }).catch(() => {
         this.resOption = {};
-      })
+      });
     },
     getErrorChart() {
       this.$get("/performance/report/content/error_chart/" + this.id).then(res => {
@@ -298,6 +302,7 @@ export default {
         yAxisIndex0List = this._unique(yAxisIndex0List);
 
         let errorOption = {
+          color: color,
           title: {
             text: 'Errors',
             left: 'center',
@@ -340,7 +345,7 @@ export default {
             }
           ],
           series: []
-        }
+        };
         let setting = {
           series: [
             {
@@ -348,16 +353,16 @@ export default {
               color: '#0CA74A',
             }
           ]
-        }
+        };
 
         yAxisIndex0List.forEach(item => {
-          setting["series"].splice(0, 0, {name: item, yAxisIndex: '0'})
-        })
+          setting["series"].splice(0, 0, {name: item, yAxisIndex: '0'});
+        });
 
         this.errorOption = this.generateOption(errorOption, data, setting);
       }).catch(() => {
         this.errorOption = {};
-      })
+      });
     },
     getResponseCodeChart() {
       this.$get("/performance/report/content/response_code_chart/" + this.id).then(res => {
@@ -369,6 +374,7 @@ export default {
         yAxisIndex0List = this._unique(yAxisIndex0List);
 
         let resCodeOption = {
+          color: color,
           title: {
             text: 'Response code',
             left: 'center',
@@ -411,7 +417,7 @@ export default {
             }
           ],
           series: []
-        }
+        };
         let setting = {
           series: [
             {
@@ -419,16 +425,16 @@ export default {
               color: '#0CA74A',
             }
           ]
-        }
+        };
 
         yAxisIndex0List.forEach(item => {
-          setting["series"].splice(0, 0, {name: item, yAxisIndex: '0'})
-        })
+          setting["series"].splice(0, 0, {name: item, yAxisIndex: '0'});
+        });
 
         this.resCodeOption = this.generateOption(resCodeOption, data, setting);
       }).catch(() => {
         this.resCodeOption = {};
-      })
+      });
     },
     generateOption(option, data, setting) {
       let chartData = data;
@@ -445,18 +451,18 @@ export default {
         if (!xAxis.includes(item.xAxis)) {
           xAxis.push(item.xAxis);
         }
-        xAxis.sort()
-        let name = item.groupName
+        xAxis.sort();
+        let name = item.groupName;
         if (!legend.includes(name)) {
-          legend.push(name)
-          series[name] = []
+          legend.push(name);
+          series[name] = [];
         }
         if (item.yAxis === -1) {
           series[name].splice(xAxis.indexOf(item.xAxis), 0, [item.xAxis, item.yAxis2.toFixed(2)]);
         } else {
           series[name].splice(xAxis.indexOf(item.xAxis), 0, [item.xAxis, item.yAxis.toFixed(2)]);
         }
-      })
+      });
       this.$set(option.legend, "data", legend);
       this.$set(option.legend, "type", "scroll");
       this.$set(option.legend, "bottom", "10px");
@@ -468,7 +474,9 @@ export default {
           name: name,
           type: 'line',
           data: d,
-          smooth: true
+          smooth: true,
+          sampling: 'lttb',
+          animation: !this.export,
         };
         let seriesArrayNames = seriesArray.map(m => m.name);
         if (seriesArrayNames.includes(name)) {
@@ -519,8 +527,8 @@ export default {
       deep: true
     }
   },
-  props: ['report']
-}
+  props: ['report', 'export']
+};
 </script>
 
 <style scoped>

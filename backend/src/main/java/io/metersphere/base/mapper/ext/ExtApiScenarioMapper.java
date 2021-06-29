@@ -9,17 +9,24 @@ import io.metersphere.base.domain.ApiScenarioWithBLOBs;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ExtApiScenarioMapper {
     List<ApiScenarioDTO> list(@Param("request") ApiScenarioRequest request);
+
+    int listModule(@Param("request") ApiScenarioRequest request);
+
     List<ApiScenarioDTO> listReview(@Param("request") ApiScenarioRequest request);
     List<ApiScenarioWithBLOBs> selectByTagId(@Param("id") String id);
 
     List<ApiScenarioWithBLOBs> selectIds(@Param("ids") List<String> ids);
 
+    List<ApiScenarioWithBLOBs> selectByIds(@Param("ids") String ids,@Param("oderId") String oderId);
+
     List<ApiScenario> selectReference(@Param("request") ApiScenarioRequest request);
 
     int removeToGc(@Param("ids") List<String> ids);
+
 
     int removeToGcByExample(ApiScenarioExample example);
 
@@ -28,6 +35,8 @@ public interface ExtApiScenarioMapper {
     long countByProjectID(String projectId);
 
     List<ApiScenarioWithBLOBs> selectIdAndScenarioByProjectId(String projectId);
+
+    List<ApiScenarioWithBLOBs> selectIdAndUseUrlByProjectId(String projectId);
 
     long countByProjectIDAndCreatInThisWeek(@Param("projectId") String projectId, @Param("firstDayTimestamp") long firstDayTimestamp, @Param("lastDayTimestamp") long lastDayTimestamp);
 
@@ -38,4 +47,12 @@ public interface ExtApiScenarioMapper {
     ApiScenario getNextNum(@Param("projectId") String projectId);
 
     List<String> selectIdsByQuery(@Param("request") ApiScenarioRequest request);
+
+    void updateCustomNumByProjectId(@Param("projectId") String projectId);
+
+    List<ApiScenarioWithBLOBs> listWithIds(@Param("ids") List<String> ids);
+
+    List<Map<String, Object>> listModuleByCollection(@Param("request") ApiScenarioRequest request);
+
+    List<String> selectIdsByUseUrlIsNull();
 }

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.metersphere.tuhu.mapper.GraphMapper">
+    <select id="queryApiAppIdList" resultType="String">
+        SELECT distinct aamp.app_id
+        FROM api_definition ad
+        LEFT JOIN tuhu_appid_api_mapping aamp on ad.path = aamp.url
+        WHERE aamp.app_id is not null
+    </select>
+    <select id="countApiTotal" resultType="Integer">
+        SELECT count(*)
+        FROM api_definition
+        WHERE status != 'Trash'
+    </select>
+    <select id="countApiDone" resultType="Integer">
+        SELECT count(*)
+        FROM api_definition
+        WHERE status = 'Completed'
+    </select>
+    <select id="countApiCoverage" resultType="io.metersphere.api.dto.datacount.ApiDataCountResult">
+        SELECT count(api.id) AS countNumber, if(test_case_api.api_definition_id is null,"uncoverage","coverage") AS groupField  FROM api_definition api left Join (
+        SELECT DISTINCT api_definition_id FROM api_test_case
+        ) test_case_api ON api.id = test_case_api.api_definition_id
+        WHERE api.`status` != 'Trash'
+        GROUP BY groupField
+    </select>
+    <select id="countExecuteResult" resultType="io.metersphere.api.dto.datacount.ApiDataCountResult">
+        SELECT count(acr.report_id) AS countNumber,ar.status AS groupField
+        FROM api_scenario_report_detail acr
+        INNER JOIN api_scenario_report ar ON ar.id = acr.report_id
+        INNER JOIN (
+        SELECT acitem.`name`,acitem.id FROM api_scenario acitem INNER JOIN `schedule` sc ON acitem.id = sc.resource_id
+        ) ac on ar.scenario_id = ac.id
+        WHERE ar.trigger_mode = 'SCHEDULE'
+        GROUP BY groupField;
+    </select>
+    <select id="findFailureCaseInfoByExecuteTimeAndLimitNumber" resultType="io.metersphere.api.dto.datacount.ExecutedCaseInfoResult">
+        SELECT * FROM (
+        -- api_test_case 只查找测试计划执行的结果
+        SELECT testCase.testCaseID,testCase.testCaseName AS caseName,testCase.testPlanName AS testPlan ,caseErrorCountData.dataCountNumber AS failureTimes,'apiCase' AS caseType
+        FROM (
+        SELECT testPlanCase.id AS testCaseID,apiCase.`name` AS testCaseName,group_concat(testPlan.`name`)  AS testPlanName, testPlanCase.update_time as updateTime
+        FROM api_test_case apiCase
+        inner join api_definition on api_definition.id = apiCase.api_definition_id
+        INNER JOIN test_plan_api_case testPlanCase ON testPlanCase.api_case_id = apiCase.id
+        INNER JOIN test_plan testPlan ON testPlan.id = testPlanCase.test_plan_id
+        and api_definition.status != 'Trash'
+        GROUP BY apiCase.id
+        ORDER BY apiCase.create_time DESC
+        )testCase
+        INNER JOIN (
+        SELECT resource_id AS testPlanCaseID,COUNT(id) AS dataCountNumber,start_time AS executeTime FROM api_definition_exec_result
+        WHERE resource_id IN (
+        SELECT t2.id FROM api_test_case t1
+        INNER JOIN test_plan_api_case t2 ON t1.id = t2.api_case_id
+        ) and `status` = 'error' GROUP BY resource_id
+        ) caseErrorCountData ON caseErrorCountData.testPlanCaseID =testCase.testCaseID
+        WHERE testCase.updateTime >= #{startTimestamp}
+        UNION
+        SELECT scene.id AS testCaseID,scene.`name` AS caseName,apiScene.testPlanName AS testPlan,count(report.id) AS failureTimes,'scenario' AS caseType
+        FROM api_scenario_report report
+        INNER JOIN api_scenario_report_detail reportDetail ON report.id = reportDetail.report_id
+        INNER JOIN api_scenario scene ON report.scenario_id = scene.id
+        INNER JOIN(
+        SELECT apiScene.api_scenario_id, group_concat(testPlan.`name`) AS testPlanName
+        FROM test_plan_api_scenario apiScene
+        INNER JOIN test_plan testPlan ON testPlan.id = apiScene.test_plan_id
+        GROUP BY apiScene.api_scenario_id
+        )apiScene ON apiScene.api_scenario_id = scene.id
+        WHERE ( report.STATUS = 'Error' OR report.STATUS = 'Fail' )  AND report.create_time >= #{startTimestamp}
+        GROUP BY scene.id
+        UNION
+        SELECT ltr.test_id as testCaseID, ltr.name as caseName,tplt.testPlanName AS testPlan, count(ltr.id) as failureTimes, 'load' as caseType FROM load_test_report ltr
+        join load_test on load_test.id = ltr.test_id
+        JOIN (
+        select tplc.load_case_id, group_concat(tp.`name`) AS testPlanName, tp.project_id
+        from test_plan_load_case tplc
+        join test_plan tp on tp.id = tplc.test_plan_id
+        GROUP BY tplc.load_case_id
+        ) tplt on tplt.load_case_id = ltr.test_id
+        WHERE ltr.STATUS = 'Error' and ltr.trigger_mode = 'TEST_PLAN_SCHEDULE' AND ltr.create_time >= #{startTimestamp}
+        GROUP BY load_test.id
+        ) showTable
+        ORDER BY showTable.failureTimes DESC
+    </select>
+    <select id="selectIdAndScenario" resultType="io.metersphere.base.domain.ApiScenarioWithBLOBs">
+        SELECT id,scenario_definition FROM api_scenario WHERE status != 'Trash' limit #{start},#{step}
+    </select>
+    <select id="queryAppIdList" resultType="String">
+        select app_id
+        from tuhu_all_appid
+    </select>
+</mapper>

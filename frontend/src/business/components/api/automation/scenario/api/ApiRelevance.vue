@@ -88,42 +88,29 @@ export default {
         let apis = this.$refs.apiList.selectRows;
         apis.forEach(api => {
           api.projectId = this.projectId;
-        })
-        this.$emit('save', this.$refs.apiList.selectRows, 'API', reference);
-        this.$refs.baseRelevance.close();
+        });
+        let params = this.$refs.apiList.getConditions();
+        this.result = this.$post("/api/definition/list/batch", params, (response) => {
+          let apis = response.data;
+          if(apis.length === 0){
+            this.$warning('请选择接口');
+          }else {
+            this.$emit('save', apis, 'API', reference);
+            this.$refs.baseRelevance.close();
+          }
+        });
+
       } else {
-        let apiCases = this.$refs.apiCaseList.selectRows;
-        let ids = Array.from(apiCases).map(row => row.id);
-        this.result = this.$post("/api/testcase/get/request", {ids: ids}, (response) => {
-          apiCases.forEach((item) => {
-            item.request = response.data[item.id];
-            item.projectId = this.projectId;
+        let params = this.$refs.apiCaseList.getConditions();
+        this.result = this.$post("/api/testcase/get/caseBLOBs/request", params, (response) => {
+          let apiCases = response.data;
+          if(apiCases.length === 0) {
+            this.$warning('请选择案例');
+          }else{
+            this.$emit('save', apiCases, 'CASE', reference);
+            this.$refs.baseRelevance.close();
+          }
 
-            let requestObj = JSON.parse(item.request);
-            if(requestObj.esbDataStruct != null ){
-              // //ESB接口
-              // let param = {};
-              // param.request = requestObj;
-              // param.method = "ESB";
-              // param.esbDataStruct = JSON.stringify(requestObj.esbDataStruct);
-              // if(requestObj.backEsbDataStruct != null){
-              //   param.backEsbDataStruct = JSON.stringify(requestObj.backEsbDataStruct);
-              // }else{
-              //   param.backEsbDataStruct = "";
-              // }
-
-              // this.$post("/api/definition/updateEsbRequest", param, response => {
-              //   if(response.data!=null){
-              //     if(response.data.request!=null){
-              //       item.request = JSON.stringify(response.data.request);
-              //       param.method = "TCP";
-              //     }
-              //   }
-              // })
-            }
-          });
-          this.$emit('save', apiCases, 'CASE', reference);
-          this.$refs.baseRelevance.close();
         });
       }
     },

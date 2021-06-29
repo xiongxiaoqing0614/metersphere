@@ -8,6 +8,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.metersphere.api.dto.definition.request.variable.ScenarioVariable;
+import io.metersphere.api.dto.mockconfig.MockConfigStaticData;
 import io.metersphere.api.dto.scenario.KeyValue;
 import io.metersphere.api.dto.scenario.environment.EnvironmentConfig;
 import io.metersphere.api.service.ApiAutomationService;
@@ -15,9 +16,9 @@ import io.metersphere.api.service.ApiTestEnvironmentService;
 import io.metersphere.base.domain.ApiScenarioWithBLOBs;
 import io.metersphere.base.domain.ApiTestEnvironmentWithBLOBs;
 import io.metersphere.commons.constants.MsTestElementConstants;
+import io.metersphere.commons.constants.RunModeConstants;
 import io.metersphere.commons.utils.CommonBeanFactory;
 import io.metersphere.commons.utils.FileUtils;
-import io.metersphere.commons.utils.SessionUtils;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.apache.commons.collections.CollectionUtils;
@@ -59,6 +60,9 @@ public class MsScenario extends MsTestElement {
 
     @JSONField(ordinal = 27)
     private Map<String, String> environmentMap;
+
+    @JSONField(ordinal = 24)
+    private Boolean onSampleError;
 
     private static final String BODY_FILE_DIR = FileUtils.BODY_FILE_DIR;
 
@@ -122,7 +126,7 @@ public class MsScenario extends MsTestElement {
                 this.environmentMap = new HashMap<>(16);
                 if (StringUtils.isNotBlank(environmentId)) {
                     // 兼容1.8之前 没有environmentMap但有environmentId的数据
-                    this.environmentMap.put("historyProjectID", environmentId);
+                    this.environmentMap.put(RunModeConstants.HIS_PRO_ID.toString(), environmentId);
                 }
             }
             if (this.environmentMap != null && !this.environmentMap.isEmpty()) {
@@ -131,10 +135,22 @@ public class MsScenario extends MsTestElement {
                     ApiTestEnvironmentWithBLOBs environment = environmentService.get(this.environmentMap.get(projectId));
                     if (environment != null && environment.getConfig() != null) {
                         EnvironmentConfig env = JSONObject.parseObject(environment.getConfig(), EnvironmentConfig.class);
+                        env.setApiEnvironmentid(environment.getId());
                         envConfig.put(projectId, env);
+                        if (StringUtils.equals(environment.getName(), MockConfigStaticData.MOCK_EVN_NAME)) {
+                            this.setMockEnvironment(true);
+                        }
                     }
                 });
                 config.setConfig(envConfig);
+            }
+        } else {
+            Map<String, EnvironmentConfig> map = config.getConfig();
+            for (EnvironmentConfig evnConfig :
+                    map.values()) {
+                if (evnConfig.getHttpConfig() != null) {
+                    this.setMockEnvironment(evnConfig.getHttpConfig().isMock());
+                }
             }
         }
         if (CollectionUtils.isNotEmpty(this.getVariables())) {
@@ -145,7 +161,7 @@ public class MsScenario extends MsTestElement {
         if (arguments != null) {
             tree.add(ParameterConfig.valueSupposeMock(arguments));
         }
-        this.addCsvDataSet(tree, variables,config);
+        this.addCsvDataSet(tree, variables, config, "shareMode.group");
         this.addCounter(tree, variables);
         this.addRandom(tree, variables);
         if (CollectionUtils.isNotEmpty(this.headers)) {
@@ -155,6 +171,7 @@ public class MsScenario extends MsTestElement {
             for (MsTestElement el : hashTree) {
                 // 给所有孩子加一个父亲标志
                 el.setParent(this);
+                el.setMockEnvironment(this.isMockEnvironment());
                 el.toHashTree(tree, el.getHashTree(), config);
             }
         }
@@ -202,6 +219,7 @@ public class MsScenario extends MsTestElement {
                 }
             });
         }
+        // 环境通用变量
         if (config.isEffective(this.getProjectId()) && config.getConfig().get(this.getProjectId()).getCommonConfig() != null
                 && CollectionUtils.isNotEmpty(config.getConfig().get(this.getProjectId()).getCommonConfig().getVariables())) {
             config.getConfig().get(this.getProjectId()).getCommonConfig().getVariables().stream().filter(KeyValue::isValid).filter(KeyValue::isEnable).forEach(keyValue ->

@@ -20,6 +20,8 @@ public class TestPlanCaseDTO extends TestCaseWithBLOBs {
     private String reportId;
     private String model;
     private String projectName;
+    private String actualResult;
+    private String maintainerName;
 
     private List<TestCaseTestDTO> list;
 }

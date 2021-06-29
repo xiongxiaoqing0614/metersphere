@@ -2,44 +2,53 @@
 
   <div class="card-container">
     <!-- HTTP 请求参数 -->
-    <ms-edit-complete-http-api @runTest="runTest" @saveApi="saveApi" @createRootModelInTree="createRootModelInTree" :request="request" :response="response"
-                               :basisData="currentApi" :moduleOptions="moduleOptions" :syncTabs="syncTabs" v-if="currentProtocol === 'HTTP'" ref="httpApi"/>
+    <ms-edit-complete-http-api @runTest="runTest" @saveApi="saveApi" @createRootModelInTree="createRootModelInTree"
+                               :request="request" :response="response" :project-id="projectId"
+                               @mockConfig="mockConfig"
+                               :basisData="currentApi" :moduleOptions="moduleOptions" :syncTabs="syncTabs"
+                               v-if="currentProtocol === 'HTTP'" ref="httpApi"/>
     <!-- TCP -->
-    <ms-edit-complete-tcp-api :request="request" @runTest="runTest" @createRootModelInTree="createRootModelInTree" @saveApi="saveApi" :basisData="currentApi"
-                              :moduleOptions="moduleOptions" :syncTabs="syncTabs" v-if="currentProtocol === 'TCP'" ref="tcpApi"/>
+    <ms-edit-complete-tcp-api :request="request" @runTest="runTest" @createRootModelInTree="createRootModelInTree"
+                              @saveApi="saveApi" :basisData="currentApi"
+                              :moduleOptions="moduleOptions" :syncTabs="syncTabs" v-if="currentProtocol === 'TCP'"
+                              ref="tcpApi"/>
     <!--DUBBO-->
-    <ms-edit-complete-dubbo-api :request="request" @runTest="runTest" @createRootModelInTree="createRootModelInTree" @saveApi="saveApi" :basisData="currentApi"
-                                :moduleOptions="moduleOptions" :syncTabs="syncTabs" v-if="currentProtocol === 'DUBBO'" ref="dubboApi"/>
+    <ms-edit-complete-dubbo-api :request="request" @runTest="runTest" @createRootModelInTree="createRootModelInTree"
+                                @saveApi="saveApi" :basisData="currentApi"
+                                :moduleOptions="moduleOptions" :syncTabs="syncTabs" v-if="currentProtocol === 'DUBBO'"
+                                ref="dubboApi"/>
     <!--SQL-->
-    <ms-edit-complete-sql-api :request="request" @runTest="runTest" @createRootModelInTree="createRootModelInTree" @saveApi="saveApi" :basisData="currentApi"
-                              :moduleOptions="moduleOptions" :syncTabs="syncTabs" v-if="currentProtocol === 'SQL'" ref="sqlApi"/>
+    <ms-edit-complete-sql-api :request="request" @runTest="runTest" @createRootModelInTree="createRootModelInTree"
+                              @saveApi="saveApi" :basisData="currentApi"
+                              :moduleOptions="moduleOptions" :syncTabs="syncTabs" v-if="currentProtocol === 'SQL'"
+                              ref="sqlApi"/>
   </div>
 </template>
 
 <script>
-import MsEditCompleteHttpApi from "./complete/EditCompleteHTTPApi";
-import MsEditCompleteTcpApi from "./complete/EditCompleteTCPApi";
-import MsEditCompleteDubboApi from "./complete/EditCompleteDubboApi";
-import MsEditCompleteSqlApi from "./complete/EditCompleteSQLApi";
+  import MsEditCompleteHttpApi from "./complete/EditCompleteHTTPApi";
+  import MsEditCompleteTcpApi from "./complete/EditCompleteTCPApi";
+  import MsEditCompleteDubboApi from "./complete/EditCompleteDubboApi";
+  import MsEditCompleteSqlApi from "./complete/EditCompleteSQLApi";
 
-import {Body} from "../model/ApiTestModel";
-import {getUUID} from "@/common/js/utils";
-import {createComponent, Request} from "./jmeter/components";
-import Sampler from "./jmeter/components/sampler/sampler";
-import {WORKSPACE_ID} from '@/common/js/constants';
-import {handleCtrlSEvent} from "../../../../../common/js/utils";
+  import {Body} from "../model/ApiTestModel";
+  import {getCurrentProjectID, getUUID} from "@/common/js/utils";
+  import {createComponent, Request} from "./jmeter/components";
+  import Sampler from "./jmeter/components/sampler/sampler";
+  import {WORKSPACE_ID} from '@/common/js/constants';
+  import {handleCtrlSEvent} from "../../../../../common/js/utils";
 
-export default {
-  name: "ApiConfig",
-  components: {MsEditCompleteHttpApi, MsEditCompleteTcpApi, MsEditCompleteDubboApi, MsEditCompleteSqlApi},
-  data() {
-    return {
-      reqUrl: "",
-      request: Sampler,
-      config: {},
-      response: {},
-      maintainerOptions: [],
-    }
+  export default {
+    name: "ApiConfig",
+    components: {MsEditCompleteHttpApi, MsEditCompleteTcpApi, MsEditCompleteDubboApi, MsEditCompleteSqlApi},
+    data() {
+      return {
+        reqUrl: "",
+        request: Sampler,
+        config: {},
+        response: {},
+        maintainerOptions: [],
+      }
     },
     props: {
       currentApi: {},
@@ -92,18 +101,22 @@ export default {
       runTest(data) {
         this.setParameters(data);
         let bodyFiles = this.getBodyUploadFiles(data);
-        this.$fileUpload(this.reqUrl, null, bodyFiles, data, () => {
+        this.$fileUpload(this.reqUrl, null, bodyFiles, data, response => {
           this.$success(this.$t('commons.save_success'));
           this.reqUrl = "/api/definition/update";
+          let newData = response.data;
+          data.request = JSON.parse(newData.request);
           this.$emit('runTest', data);
-        })
+        });
+      },
+      mockConfig(data) {
+        this.$emit('mockConfig', data);
       },
       createRootModelInTree() {
         this.$emit("createRootModel");
       },
       getMaintainerOptions() {
-        let workspaceId = localStorage.getItem(WORKSPACE_ID);
-        this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
+        this.$post('/user/project/member/tester/list', {projectId: getCurrentProjectID()}, response => {
           this.maintainerOptions = response.data;
         });
       },
@@ -159,7 +172,7 @@ export default {
         } else {
           this.response = {headers: [], body: new Body(), statusCode: [], type: "HTTP"};
         }
-        if (this.currentApi != null && this.currentApi.id != null) {
+        if (this.currentApi && this.currentApi.id && !this.currentApi.isCopy) {
           this.reqUrl = "/api/definition/update";
         } else {
           this.reqUrl = "/api/definition/create";
@@ -189,9 +202,11 @@ export default {
       saveApi(data) {
         this.setParameters(data);
         let bodyFiles = this.getBodyUploadFiles(data);
+        data.requestId = data.request.id;
         this.$fileUpload(this.reqUrl, null, bodyFiles, data, () => {
           this.$success(this.$t('commons.save_success'));
           this.reqUrl = "/api/definition/update";
+          this.currentApi.isCopy = false;
           this.$emit('saveApi', data);
         });
       },
@@ -206,7 +221,12 @@ export default {
         } else {
           data.request.protocol = this.currentProtocol;
         }
-        data.id = data.request.id;
+        if (data.isCopy) {
+          data.id = getUUID();
+        } else {
+          data.id = data.request.id;
+        }
+
         if (!data.method) {
           data.method = this.currentProtocol;
         }
@@ -222,10 +242,10 @@ export default {
               if (param.files) {
                 param.files.forEach(item => {
                   if (item.file) {
-                    let fileId = getUUID().substring(0, 8);
+                    // let fileId = getUUID().substring(0, 8);
                     item.name = item.file.name;
-                    item.id = fileId;
-                    data.bodyUploadIds.push(fileId);
+                    // item.id = fileId;
+                    // data.bodyUploadIds.push(fileId);
                     bodyUploadFiles.push(item.file);
                   }
                 });

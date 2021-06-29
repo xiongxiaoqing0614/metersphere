@@ -4,56 +4,80 @@
       :is-api-list-enable="isApiListEnable"
       @isApiListEnableChange="isApiListEnableChange">
 
-      <ms-environment-select :project-id="projectId" v-if="isTestPlan" :is-read-only="isReadOnly" @setEnvironment="setEnvironment"/>
+      <ms-environment-select :project-id="projectId" v-if="isTestPlan" :is-read-only="isReadOnly"
+                             @setEnvironment="setEnvironment"/>
 
-      <el-input :placeholder="$t('api_test.definition.request.select_case')" @blur="initTable"
+      <el-input :placeholder="$t('commons.search_by_name_or_id')" @blur="initTable"
                 @keyup.enter.native="initTable" class="search-input" size="small" v-model="condition.name"/>
 
-      <el-table v-loading="result.loading"
-                border
-                :data="tableData"
-                row-key="id"
-                class="test-content adjust-table"
-                @select-all="handleSelectAll"
-                @filter-change="filter"
-                @sort-change="sort"
-                @select="handleSelect" ref="table">
-        <el-table-column reserve-selection type="selection"/>
+      <ms-table :data="tableData" :select-node-ids="selectNodeIds" :condition="condition" :page-size="pageSize"
+                :total="total" enableSelection
+                :screenHeight="screenHeight"
+                @refresh="initTable"
+                operator-width="170px"
+                ref="table"
+      >
 
-        <el-table-column prop="name" :label="$t('api_test.definition.api_name')" show-overflow-tooltip/>
+      <ms-table-column
+          prop="num"
+          label="ID"
+          width="80px"
+          sortable=true>
+          <template slot-scope="scope">
+            <!-- 判断为只读用户的话不可点击ID进行编辑操作 -->
+            <span style="cursor:pointer" v-if="isReadOnly"> {{ scope.row.num }} </span>
+            <el-tooltip v-else content="编辑">
+              <a style="cursor:pointer" @click="editApi(scope.row)"> {{ scope.row.num }} </a>
+            </el-tooltip>
+          </template>
+        </ms-table-column>
 
-        <el-table-column
+        <ms-table-column prop="name" width="160px" :label="$t('test_track.case.name')"/>
+
+        <ms-table-column
           prop="priority"
           :filters="priorityFilters"
           column-key="priority"
-          :label="$t('test_track.case.priority')"
-          show-overflow-tooltip>
+          width="120px"
+          :label="$t('test_track.case.priority')">
           <template v-slot:default="scope">
             <priority-table-item :value="scope.row.priority"/>
           </template>
-        </el-table-column>
+        </ms-table-column>
 
-        <el-table-column
-          prop="path"
-          :label="$t('api_test.definition.api_path')"
-          show-overflow-tooltip/>
-
-        <el-table-column
-          prop="createUser"
-          :label="'创建人'"
-          show-overflow-tooltip/>
-
-        <el-table-column
+        <ms-table-column
           sortable="custom"
-          width="160"
+          prop="path"
+          width="180px"
+          :label="'API'+ $t('api_test.definition.api_path')"/>
+
+        <ms-table-column
+          sortable="custom"
+          prop="casePath"
+          width="180px"
+          :label="$t('api_test.definition.request.case')+ $t('api_test.definition.api_path')"/>
+
+        <ms-table-column prop="tags" width="120px" :label="$t('commons.tag')">
+          <template v-slot:default="scope">
+            <ms-tag v-for="(itemName,index)  in scope.row.tags" :key="index" type="success" effect="plain"
+                    :content="itemName" style="margin-left: 0px; margin-right: 2px"/>
+          </template>
+        </ms-table-column>
+
+        <ms-table-column
+          prop="createUser"
+          :label="'创建人'"/>
+
+        <ms-table-column
+          sortable="updateTime"
+          width="160px"
           :label="$t('api_test.definition.api_last_time')"
           prop="updateTime">
           <template v-slot:default="scope">
             <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
           </template>
-        </el-table-column>
-
-      </el-table>
+        </ms-table-column>
+      </ms-table>
       <ms-table-pagination :change="initTable" :current-page.sync="currentPage" :page-size.sync="pageSize"
                            :total="total"/>
     </api-list-container>
@@ -66,6 +90,8 @@
 
 <script>
 
+import MsTable from "@/business/components/common/components/table/MsTable";
+import MsTableColumn from "@/business/components/common/components/table/Ms-table-column";
 import MsTableOperator from "../../../../common/components/MsTableOperator";
 import MsTableOperatorButton from "../../../../common/components/MsTableOperatorButton";
 import MsTablePagination from "../../../../common/pagination/TablePagination";
@@ -74,12 +100,12 @@ import MsBottomContainer from "../../../definition/components/BottomContainer";
 import ShowMoreBtn from "../../../../track/case/components/ShowMoreBtn";
 import MsBatchEdit from "../../../definition/components/basis/BatchEdit";
 import {API_METHOD_COLOUR, CASE_PRIORITY} from "../../../definition/model/JsonData";
-import {getCurrentProjectID} from "@/common/js/utils";
 import ApiListContainer from "../../../definition/components/list/ApiListContainer";
 import PriorityTableItem from "../../../../track/common/tableItems/planview/PriorityTableItem";
 import MsEnvironmentSelect from "../../../definition/components/case/MsEnvironmentSelect";
 import TableSelectCountBar from "./TableSelectCountBar";
-import {_filter, _handleSelect, _handleSelectAll, _sort} from "@/common/js/tableUtils";
+import {_filter, _sort, buildBatchParam} from "@/common/js/tableUtils";
+import {API_CASE_LIST} from "@/common/js/constants";
 
 export default {
   name: "RelevanceCaseList",
@@ -92,17 +118,18 @@ export default {
     MsTableOperator,
     MsTablePagination,
     MsTag,
-      MsBottomContainer,
-      ShowMoreBtn,
-      MsBatchEdit
-    },
+    MsBottomContainer,
+    ShowMoreBtn,
+    MsBatchEdit,
+    MsTable,
+    MsTableColumn
+  },
     data() {
       return {
         condition: {},
         selectCase: {},
         result: {},
         moduleId: "",
-        selectRows: new Set(),
         typeArr: [
           {id: 'priority', name: this.$t('test_track.case.priority')},
         ],
@@ -116,6 +143,7 @@ export default {
           priority: CASE_PRIORITY,
         },
         methodColorMap: new Map(API_METHOD_COLOUR),
+        screenHeight: 'calc(100vh - 400px)',//屏幕高度
         tableData: [],
         currentPage: 1,
         pageSize: 10,
@@ -160,16 +188,25 @@ export default {
         this.initTable();
       }
     },
-    methods: {
-      isApiListEnableChange(data) {
-        this.$emit('isApiListEnableChange', data);
-      },
-      initTable(projectId) {
-        this.condition.status = "";
-        this.condition.moduleIds = this.selectNodeIds;
-        if (projectId != null && typeof projectId === 'string') {
-          this.condition.projectId = projectId;
-        } else if (this.projectId != null) {
+  computed: {
+    selectRows() {
+      if (this.$refs.table) {
+        return this.$refs.table.getSelectRows();
+      } else {
+        return new Set();
+      }
+    }
+  },
+  methods: {
+    isApiListEnableChange(data) {
+      this.$emit('isApiListEnableChange', data);
+    },
+    initTable(projectId) {
+      this.condition.status = "";
+      this.condition.moduleIds = this.selectNodeIds;
+      if (projectId != null && typeof projectId === 'string') {
+        this.condition.projectId = projectId;
+      } else if (this.projectId != null) {
           this.condition.projectId = this.projectId;
         }
         if (this.currentProtocol != null) {
@@ -181,38 +218,47 @@ export default {
           this.condition.planId = this.planId;
         }
 
-        this.result = this.$post(url + this.currentPage + "/" + this.pageSize, this.condition, response => {
-          this.total = response.data.itemCount;
-          this.tableData = response.data.listObject;
+      this.result = this.$post(url + this.currentPage + "/" + this.pageSize, this.condition, response => {
+        this.total = response.data.itemCount;
+        this.tableData = response.data.listObject;
+        this.tableData.forEach(item => {
+          if (item.tags && item.tags.length > 0) {
+            item.tags = JSON.parse(item.tags);
+          }
         });
-      },
-
-      handleSelect(selection, row) {
-        _handleSelect(this, selection, row, this.selectRows);
-      },
-      showExecResult(row) {
-        this.visible = false;
-        this.$emit('showExecResult', row);
-      },
-      filter(filters) {
-        _filter(filters, this.condition);
-        this.initTable();
-      },
-      sort(column) {
-        // 每次只对一个字段排序
-        if (this.condition.orders) {
-          this.condition.orders = [];
-        }
-        _sort(column, this.condition);
-        this.initTable();
-      },
-      handleSelectAll(selection) {
-        _handleSelectAll(this, selection, this.tableData, this.selectRows);
-      },
-      buildPagePath(path) {
-        return path + "/" + this.currentPage + "/" + this.pageSize;
-      },
-      handleTestCase(testCase) {
+        this.$nextTick(function () {
+          if (this.$refs.table) {
+            this.$refs.table.doLayout();
+            this.$refs.table.checkTableRowIsSelect();
+          }
+        });
+      });
+    },
+    clear() {
+      if (this.$refs.table) {
+        this.$refs.table.clear();
+      }
+    },
+    showExecResult(row) {
+      this.visible = false;
+      this.$emit('showExecResult', row);
+    },
+    filter(filters) {
+      _filter(filters, this.condition);
+      this.initTable();
+    },
+    sort(column) {
+      // 每次只对一个字段排序
+      if (this.condition.orders) {
+        this.condition.orders = [];
+      }
+      _sort(column, this.condition);
+      this.initTable();
+    },
+    buildPagePath(path) {
+      return path + "/" + this.currentPage + "/" + this.pageSize;
+    },
+    handleTestCase(testCase) {
         this.$get('/api/definition/get/' + testCase.apiDefinitionId, (response) => {
           let api = response.data;
           let selectApi = api;
@@ -229,16 +275,29 @@ export default {
           this.$refs.caseList.open(selectApi, testCase.id);
         });
       },
-      setEnvironment(data) {
-        this.environmentId = data.id;
-      },
-      clearSelection() {
-        this.selectRows = new Set();
-        if (this.$refs.table) {
-          this.$refs.table.clearSelection();
-        }
+    setEnvironment(data) {
+      this.environmentId = data.id;
+    },
+    clearSelection() {
+      if (this.$refs.table) {
+        this.$refs.table.clearSelectRows();
+        this.$refs.table.clearSelection();
       }
     },
+    getConditions() {
+      let sampleSelectRows = this.$refs.table.getSelectRows();
+      let batchParam = buildBatchParam(this);
+      let param = {};
+      if(batchParam.condition){
+        param = batchParam.condition;
+        param.projectId = batchParam.projectId;
+      }else{
+        param = batchParam;
+      }
+      param.ids = Array.from(sampleSelectRows).map(row => row.id);
+      return param;
+    }
+  },
   }
 </script>
 

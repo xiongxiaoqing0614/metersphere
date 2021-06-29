@@ -12,10 +12,14 @@ public class ApiDefinitionImportParserFactory {
             return new PostmanDefinitionParser();
         } else if (StringUtils.equals(ApiImportPlatform.Swagger2.name(), platform)) {
             return new Swagger2Parser();
+        } else if (StringUtils.equals(ApiImportPlatform.Forseti.name(), platform)) {
+            return new ForsetiParser();
         }else if (StringUtils.equals(ApiImportPlatform.Har.name(), platform)) {
             return new HarParser();
         }else if (StringUtils.equals(ApiImportPlatform.ESB.name(), platform)) {
             return new ESBParser();
+        }else if (StringUtils.equals(ApiImportPlatform.JmeterTuhu.name(), platform)) {
+            return new JmeterTuhuParser();
         }
         return null;
     }

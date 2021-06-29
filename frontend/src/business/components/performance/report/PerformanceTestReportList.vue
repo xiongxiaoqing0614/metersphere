@@ -1,31 +1,27 @@
 <template>
   <ms-container>
     <ms-main-container>
-      <el-card class="table-card" v-loading="result.loading">
+      <el-card class="table-card">
         <template v-slot:header>
-          <ms-table-header :is-tester-permission="true" :condition.sync="condition" @search="search"
+          <ms-table-header :condition.sync="condition" @search="search"
                            :title="$t('commons.report')"
                            :show-create="false"/>
         </template>
 
-        <el-table border :data="tableData" class="adjust-table test-content"
+        <el-table v-loading="result.loading"
+                  border :data="tableData" class="adjust-table test-content"
                   @select-all="handleSelectAll"
                   @select="handleSelect"
                   @sort-change="sort"
-                  @row-click="handleEdit"
                   @filter-change="filter"
+                  :height="screenHeight"
         >
           <el-table-column
             type="selection"/>
           <el-table-column width="40" :resizable="false" align="center">
             <template v-slot:default="scope">
-              <show-more-btn v-tester :is-show="scope.row.showMore" :buttons="buttons" :size="selectRows.size"/>
+              <show-more-btn :is-show="scope.row.showMore" :buttons="buttons" :size="selectRows.size"/>
             </template>
-          </el-table-column>
-          <el-table-column
-            prop="name"
-            :label="$t('commons.name')"
-            show-overflow-tooltip>
           </el-table-column>
           <el-table-column
             prop="testName"
@@ -33,9 +29,12 @@
             show-overflow-tooltip>
           </el-table-column>
           <el-table-column
-            prop="projectName"
-            :label="$t('report.project_name')"
+            prop="name"
+            :label="$t('commons.name')"
             show-overflow-tooltip>
+            <template v-slot:default="scope">
+              <span @click="handleView(scope.row)" style="cursor: pointer;">{{ scope.row.name }}</span>
+            </template>
           </el-table-column>
           <el-table-column
             prop="userName"
@@ -43,14 +42,48 @@
             show-overflow-tooltip>
           </el-table-column>
           <el-table-column
-            prop="createTime"
-            sortable
-            :label="$t('commons.create_time')">
+            prop="maxUsers"
+            width="65"
+            :label="$t('report.max_users')">
+          </el-table-column>
+          <el-table-column
+            width="100"
+            prop="avgResponseTime"
+            :label="$t('report.response_time')">
+          </el-table-column>
+          <el-table-column
+            prop="tps"
+            label="TPS">
+          </el-table-column>
+          <el-table-column
+            width="100"
+            prop="testStartTime"
+            :label="$t('report.test_start_time') ">
             <template v-slot:default="scope">
-              <span>{{ scope.row.createTime | timestampFormatDate }}</span>
+              <span v-if="scope.row.testStartTime > 0">{{ scope.row.testStartTime | timestampFormatDate }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="triggerMode" width="150" :label="$t('test_track.report.list.trigger_mode')" column-key="triggerMode"
+          <el-table-column
+            width="100"
+            prop="testEndTime"
+            :label="$t('report.test_end_time')">
+            <template v-slot:default="scope">
+              <span v-if="scope.row.status === 'Completed'">{{ scope.row.testEndTime | timestampFormatDate }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            width="90"
+            prop="testDuration"
+            :label="$t('report.test_execute_time')">
+            <template v-slot:default="scope">
+              <span v-if="scope.row.status === 'Completed'">
+                {{ scope.row.minutes }}{{ $t('schedule.cron.minutes') }}
+                {{ scope.row.seconds }}{{ $t('schedule.cron.seconds') }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="triggerMode" :label="$t('test_track.report.list.trigger_mode')"
+                           column-key="triggerMode"
                            :filters="triggerFilters">
             <template v-slot:default="scope">
               <report-trigger-mode-item :trigger-mode="scope.row.triggerMode"/>
@@ -66,14 +99,20 @@
             </template>
           </el-table-column>
           <el-table-column
-            width="150"
+            width="180"
             :label="$t('commons.operating')">
             <template v-slot:default="scope">
+              <ms-table-operator-button :tip="$t('test_track.module.rename')" icon="el-icon-edit"
+                                        v-permission="['PROJECT_PERFORMANCE_REPORT:READ+DELETE']"
+                                        @exec="handleRename(scope.row)" type="success"/>
               <ms-table-operator-button :tip="$t('api_report.detail')" icon="el-icon-s-data"
-                                        @exec="handleEdit(scope.row)" type="primary"/>
+                                        v-permission="['PROJECT_PERFORMANCE_REPORT:READ']"
+                                        @exec="handleView(scope.row)" type="primary"/>
               <ms-table-operator-button :tip="$t('load_test.report.diff')" icon="el-icon-s-operation"
+                                        v-permission="['PROJECT_PERFORMANCE_REPORT:READ']"
                                         @exec="handleDiff(scope.row)" type="warning"/>
-              <ms-table-operator-button :is-tester-permission="true" :tip="$t('api_report.delete')"
+              <ms-table-operator-button :tip="$t('api_report.delete')"
+                                        v-permission="['PROJECT_PERFORMANCE_REPORT:READ+DELETE']"
                                         icon="el-icon-delete" @exec="handleDelete(scope.row)" type="danger"/>
             </template>
           </el-table-column>
@@ -91,12 +130,11 @@ import MsTablePagination from "../../common/pagination/TablePagination";
 import MsContainer from "../../common/components/MsContainer";
 import MsMainContainer from "../../common/components/MsMainContainer";
 import MsPerformanceReportStatus from "./PerformanceReportStatus";
-import {getCurrentProjectID} from "@/common/js/utils";
+import {getCurrentProjectID, getCurrentWorkspaceId} from "@/common/js/utils";
 import MsTableOperatorButton from "../../common/components/MsTableOperatorButton";
 import ReportTriggerModeItem from "../../common/tableItem/ReportTriggerModeItem";
 import {REPORT_CONFIGS} from "../../common/components/search/search-components";
 import MsTableHeader from "../../common/components/MsTableHeader";
-import {LIST_CHANGE, PerformanceEvent} from "@/business/components/common/head/ListEvent";
 import ShowMoreBtn from "../../track/case/components/ShowMoreBtn";
 import {_filter, _sort} from "@/common/js/tableUtils";
 import MsDialogFooter from "@/business/components/common/components/MsDialogFooter";
@@ -117,12 +155,12 @@ export default {
     ShowMoreBtn,
   },
   created: function () {
+    this.testId = this.$route.path.split('/')[3];
     this.initTableData();
   },
   data() {
     return {
       result: {},
-      queryPath: "/performance/report/list/all",
       deletePath: "/performance/report/delete/",
       condition: {
         components: REPORT_CONFIGS
@@ -135,6 +173,7 @@ export default {
       total: 0,
       loading: false,
       testId: null,
+      screenHeight: 'calc(100vh - 295px)',
       statusFilters: [
         {text: 'Starting', value: 'Starting'},
         {text: 'Running', value: 'Running'},
@@ -154,27 +193,78 @@ export default {
         }
       ],
       selectRows: new Set(),
-    }
+    };
   },
   watch: {
     '$route'(to) {
+      if (to.name !== 'perReport') {
+        return;
+      }
       this.projectId = to.params.projectId;
+      this.testId = this.$route.path.split('/')[3];
       this.initTableData();
     }
   },
   methods: {
+    handleTimeInfo(report) {
+      if (report.testStartTime) {
+        let duration = report.testDuration;
+        let minutes = Math.floor(duration / 60);
+        let seconds = duration % 60;
+        this.$set(report, 'minutes', minutes);
+        this.$set(report, 'seconds', seconds);
+      }
+      if (report.status === 'Completed' && !report.testStartTime) {
+        this.result = this.$get("/performance/report/content/report_time/" + report.id)
+          .then(res => {
+            let data = res.data.data;
+            if (data) {
+              let duration = data.duration;
+              let minutes = Math.floor(duration / 60);
+              let seconds = duration % 60;
+              this.$set(report, 'testStartTime', data.startTime);
+              this.$set(report, 'testEndTime', data.endTime);
+              this.$set(report, 'minutes', minutes);
+              this.$set(report, 'seconds', seconds);
+            }
+          }).catch(() => {
+          });
+      }
+    },
+    handleOverview(report) {
+      if (report.status === 'Completed' && !report.maxUsers) {
+        this.result = this.$get('/performance/report/content/testoverview/' + report.id)
+          .then(response => {
+            let data = response.data.data;
+            this.$set(report, 'maxUsers', data.maxUsers);
+            this.$set(report, 'avgResponseTime', data.avgResponseTime);
+            this.$set(report, 'tps', data.avgTransactions);
+          })
+          .catch(() => {
+          });
+      }
+    },
     initTableData() {
       if (this.testId !== 'all') {
         this.condition.testId = this.testId;
+      } else {
+        this.condition.testId = null;
       }
       if (!getCurrentProjectID()) {
         return;
       }
-      this.result = this.$post(this.buildPagePath(this.queryPath), this.condition, response => {
+      this.condition.workspaceId = getCurrentWorkspaceId();
+      this.condition.projectId = getCurrentProjectID();
+      this.result = this.$post(this.buildPagePath('/performance/report/list/all'), this.condition, response => {
         let data = response.data;
         this.total = data.itemCount;
         this.tableData = data.listObject;
         this.selectRows = new Set();
+
+        this.tableData.forEach(report => {
+          this.handleOverview(report);
+          this.handleTimeInfo(report);
+        });
       });
     },
     search(combine) {
@@ -186,10 +276,28 @@ export default {
     handleSelectionChange(val) {
       this.multipleSelection = val;
     },
-    handleEdit(report) {
+    handleRename(report) {
+      this.$prompt(this.$t('commons.input_name'), '', {
+        confirmButtonText: this.$t('commons.confirm'),
+        cancelButtonText: this.$t('commons.cancel'),
+        inputValue: report.name,
+        inputValidator: function (value) {
+          if (value.length > 63) {
+            return false;
+          }
+        }
+      }).then(({value}) => {
+        this.$post('/performance/report/rename', {id: report.id, name: value}, response => {
+          this.initTableData();
+        });
+      }).catch(() => {
+
+      });
+    },
+    handleView(report) {
       this.$router.push({
         path: '/performance/report/view/' + report.id
-      })
+      });
     },
     handleDelete(report) {
       this.$alert(this.$t('report.delete_confirm') + report.name + "？", '', {
@@ -207,16 +315,12 @@ export default {
     _handleDeleteNoMsg(report) {
       this.result = this.$post(this.deletePath + report.id, {}, () => {
         this.initTableData();
-        // 发送广播，刷新 head 上的最新列表
-        PerformanceEvent.$emit(LIST_CHANGE);
       });
     },
     _handleDelete(report) {
       this.result = this.$post(this.deletePath + report.id, {}, () => {
         this.$success(this.$t('commons.delete_success'));
         this.initTableData();
-        // 发送广播，刷新 head 上的最新列表
-        PerformanceEvent.$emit(LIST_CHANGE);
       });
     },
     sort(column) {
@@ -246,7 +350,7 @@ export default {
         this.selectRows.clear();
         this.tableData.forEach(row => {
           this.$set(row, "showMore", false);
-        })
+        });
       }
     },
     handleBatchDelete() {
@@ -254,16 +358,21 @@ export default {
         confirmButtonText: this.$t('commons.confirm'),
         callback: (action) => {
           if (action === 'confirm') {
+            let ids = [];
             this.selectRows.forEach(row => {
-              this._handleDeleteNoMsg(row);
+              ids.push(row.id);
             });
+            this.result = this.$post("/performance/report/batch/delete", {ids: ids}, () => {
+              this.initTableData();
+            });
+
             this.$success(this.$t('commons.delete_success'));
           }
         },
       });
     }
   }
-}
+};
 </script>
 
 <style scoped>
@@ -271,9 +380,4 @@ export default {
 .test-content {
   width: 100%;
 }
-
-.el-table {
-  cursor: pointer;
-}
-
 </style>

@@ -9,6 +9,7 @@
         <el-dropdown-item command="about">{{ $t('commons.about_us') }} <i class="el-icon-info"/></el-dropdown-item>
         <el-dropdown-item command="help">{{ $t('commons.help_documentation') }}</el-dropdown-item>
         <el-dropdown-item command="ApiHelp">{{ $t('commons.api_help_documentation') }}</el-dropdown-item>
+        <el-dropdown-item command="WikiHelp">{{ $t('commons.tuhu_wiki_documentation') }}</el-dropdown-item>
         <el-dropdown-item command="old" v-show=isNewVersion @click.native="changeBar('old')">
           {{ $t('commons.cut_back_old_version') }}
         </el-dropdown-item>
@@ -28,6 +29,8 @@ import {getCurrentUser} from "@/common/js/utils";
 import AboutUs from "./AboutUs";
 import axios from "axios";
 import {mapGetters} from "vuex";
+import {TokenKey} from "@/common/js/constants";
+import {ORGANIZATION_ID, PROJECT_ID, WORKSPACE_ID} from "@/common/js/constants";
 
 const requireComponent = require.context('@/business/components/xpack/', true, /\.vue$/);
 const auth = requireComponent.keys().length > 0 ? requireComponent("./auth/Auth.vue") : {};
@@ -52,11 +55,20 @@ export default {
     logout: function () {
       axios.get("/signout").then(response => {
         if (response.data.success) {
-          localStorage.clear();
+          localStorage.removeItem(TokenKey);
+
+          sessionStorage.removeItem(ORGANIZATION_ID);
+          sessionStorage.removeItem(WORKSPACE_ID);
+          sessionStorage.removeItem(PROJECT_ID);
+
           window.location.href = "/login";
         }
       }).catch(error => {
-        localStorage.clear();
+        localStorage.removeItem(TokenKey);
+
+        sessionStorage.removeItem(ORGANIZATION_ID);
+        sessionStorage.removeItem(WORKSPACE_ID);
+        sessionStorage.removeItem(PROJECT_ID);
         window.location.href = "/login";
       });
     },
@@ -77,6 +89,9 @@ export default {
           break;
         case "ApiHelp":
           window.open('/swagger-ui/index.html?configUrl=/v3/api-docs/swagger-config', "_blank");
+          break;
+        case "WikiHelp":
+          window.location.href = "https://wiki.tuhu.cn/pages/viewpage.action?pageId=99285997";
           break;
         default:
           break;

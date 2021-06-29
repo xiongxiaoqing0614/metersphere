@@ -13,9 +13,14 @@ import javax.validation.constraints.Pattern;
 @ColumnWidth(15)
 public class TestCaseExcelDataCn extends TestCaseExcelData {
 
+//    @ExcelProperty("ID")
+//    @NotRequired
+//    private Integer num;
+
+    @ColumnWidth(50)
     @ExcelProperty("ID")
     @NotRequired
-    private Integer num;
+    private String customNum;
 
     @NotBlank(message = "{cannot_be_null}")
     @Length(max = 255)
@@ -28,11 +33,6 @@ public class TestCaseExcelDataCn extends TestCaseExcelData {
     @ColumnWidth(30)
     @Pattern(regexp = "^(?!.*//).*$", message = "{incorrect_format}")
     private String nodePath;
-
-    @NotBlank(message = "{cannot_be_null}")
-    @ExcelProperty("用例类型")
-    @Pattern(regexp = "(^functional$)|(^performance$)|(^api$)", message = "{test_case_type_validate}")
-    private String type;
 
     @NotBlank(message = "{cannot_be_null}")
     @ExcelProperty("维护人")
@@ -56,21 +56,23 @@ public class TestCaseExcelDataCn extends TestCaseExcelData {
 
     @ColumnWidth(50)
     @ExcelProperty("前置条件")
-    @Length(min = 0, max = 500)
     private String prerequisite;
 
     @ColumnWidth(50)
     @ExcelProperty("备注")
-    @Length(max = 1000)
     private String remark;
 
     @ColumnWidth(50)
     @ExcelProperty("步骤描述")
-    @Length(max = 1000)
     private String stepDesc;
 
     @ColumnWidth(50)
     @ExcelProperty("预期结果")
-    @Length(max = 1000)
     private String stepResult;
+
+    @ColumnWidth(50)
+    @ExcelProperty("编辑模式")
+    @NotRequired
+    @Pattern(regexp = "(^TEXT$)|(^STEP$)", message = "{test_case_step_model_validate}")
+    private String stepModel;
 }

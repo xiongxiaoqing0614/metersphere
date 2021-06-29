@@ -1,7 +1,7 @@
 <template>
   <el-card class="table-card" v-loading="result.loading">
     <template v-slot:header>
-      <ms-table-header :is-tester-permission="true" :condition.sync="condition"
+      <ms-table-header :condition.sync="condition"
                        @search="initTableData" :showCreate="false"
                        :title="$t('test_track.plan.test_plan')">
       </ms-table-header>
@@ -144,12 +144,10 @@ import MsTableOperatorButton from "../../../../common/components/MsTableOperator
 import MsTableOperator from "../../../../common/components/MsTableOperator";
 import PlanStatusTableItem from "../../../../track/common/tableItems/plan/PlanStatusTableItem";
 import PlanStageTableItem from "../../../../track/common/tableItems/plan/PlanStageTableItem";
-import {checkoutTestManagerOrTestUser, strMapToObj} from "@/common/js/utils";
 import TestReportTemplateList from "../../../../track/plan/view/comonents/TestReportTemplateList";
 import TestCaseReportView from "../../../../track/plan/view/comonents/report/TestCaseReportView";
 import MsDeleteConfirm from "../../../../common/components/MsDeleteConfirm";
 import {TEST_PLAN_CONFIGS} from "../../../../common/components/search/search-components";
-import {LIST_CHANGE, TrackEvent} from "@/business/components/common/head/ListEvent";
 import {getCurrentProjectID} from "../../../../../../common/js/utils";
 import {_filter, _sort} from "@/common/js/tableUtils";
 import EnvPopover from "@/business/components/track/common/EnvPopover";
@@ -164,7 +162,8 @@ export default {
     MsTableOperator, MsTableOperatorButton, MsDialogFooter, MsTableHeader, MsCreateBox, MsTablePagination, EnvPopover
   },
   props: {
-    row: Set
+    row: Set,
+    scenarioCondition: {},
   },
   data() {
       return {
@@ -206,7 +205,7 @@ export default {
     },
     created() {
       this.projectId = this.$route.params.projectId;
-      this.isTestManagerOrTestUser = checkoutTestManagerOrTestUser();
+      this.isTestManagerOrTestUser = true;
       this.initTableData();
       this.setScenarioSelectRows(this.row);
       this.getWsProjects();
@@ -236,13 +235,29 @@ export default {
       setScenarioSelectRows(rows) {
         this.projectIds.clear();
         this.map.clear();
-        rows.forEach(row => {
-          this.result = this.$get('/api/automation/getApiScenarioProjectId/' + row.id, res => {
+        if (this.scenarioCondition != null) {
+          let params = {};
+          params.ids = [];
+          rows.forEach(row => {
+            params.ids.push(row.id);
+          });
+          params.condition = this.scenarioCondition;
+          this.$post('/api/automation/getApiScenarioProjectIdByConditions', params, res => {
             let data = res.data;
-            data.projectIds.forEach(d => this.projectIds.add(d));
-            this.map.set(row.id, data.projectIds);
-          })
-        })
+            data.forEach(scenario => {
+              scenario.projectIds.forEach(d => this.projectIds.add(d));
+              this.map.set(scenario.id, scenario.projectIds);
+            });
+          });
+        } else {
+          rows.forEach(row => {
+            this.result = this.$get('/api/automation/getApiScenarioProjectId/' + row.id, res => {
+              let data = res.data;
+              data.projectIds.forEach(d => this.projectIds.add(d));
+              this.map.set(row.id, data.projectIds);
+            });
+          });
+        }
       },
       initTableData() {
         if (this.planId) {
@@ -255,6 +270,7 @@ export default {
           this.$warning(this.$t('commons.check_project_tip'));
           return;
         }
+        this.condition.projectId = getCurrentProjectID();
         this.result = this.$post(this.buildPagePath(this.queryPath), this.condition, response => {
           let data = response.data;
           this.total = data.itemCount;
@@ -289,8 +305,6 @@ export default {
         this.$post('/test/plan/delete/' + testPlanId, {}, () => {
           this.initTableData();
           this.$success(this.$t('commons.delete_success'));
-          // 发送广播，刷新 head 上的最新列表
-          TrackEvent.$emit(LIST_CHANGE);
         });
       },
       intoPlan(row, event, column) {

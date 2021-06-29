@@ -67,7 +67,7 @@
 
 <script>
   import MsDialogFooter from "../../../../common/components/MsDialogFooter";
-  import {listenGoBack, removeGoBackListener} from "@/common/js/utils";
+  import {getCurrentProjectID, listenGoBack, removeGoBackListener} from "@/common/js/utils";
   import MsSelectTree from "../../../../common/select-tree/SelectTree";
 
   export default {
@@ -123,6 +123,20 @@
             tip: this.$t('api_test.api_import.har_tip'),
             exportTip: this.$t('api_test.api_import.har_export_tip'),
             suffixes: new Set(['har'])
+          },
+          {
+            name: 'JMeter-Tuhu',
+            value: 'JmeterTuhu',
+            tip: this.$t('api_test.api_import.jmeter_tip'),
+            exportTip: this.$t('api_test.api_import.jmeter_export_tip'),
+            suffixes: new Set(['jmx'])
+          },
+          {
+            name: 'JMeter-Tuhu-Case',
+            value: 'JmeterTuhuCase',
+            tip: this.$t('api_test.api_import.jmeter_tip'),
+            exportTip: this.$t('api_test.api_import.jmeter_export_tip'),
+            suffixes: new Set(['jmx'])
           }
         ],
         selectedPlatform: {},
@@ -164,7 +178,7 @@
         return this.selectedPlatformValue === 'Har';
       },
       projectId() {
-        return this.$store.state.projectId
+        return getCurrentProjectID();
       },
     },
     methods: {
@@ -272,7 +286,7 @@
 <style scoped>
 
   .api-import >>> .el-dialog {
-    min-width: 700px;
+    min-width: 980px;
   }
 
   .format-tip {

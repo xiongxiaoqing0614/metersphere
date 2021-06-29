@@ -1,7 +1,7 @@
 <template>
   <el-dialog :close-on-click-modal="false"
              :destroy-on-close="true"
-             :title="$t('已完成的测试报告')" width="60%"
+             :title="$t('load_test.completed_test_report')" width="60%"
              :visible.sync="loadReportVisible">
     <el-table v-loading="reportLoadingResult.loading"
               class="basic-config"
@@ -50,6 +50,7 @@
 import MsTablePagination from "@/business/components/common/pagination/TablePagination";
 import MsDialogFooter from "@/business/components/common/components/MsDialogFooter";
 import ReportTriggerModeItem from "@/business/components/common/tableItem/ReportTriggerModeItem";
+import {WORKSPACE_ID} from "@/common/js/constants";
 
 export default {
   name: "SameTestReports",
@@ -80,17 +81,16 @@ export default {
     close() {
       this.loadReportVisible = false;
     },
-    getCompareReports(report) {
-
+    getCompareReports() {
       let condition = {
-        testId: report.testId,
+        testId: this.report.testId,
         filters: {status: ["Completed"]}
       };
       this.reportLoadingResult = this.$post('/performance/report/list/all/' + this.currentPage + "/" + this.pageSize, condition, res => {
         let data = res.data;
         this.total = data.itemCount;
         this.tableData = data.listObject;
-      })
+      });
     },
     handleCompare() {
       let reportIds = [...this.selectIds];

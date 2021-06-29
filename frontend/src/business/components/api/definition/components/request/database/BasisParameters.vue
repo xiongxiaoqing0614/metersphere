@@ -11,7 +11,7 @@
                              :placeholder="$t('api_test.definition.request.run_env')"
                              @change="environmentChange" clearable>
                     <el-option v-for="(environment, index) in environments" :key="index"
-                               :label="environment.name + (environment.config.httpConfig.socket ? (': ' + environment.config.httpConfig.protocol + '://' + environment.config.httpConfig.socket) : '')"
+                               :label="environment.name"
                                :value="environment.id"/>
                     <el-button class="environment-button" size="small" type="primary" @click="openEnvironmentConfig">
                       {{ $t('api_test.environment.environment_config') }}
@@ -43,11 +43,11 @@
 
 
             <el-form-item :label="$t('api_test.request.sql.result_variable')" prop="resultVariable">
-              <el-input v-model="request.resultVariable" maxlength="300" show-word-limit size="small"/>
+              <el-input v-model="request.resultVariable" maxlength="500" show-word-limit size="small"/>
             </el-form-item>
 
             <el-form-item :label="$t('api_test.request.sql.variable_names')" prop="variableNames">
-              <el-input v-model="request.variableNames" maxlength="300" show-word-limit size="small"/>
+              <el-input v-model="request.variableNames" maxlength="500" show-word-limit size="small"/>
             </el-form-item>
 
             <el-tabs v-model="activeName">
@@ -63,24 +63,6 @@
             </el-tabs>
           </el-form>
         </div>
-        <!--<div v-if="showScript">-->
-        <!--<div v-for="row in request.hashTree" :key="row.id" v-loading="isReloadData" style="margin-left: 20px;width: 100%">-->
-        <!--&lt;!&ndash; 前置脚本 &ndash;&gt;-->
-        <!--<ms-jsr233-processor v-if="row.label ==='JSR223 PreProcessor'" @copyRow="copyRow" @remove="remove" :is-read-only="false" :title="$t('api_test.definition.request.pre_script')" style-type="color: #B8741A;background-color: #F9F1EA"-->
-        <!--:jsr223-processor="row"/>-->
-        <!--&lt;!&ndash;后置脚本&ndash;&gt;-->
-        <!--<ms-jsr233-processor v-if="row.label ==='JSR223 PostProcessor'" @copyRow="copyRow" @remove="remove" :is-read-only="false" :title="$t('api_test.definition.request.post_script')" style-type="color: #783887;background-color: #F2ECF3"-->
-        <!--:jsr223-processor="row"/>-->
-        <!--&lt;!&ndash;断言规则&ndash;&gt;-->
-        <!--<div style="margin-top: 10px">-->
-        <!--<ms-api-assertions v-if="row.type==='Assertions'" @copyRow="copyRow" @remove="remove" :is-read-only="isReadOnly" :assertions="row"/>-->
-        <!--</div>-->
-        <!--&lt;!&ndash;提取规则&ndash;&gt;-->
-        <!--<div style="margin-top: 10px">-->
-        <!--<ms-api-extract :is-read-only="isReadOnly" @copyRow="copyRow" @remove="remove" v-if="row.type==='Extract'" :extract="row"/>-->
-        <!--</div>-->
-        <!--</div>-->
-        <!--</div>-->
       </el-col>
       <el-col :span="3" class="ms-left-cell" v-if="showScript">
 
@@ -138,26 +120,24 @@
     data() {
       return {
         environments: [],
+        currentEnvironment: {},
         databaseConfigsOptions: [],
         isReloadData: false,
         activeName: "variables",
-        rules: {
-          environmentId: [{required: true, message: this.$t('api_test.definition.request.run_env'), trigger: 'change'}],
-          dataSourceId: [{required: true, message: this.$t('api_test.request.sql.dataSource'), trigger: 'blur'}],
-        },
+        rules: {},
       }
     },
     watch: {
       'request.dataSourceId'() {
         this.setDataSource();
-      }
+      },
     },
     created() {
       this.getEnvironments();
     },
     computed: {
       projectId() {
-        return this.$store.state.projectId
+        return getCurrentProjectID();
       },
     },
     methods: {
@@ -212,7 +192,6 @@
       runTest() {
 
       },
-
       getEnvironments() {
         this.environments = [];
         let id = this.request.projectId ? this.request.projectId : this.projectId;
@@ -255,10 +234,12 @@
           }
         }
         if (!flag) {
-          this.request.dataSourceId = undefined;
+          this.request.dataSourceId = "";
         }
       },
       setDataSource() {
+        this.initDataSource();
+
         for (let item of this.databaseConfigsOptions) {
           if (this.request.dataSourceId === item.id) {
             this.request.dataSource = item;

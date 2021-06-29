@@ -20,4 +20,10 @@ public class ReportDTO {
     private String projectName;
     private String userName;
     private String triggerMode;
+    private String maxUsers;
+    private String avgResponseTime;
+    private String tps;
+    private long testStartTime;
+    private long testEndTime;
+    private long testDuration;
 }

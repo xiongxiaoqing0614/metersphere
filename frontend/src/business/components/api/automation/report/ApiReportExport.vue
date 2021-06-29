@@ -1,6 +1,6 @@
 <template>
   <ms-report-export-template :title="title" :type="$t('report.api_test_report')">
-    <ms-metric-chart :content="content" :totalTime="totalTime"/>
+    <ms-metric-chart :content="content" :is-export="true" :totalTime="totalTime"/>
     <div class="scenario-result" v-for="(scenario, index) in content.scenarios" :key="index" :scenario="scenario">
       <div>
         <el-card>
@@ -11,7 +11,7 @@
 
             <div class="request-top">
               <div>
-                {{request.name}}
+                {{ getName(request.name) }}
               </div>
               <div class="url">
                 {{request.url}}
@@ -91,6 +91,18 @@
     data() {
       return {}
     },
+    methods:{
+      getName(name) {
+        if (name && name.indexOf("^@~@^") !== -1) {
+          let arr = name.split("^@~@^");
+          if (arr[arr.length - 1].indexOf("UUID=")) {
+            return arr[arr.length - 1].split("UUID=")[0];
+          }
+          return arr[arr.length - 1];
+        }
+        return name;
+      }
+    }
   }
 </script>
 

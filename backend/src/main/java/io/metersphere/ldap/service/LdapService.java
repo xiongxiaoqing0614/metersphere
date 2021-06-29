@@ -1,10 +1,12 @@
 package io.metersphere.ldap.service;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import io.metersphere.commons.constants.ParamConstants;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.utils.EncryptUtils;
 import io.metersphere.commons.utils.LogUtil;
+import io.metersphere.controller.ResultHolder;
 import io.metersphere.controller.request.LoginRequest;
 import io.metersphere.i18n.Translator;
 import io.metersphere.service.SystemParameterService;
@@ -246,5 +248,18 @@ public class LdapService {
             return false;
         }
         return StringUtils.equals(Boolean.TRUE.toString(), open);
+    }
+
+    public String getFromJson(String item, String sJson){
+        ResultHolder rh = JSON.parseObject(sJson, ResultHolder.class);
+        String listJson = JSON.toJSONString(rh.getData());
+        JSONObject jsonObject = JSONObject.parseObject(listJson);
+        try {
+            String sItem = jsonObject.getString(item);
+            return sItem;
+        } catch (Exception e) {
+            LogUtil.error(e.getMessage(), e);
+            return null;
+        }
     }
 }

@@ -8,21 +8,21 @@
     </el-row>
     <el-row type="flex" justify="space-between" align="middle">
       <span class="operate-button">
-        <ms-table-button :is-tester-permission="isTesterPermission" v-if="showCreate" icon="el-icon-circle-plus-outline"
+        <ms-table-button v-permission="createPermission" v-if="showCreate" icon="el-icon-circle-plus-outline"
                          :content="createTip" @click="create"/>
-        <ms-table-button :is-tester-permission="true" icon="el-icon-download" v-if="showImport"
+        <ms-table-button icon="el-icon-download" v-if="showImport"
                          :content="importTip" @click="importData"/>
-        <ms-table-button :is-tester-permission="isTesterPermission" v-if="showRun" icon="el-icon-video-play"
+        <ms-table-button v-if="showRun" icon="el-icon-video-play"
                          type="primary"
                          :content="runTip" @click="runTest"/>
-          <ms-table-button :is-tester-permission="isTesterPermission" v-if="showRun" icon="el-icon-circle-plus-outline"
+          <ms-table-button v-if="showRun" icon="el-icon-circle-plus-outline"
                            content="转场景测试" @click="historicalDataUpgrade"/>
 
         <slot name="button"></slot>
       </span>
       <span>
         <slot name="searchBarBefore"></slot>
-        <ms-table-search-bar :condition.sync="condition" @change="search" class="search-bar" :tip="tip"/>
+        <ms-table-search-bar :condition.sync="condition" @change="search" class="search-bar" :tip="tip" v-if="haveSearch"/>
         <ms-table-adv-search-bar :condition.sync="condition" @search="search" v-if="isCombine"/>
       </span>
     </el-row>
@@ -42,7 +42,7 @@
       title: {
         type: String,
         default() {
-          return this.$t('commons.name');
+          return null;
         }
       },
       showCreate: {
@@ -72,6 +72,12 @@
           return this.$t('commons.import');
         }
       },
+      createPermission: {
+        type: Array,
+        default() {
+          return []
+        }
+      },
       runTip: {
         type: String,
 
@@ -85,6 +91,12 @@
         String,
         default() {
           return this.$t('commons.search_by_name');
+        }
+      },
+      haveSearch: {
+        Boolean,
+        default() {
+          return true;
         }
       }
     },

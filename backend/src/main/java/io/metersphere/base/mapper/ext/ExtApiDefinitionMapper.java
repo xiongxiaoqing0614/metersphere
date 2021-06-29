@@ -11,13 +11,18 @@ import io.metersphere.controller.request.BaseQueryRequest;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ExtApiDefinitionMapper {
     List<ApiSwaggerUrlDTO> selectScheduleList(@Param("projectId") String projectId);
 
     List<ApiDefinitionResult> list(@Param("request") ApiDefinitionRequest request);
 
-    List<ApiComputeResult> selectByIds(@Param("ids") List<String> ids);
+    int moduleCount(@Param("request") ApiDefinitionRequest request);
+
+    //List<ApiComputeResult> selectByIds(@Param("ids") List<String> ids);
+
+    List<ApiComputeResult> selectByIds(@Param("ids") List<String> ids, @Param("projectId") String projectId);
 
     int removeToGc(@Param("ids") List<String> ids);
 
@@ -29,15 +34,33 @@ public interface ExtApiDefinitionMapper {
 
     Long countByProjectIDAndCreateInThisWeek(@Param("projectId") String projectId, @Param("firstDayTimestamp") long firstDayTimestamp, @Param("lastDayTimestamp") long lastDayTimestamp);
 
+    Long countByProjectIDAndCreateInThisWeekNoP4(@Param("projectId") String projectId, @Param("firstDayTimestamp") long firstDayTimestamp, @Param("lastDayTimestamp") long lastDayTimestamp);
+
+    Long countByProjectIDAndTagAndCreateInThisWeek(@Param("projectId") String projectId, @Param("tag") String tag, @Param("firstDayTimestamp") long firstDayTimestamp, @Param("lastDayTimestamp") long lastDayTimestamp);
+
     List<ApiDataCountResult> countStateByProjectID(String projectId);
+
+    List<ApiDataCountResult> countStateByProjectIDP0(String projectId);
+
+    List<ApiDataCountResult> countStateByProjectIDNoP4(String projectId);
 
     List<ApiDataCountResult> countApiCoverageByProjectID(String projectId);
 
     ApiDefinition getNextNum(@Param("projectId") String projectId);
 
-    List<ApiDefinitionResult> listRelevance(@Param("request")ApiDefinitionRequest request);
-    List<ApiDefinitionResult>  listRelevanceReview(@Param("request")ApiDefinitionRequest request);
+    ApiDefinition getNextNumByProjectId(@Param("projectId") String projectId, @Param("id") String id);
+
+    List<ApiDefinitionResult> listRelevance(@Param("request") ApiDefinitionRequest request);
+
+    List<ApiDefinitionResult> listRelevanceReview(@Param("request") ApiDefinitionRequest request);
+
     List<String> selectIds(@Param("request") BaseQueryRequest query);
 
     List<ApiDefinition> selectEffectiveIdByProjectId(String projectId);
+
+    List<ApiDefinitionResult> listByIds(@Param("ids") List<String> ids);
+
+    List<Map<String, Object>> moduleCountByCollection(@Param("request") ApiDefinitionRequest request);
+
+    ApiDefinition selectUrlAndMethodById(String id);
 }

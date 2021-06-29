@@ -4,14 +4,18 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import io.metersphere.api.dto.ApiTestImportRequest;
 import io.metersphere.api.dto.automation.EsbDataStruct;
+import io.metersphere.api.dto.definition.parse.esb.ESBExcelSheetInfo;
 import io.metersphere.api.dto.definition.parse.esb.EsbExcelDataStruct;
 import io.metersphere.api.dto.definition.parse.esb.EsbSheetDataStruct;
 import io.metersphere.api.dto.definition.request.processors.pre.MsJSR223PreProcessor;
 import io.metersphere.api.dto.definition.request.sampler.MsTCPSampler;
+import io.metersphere.api.dto.scenario.KeyValue;
 import io.metersphere.api.dto.scenario.request.RequestType;
+import io.metersphere.api.service.EsbApiParamService;
 import io.metersphere.base.domain.ApiDefinitionWithBLOBs;
 import io.metersphere.base.domain.ApiModule;
 import io.metersphere.base.domain.EsbApiParamsWithBLOBs;
+import io.metersphere.commons.utils.CommonBeanFactory;
 import io.metersphere.commons.utils.SessionUtils;
 import io.swagger.models.Model;
 import org.apache.commons.lang3.StringUtils;
@@ -37,10 +41,14 @@ import java.util.regex.Pattern;
  */
 public class ESBParser extends EsbAbstractParser {
 
-    private final int REQUEST_MESSAGE_ROW = 5;
-
     private Map<String, Model> definitions = null;
 
+    /**
+     * 导出模板
+     *
+     * @param response
+     * @param fileName
+     */
     public static void export(HttpServletResponse response, String fileName) {
 
         XSSFWorkbook wb = null;
@@ -91,7 +99,6 @@ public class ESBParser extends EsbAbstractParser {
         short[] colorIndexArr = {IndexedColors.LIGHT_GREEN.getIndex(), IndexedColors.ORCHID.getIndex(), IndexedColors.YELLOW.getIndex()};
         for (short colorIndex : colorIndexArr) {
             XSSFCellStyle style = workbook.createCellStyle();
-//            style.setFillForegroundColor(IndexedColors.VIOLET.getIndex());
             style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
             style.setBorderBottom(BorderStyle.THIN);
             style.setBorderLeft(BorderStyle.THIN);
@@ -120,7 +127,6 @@ public class ESBParser extends EsbAbstractParser {
         if (sheet == null) {
             return;
         }
-
         sheet.setColumnWidth(0, 4000);
         sheet.setColumnWidth(1, 4000);
         sheet.setColumnWidth(2, 4000);
@@ -346,7 +352,6 @@ public class ESBParser extends EsbAbstractParser {
     }
 
     private static void setCellValue(String textValue, Cell cell, XSSFFont font, XSSFCellStyle cellStyle) {
-//        HSSFRichTextString richString = new HSSFRichTextString(textValue);
         XSSFRichTextString richString = new XSSFRichTextString(textValue);
         richString.applyFont(font);
         if (cellStyle != null) {
@@ -390,35 +395,21 @@ public class ESBParser extends EsbAbstractParser {
         if (headSheet == null) {
             return importDataStruct;
         }
-        int simpleCodeIndex = 0;
-        int simpleNameIndex = 1;
-        int apiNameIndex = 6;
-        int apiDescIndex = 7;
-        int chineNameIndex = 8;
-        int descIndex = 9;
-        int apiPositionIndex = 10;
-        int cellCount = 11;
-//        if (isHeadSheet) {
-            apiNameIndex = 5;
-            apiDescIndex = 6;
-            chineNameIndex = 7;
-            descIndex = 8;
-            apiPositionIndex = 9;
-            cellCount = 10;
-//        }
+        ESBExcelSheetInfo sheetInfo = this.getEsbExcelSheetInfo(headSheet);
 
         int rowCount = headSheet.getLastRowNum();
+
         //根据模版样式，如果不是报文头，则要取接口信息
         if (!isHeadSheet) {
             Row interfaceInfoRow = headSheet.getRow(1);
             if (interfaceInfoRow != null) {
-                List<String> rowDataArr = this.getRowDataByStartIndexAndEndIndex(interfaceInfoRow, 0, cellCount - 1);
-                if (rowDataArr.size() >= cellCount) {
-                    String interfaceCode = rowDataArr.get(simpleCodeIndex);
-                    String interfaceName = rowDataArr.get(apiNameIndex);
-                    String interfaceDesc = rowDataArr.get(apiDescIndex);
+                List<String> rowDataArr = this.getRowDataByStartIndexAndEndIndex(interfaceInfoRow, 0, sheetInfo.getCellCount() - 1);
+                if (rowDataArr.size() >= sheetInfo.getCellCount()) {
+                    String interfaceCode = rowDataArr.get(sheetInfo.getSimpleCodeIndex());
+                    String interfaceName = rowDataArr.get(sheetInfo.getServiceNameIndex());
+                    String interfaceDesc = rowDataArr.get(sheetInfo.getServiceScenarioIndex());
                     if (StringUtils.isEmpty(interfaceName)) {
-                        interfaceName = rowDataArr.get(simpleNameIndex);
+                        interfaceName = rowDataArr.get(sheetInfo.getSimpleNameIndex());
                     }
                     importDataStruct.setInterfaceInfo(interfaceCode, interfaceName, interfaceDesc);
                 }
@@ -428,10 +419,11 @@ public class ESBParser extends EsbAbstractParser {
         //部分office/wpf生成的文件会出现几万多空行，容易造成内存溢出。这里进行判断，连续五行为空白时认为读取结束。
         int blankRowCount = 0;
         boolean isRequest = true;
-        for (int startRow = REQUEST_MESSAGE_ROW; startRow < rowCount; startRow++) {
+
+        for (int startRow = sheetInfo.getRequestMessageRow(); startRow < rowCount; startRow++) {
             Row row = headSheet.getRow(startRow);
-            List<String> rowDataArr = this.getRowDataByStartIndexAndEndIndex(row, 0, cellCount - 1);
-            boolean isBlankRow = this.checkBlankRow(rowDataArr, cellCount);
+            List<String> rowDataArr = this.getRowDataByStartIndexAndEndIndex(row, 0, sheetInfo.getCellCount() - 1);
+            boolean isBlankRow = this.checkBlankRow(rowDataArr, sheetInfo.getCellCount());
             if (!isBlankRow) {
                 String cellFlag = rowDataArr.get(0);
                 if (StringUtils.equals(cellFlag, "输出")) {
@@ -449,13 +441,14 @@ public class ESBParser extends EsbAbstractParser {
             } else {
                 blankRowCount = 0;
                 EsbDataStruct dataStruct = new EsbDataStruct();
-                boolean initDataSuccess = dataStruct.initDefaultData(rowDataArr.get(apiNameIndex), rowDataArr.get(apiDescIndex), rowDataArr.get(chineNameIndex), rowDataArr.get(descIndex));
+                boolean initDataSuccess = dataStruct.initDefaultData(
+                        rowDataArr.get(sheetInfo.getApiNameIndex()), rowDataArr.get(sheetInfo.getDataTypeIndex()), rowDataArr.get(sheetInfo.getChineNameIndex()), rowDataArr.get(sheetInfo.getDescIndex()));
                 if (!initDataSuccess) {
                     continue;
                 }
                 boolean isHead = isHeadSheet;
-                if (rowDataArr.size() > cellCount) {
-                    if (StringUtils.equals(rowDataArr.get(apiPositionIndex), "SYS_HEAD")) {
+                if (rowDataArr.size() > sheetInfo.getCellCount()) {
+                    if (StringUtils.equals(rowDataArr.get(sheetInfo.getApiPositionIndex()), "SYS_HEAD")) {
                         isHead = true;
                     }
 
@@ -599,6 +592,10 @@ public class ESBParser extends EsbAbstractParser {
                 savedNames.add(reqName);
             }
 
+            String esbSendRequest = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\r\n${SERVICE}";
+            String reqDataStructStr = generateDataStrcut(headSheetData, interfaceData, true);
+            String respDataStrutStr = generateDataStrcut(headSheetData, interfaceData, false);
+
             String apiId = UUID.randomUUID().toString();
             ApiDefinitionWithBLOBs apiDefinition = new ApiDefinitionWithBLOBs();
             apiDefinition.setName(reqName);
@@ -607,7 +604,7 @@ public class ESBParser extends EsbAbstractParser {
             apiDefinition.setProjectId(this.projectId);
             apiDefinition.setModuleId(importRequest.getModuleId());
             apiDefinition.setModulePath(importRequest.getModulePath());
-            apiDefinition.setRequest(genTCPSampler());
+            apiDefinition.setRequest(genTCPSampler(esbSendRequest, reqDataStructStr));
             if (StringUtils.equalsIgnoreCase("schedule", importRequest.getType())) {
                 apiDefinition.setUserId(importRequest.getUserId());
             } else {
@@ -620,8 +617,6 @@ public class ESBParser extends EsbAbstractParser {
             EsbApiParamsWithBLOBs apiParams = new EsbApiParamsWithBLOBs();
             apiParams.setId(UUID.randomUUID().toString());
             apiParams.setResourceId(apiId);
-            String reqDataStructStr = generateDataStrcut(headSheetData, interfaceData, true);
-            String respDataStrutStr = generateDataStrcut(headSheetData, interfaceData, false);
 
             apiParams.setDataStruct(reqDataStructStr);
             apiParams.setResponseDataStruct(respDataStrutStr);
@@ -634,12 +629,38 @@ public class ESBParser extends EsbAbstractParser {
         return resultModel;
     }
 
-    private String genTCPSampler() {
+    private String genTCPSampler(String sendRequest, String esbDataStruct) {
+
         MsTCPSampler tcpSampler = new MsTCPSampler();
         MsJSR223PreProcessor preProcessor = new MsJSR223PreProcessor();
+
         tcpSampler.setTcpPreProcessor(preProcessor);
         tcpSampler.setProtocol("ESB");
-        tcpSampler.setClassname("TCPSampler");
+        tcpSampler.setClassname("TCPClientImpl");
+        tcpSampler.setReUseConnection(false);
+        String script = "String report = ctx.getCurrentSampler().getRequestData();\n" +
+                "        if(report!=null){\n" +
+                "            //补足8位长度，前置补0\n" +
+                "            String reportlengthStr = String.format(\"%08d\",report.length());\n" +
+                "            report = reportlengthStr+report;\n" +
+                "            ctx.getCurrentSampler().setRequestData(report);\n" +
+                "        }";
+//        frontScriptList.add(script);
+        if (tcpSampler.getTcpPreProcessor() != null) {
+            tcpSampler.getTcpPreProcessor().setScriptLanguage("groovy");
+            tcpSampler.getTcpPreProcessor().setScript(script);
+        }
+
+
+        if (StringUtils.isNotEmpty(sendRequest)) {
+            tcpSampler.setRequest(sendRequest);
+        }
+
+        if (StringUtils.isNotEmpty(esbDataStruct)) {
+            EsbApiParamService esbApiParamService = CommonBeanFactory.getBean(EsbApiParamService.class);
+            List<KeyValue> keyValueList = esbApiParamService.genKeyValueListByDataStruct(tcpSampler, esbDataStruct);
+            tcpSampler.setParameters(keyValueList);
+        }
 
         return JSON.toJSONString(tcpSampler);
     }
@@ -701,7 +722,7 @@ public class ESBParser extends EsbAbstractParser {
 
         if (!bodyList.isEmpty()) {
             EsbDataStruct bodyStruct = new EsbDataStruct();
-            bodyStruct.initDefaultData("SYS_BODY", null, null, null);
+            bodyStruct.initDefaultData("BODY", null, null, null);
             dataStruct.getChildren().add(bodyStruct);
             Map<String, EsbDataStruct> childrenEsbDataStructMap = new HashMap<>();
             //用来判断节点有没有在array节点内
@@ -734,25 +755,100 @@ public class ESBParser extends EsbAbstractParser {
         return JSONArray.toJSONString(list);
     }
 
-//    private void parseParameters(HarRequest harRequest, MsHTTPSamplerProxy request) {
-//        List<HarQueryParm> queryStringList = harRequest.queryString;
-//        queryStringList.forEach(harQueryParm -> {
-//            parseQueryParameters(harQueryParm, request.getArguments());
-//        });
-//        List<HarHeader> harHeaderList = harRequest.headers;
-//        harHeaderList.forEach(harHeader -> {
-//            parseHeaderParameters(harHeader, request.getHeaders());
-//        });
-//        List<HarCookie> harCookieList = harRequest.cookies;
-//        harCookieList.forEach(harCookie -> {
-//            parseCookieParameters(harCookie, request.getHeaders());
-//        });
-//    }
-
-
     private String getDefaultStringValue(String val) {
         return StringUtils.isBlank(val) ? "" : val;
     }
 
+    private ESBExcelSheetInfo getEsbExcelSheetInfo(Sheet sheet) {
+        String apiCodeCellName = "交易码";
+        String apiNameCellName = "交易名称";
+        String serviceNameCellName = "服务名称";
+        String serviceScenarioCellName = "服务场景";
 
+        String englishCellName = "英文名称";
+        String chineseCellName = "中文名称";
+        String dataTypeCellName = "数据类型";
+        String descCellName = "备注";
+
+        int maxContinuityEmptyCellCount = 10;
+
+        ESBExcelSheetInfo sheetInfo = new ESBExcelSheetInfo();
+
+        int lastRowNum = sheet.getLastRowNum();
+
+        rowForeach:
+        for (int rowIndex = 0; rowIndex <= lastRowNum; rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row != null) {
+                if (rowIndex == 0) {
+                    int lastCellNumber = row.getLastCellNum();
+
+                    //连续空白数据的统计：超过连续maxContinuityEmptyCellCount个空白数据时，停止读取当前行。
+                    // （某些Excel进行读取时会有缺陷：单元格没有数据，但是因为格式进行过设置，会一直读取，容易造成内存溢出）
+                    int continuityEmptyCount = 0;
+
+                    cellForeach:
+                    for (int i = 0; i <= lastCellNumber; i++) {
+                        Cell cell = row.getCell(i);
+                        if (cell != null) {
+                            String cellValue = this.getCellValue(cell).trim();
+                            if (StringUtils.isEmpty(cellValue)) {
+                                continuityEmptyCount++;
+                                if (continuityEmptyCount > maxContinuityEmptyCellCount) {
+                                    break cellForeach;
+                                }
+                            } else {
+                                continuityEmptyCount = 0;
+                                if (StringUtils.equals(cellValue, apiCodeCellName)) {
+                                    sheetInfo.setSimpleCodeIndex(i);
+                                } else if (StringUtils.equals(cellValue, apiNameCellName)) {
+                                    sheetInfo.setSimpleNameIndex(i);
+                                } else if (StringUtils.equals(cellValue, serviceNameCellName)) {
+                                    sheetInfo.setServiceNameIndex(i);
+                                } else if (StringUtils.equals(cellValue, serviceScenarioCellName)) {
+                                    sheetInfo.setServiceScenarioIndex(i);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    //根据第一行《服务名称》的起始列下标开始读取， 进行匹配（英文名称、数据类型/长度、中文名称、备注）
+                    int startReadIndex = sheetInfo.getApiNameIndex();
+                    int lastCellNumber = row.getLastCellNum();
+
+                    int continuityEmptyCount = 0;
+                    cellForeach:
+                    for (int i = startReadIndex; i < lastCellNumber; i++) {
+                        Cell cell = row.getCell(i);
+                        if (cell != null) {
+                            String cellValue = this.getCellValue(cell).trim();
+                            if (StringUtils.isEmpty(cellValue)) {
+                                continuityEmptyCount++;
+                                if (continuityEmptyCount > maxContinuityEmptyCellCount) {
+                                    break cellForeach;
+                                }
+                            } else {
+                                continuityEmptyCount = 0;
+                                if (StringUtils.equals(cellValue, englishCellName)) {
+                                    sheetInfo.setApiNameIndex(i);
+                                } else if (StringUtils.equals(cellValue, chineseCellName)) {
+                                    sheetInfo.setChineNameIndex(i);
+                                } else if (StringUtils.contains(cellValue, dataTypeCellName)) {
+                                    sheetInfo.setDataTypeIndex(i);
+                                } else if (StringUtils.equals(cellValue, descCellName)) {
+                                    sheetInfo.setDescIndex(i);
+                                }
+                            }
+                        }
+                    }
+                    if (sheetInfo.installedApiInfoIndex()) {
+                        sheetInfo.countApiPosisionIndex();
+                        sheetInfo.setRequestMessageRow(rowIndex + 1);
+                        break rowForeach;
+                    }
+                }
+            }
+        }
+        return sheetInfo;
+    }
 }

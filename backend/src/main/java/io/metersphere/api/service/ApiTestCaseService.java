@@ -24,6 +24,10 @@ import io.metersphere.commons.constants.TestPlanStatus;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.utils.*;
 import io.metersphere.i18n.Translator;
+import io.metersphere.log.utils.ReflexObjectUtil;
+import io.metersphere.log.vo.DetailColumn;
+import io.metersphere.log.vo.OperatingLogDetails;
+import io.metersphere.log.vo.api.DefinitionReference;
 import io.metersphere.service.FileService;
 import io.metersphere.service.QuotaService;
 import io.metersphere.service.UserService;
@@ -81,12 +85,18 @@ public class ApiTestCaseService {
 
     private static final String BODY_FILE_DIR = FileUtils.BODY_FILE_DIR;
 
+    //查询测试用例详情
+    public ApiTestCaseWithBLOBs getInfoJenkins(String id) {
+        ApiTestCaseWithBLOBs apiTest = apiTestCaseMapper.selectByPrimaryKey(id);
+        return apiTest;
+    }
+
     public List<ApiTestCaseResult> list(ApiTestCaseRequest request) {
         request.setOrders(ServiceUtils.getDefaultOrder(request.getOrders()));
         List<ApiTestCaseResult> returnList = extApiTestCaseMapper.list(request);
 
         for (ApiTestCaseResult res : returnList) {
-            if(StringUtils.equalsIgnoreCase(res.getApiMethod(),"esb")){
+            if (StringUtils.equalsIgnoreCase(res.getApiMethod(), "esb")) {
                 esbApiParamService.handleApiEsbParams(res);
             }
         }
@@ -102,6 +112,13 @@ public class ApiTestCaseService {
         }
         buildUserInfo(apiTestCases);
         return apiTestCases;
+    }
+
+    public List<String> idSimple(ApiTestCaseRequest request) {
+        request = this.initRequest(request, true, true);
+
+        List<String> ids = extApiTestCaseMapper.idSimple(request);
+        return ids;
     }
 
     /**
@@ -150,21 +167,21 @@ public class ApiTestCaseService {
     public ApiTestCaseWithBLOBs get(String id) {
 //        ApiTestCaseWithBLOBs returnBlobs = apiTestCaseMapper.selectByPrimaryKey(id);
         ApiTestCaseInfo model = extApiTestCaseMapper.selectApiCaseInfoByPrimaryKey(id);
-        if(model != null ){
-            if(StringUtils.equalsIgnoreCase(model.getApiMethod(),"esb")){
+        if (model != null) {
+            if (StringUtils.equalsIgnoreCase(model.getApiMethod(), "esb")) {
                 esbApiParamService.handleApiEsbParams(model);
             }
         }
         return model;
     }
-    public ApiTestCaseInfo getResult(String id){
-       return extApiTestCaseMapper.selectApiCaseInfoByPrimaryKey(id);
+
+    public ApiTestCaseInfo getResult(String id) {
+        return extApiTestCaseMapper.selectApiCaseInfoByPrimaryKey(id);
     }
 
     public ApiTestCase create(SaveApiTestCaseRequest request, List<MultipartFile> bodyFiles) {
-        List<String> bodyUploadIds = new ArrayList<>(request.getBodyUploadIds());
         ApiTestCase test = createTest(request);
-        FileUtils.createBodyFiles(bodyUploadIds, bodyFiles);
+        FileUtils.createBodyFiles(request.getId(), bodyFiles);
         return test;
     }
 
@@ -177,10 +194,9 @@ public class ApiTestCaseService {
 
     public ApiTestCase update(SaveApiTestCaseRequest request, List<MultipartFile> bodyFiles) {
         deleteFileByTestId(request.getId());
-        List<String> bodyUploadIds = new ArrayList<>(request.getBodyUploadIds());
         request.setBodyUploadIds(null);
         ApiTestCase test = updateTest(request);
-        FileUtils.createBodyFiles(bodyUploadIds, bodyFiles);
+        FileUtils.createBodyFiles(request.getId(), bodyFiles);
         return test;
     }
 
@@ -265,13 +281,16 @@ public class ApiTestCaseService {
         test.setPriority(request.getPriority());
         test.setUpdateTime(System.currentTimeMillis());
         test.setDescription(request.getDescription());
-        test.setTags(request.getTags());
+        if (StringUtils.equals("[]", request.getTags())) {
+            test.setTags("");
+        } else {
+            test.setTags(request.getTags());
+        }
         apiTestCaseMapper.updateByPrimaryKeySelective(test);
         return test;
     }
 
     private ApiTestCase createTest(SaveApiTestCaseRequest request) {
-        request.setId(UUID.randomUUID().toString());
         checkNameExist(request);
 
         if (StringUtils.isNotEmpty(request.getEsbDataStruct()) || StringUtils.isNotEmpty(request.getBackEsbDataStruct())) {
@@ -291,7 +310,12 @@ public class ApiTestCaseService {
         test.setUpdateTime(System.currentTimeMillis());
         test.setDescription(request.getDescription());
         test.setNum(getNextNum(request.getApiDefinitionId()));
-        test.setTags(request.getTags());
+        if (StringUtils.equals("[]", request.getTags())) {
+            test.setTags("");
+        } else {
+            test.setTags(request.getTags());
+        }
+        FileUtils.copyBdyFile(request.getApiDefinitionId(), request.getId());
         apiTestCaseMapper.insert(test);
         return test;
     }
@@ -383,6 +407,7 @@ public class ApiTestCaseService {
         apiTestCases.forEach(apiTestCase -> {
             TestPlanApiCase testPlanApiCase = new TestPlanApiCase();
             testPlanApiCase.setId(UUID.randomUUID().toString());
+            testPlanApiCase.setCreateUser(SessionUtils.getUserId());
             testPlanApiCase.setApiCaseId(apiTestCase.getId());
             testPlanApiCase.setTestPlanId(request.getPlanId());
             testPlanApiCase.setEnvironmentId(request.getEnvironmentId());
@@ -463,7 +488,7 @@ public class ApiTestCaseService {
     public Map<String, String> getRequest(ApiTestCaseRequest request) {
         List<ApiTestCaseInfo> list = extApiTestCaseMapper.getRequest(request);
         for (ApiTestCaseInfo model : list) {
-            if(StringUtils.equalsIgnoreCase(model.getApiMethod(),"esb")){
+            if (StringUtils.equalsIgnoreCase(model.getApiMethod(), "esb")) {
                 esbApiParamService.handleApiEsbParams(model);
             }
         }
@@ -472,7 +497,7 @@ public class ApiTestCaseService {
 
     public void deleteBatchByParam(ApiTestBatchRequest request) {
         List<String> ids = request.getIds();
-        if (request.isSelectAllDate()) {
+        if (request.isSelectAll()) {
             ids = this.getAllApiCaseIdsByFontedSelect(request.getFilters(), request.getModuleIds(), request.getName(), request.getProjectId(), request.getProtocol(), request.getUnSelectIds(), request.getStatus());
         }
         this.deleteBatch(ids);
@@ -480,7 +505,7 @@ public class ApiTestCaseService {
 
     public void editApiBathByParam(ApiTestBatchRequest request) {
         List<String> ids = request.getIds();
-        if (request.isSelectAllDate()) {
+        if (request.isSelectAll()) {
             ids = this.getAllApiCaseIdsByFontedSelect(request.getFilters(), request.getModuleIds(), request.getName(), request.getProjectId(), request.getProtocol(), request.getUnSelectIds(), request.getStatus());
         }
         ApiTestCaseExample apiDefinitionExample = new ApiTestCaseExample();
@@ -558,13 +583,20 @@ public class ApiTestCaseService {
     }
 
     public String run(RunCaseRequest request) {
-        ApiTestCaseWithBLOBs testCaseWithBLOBs=new ApiTestCaseWithBLOBs();
-        if(StringUtils.equals(request.getRunMode(), ApiRunMode.JENKINS_API_PLAN.name())){
-            testCaseWithBLOBs= apiTestCaseMapper.selectByPrimaryKey(request.getReportId());
+        ApiTestCaseWithBLOBs testCaseWithBLOBs = new ApiTestCaseWithBLOBs();
+        if (StringUtils.equals(request.getRunMode(), ApiRunMode.JENKINS_API_PLAN.name())) {
+            testCaseWithBLOBs = apiTestCaseMapper.selectByPrimaryKey(request.getReportId());
             request.setCaseId(request.getReportId());
-        }else{
-            testCaseWithBLOBs= apiTestCaseMapper.selectByPrimaryKey(request.getCaseId());
+        } else {
+            testCaseWithBLOBs = apiTestCaseMapper.selectByPrimaryKey(request.getCaseId());
 
+        }
+        if (StringUtils.equals(request.getRunMode(), ApiRunMode.JENKINS.name())) {
+            request.setReportId(request.getEnvironmentId());
+        }
+        if (StringUtils.equals(request.getRunMode(), ApiRunMode.JENKINS_API_PLAN.name())) {
+            //通过测试计划id查询环境
+            request.setReportId(request.getTestPlanId());
         }
         // 多态JSON普通转换会丢失内容，需要通过 ObjectMapper 获取
         if (testCaseWithBLOBs != null && StringUtils.isNotEmpty(testCaseWithBLOBs.getRequest())) {
@@ -594,7 +626,6 @@ public class ApiTestCaseService {
                 HashTree jmeterHashTree = this.generateHashTree(request, apiCaseBolbs);
                 // 调用执行方法
                 jMeterService.runDefinition(id, jmeterHashTree, debugReportId, runMode);
-
             } catch (Exception ex) {
                 LogUtil.error(ex.getMessage());
             }
@@ -627,7 +658,7 @@ public class ApiTestCaseService {
         MsThreadGroup group = new MsThreadGroup();
         group.setLabel(testCaseWithBLOBs.getName());
         group.setName(testCaseWithBLOBs.getId());
-
+        group.setOnSampleError(true);
         LinkedList<MsTestElement> hashTrees = new LinkedList<>();
         hashTrees.add(element);
         group.setHashTree(hashTrees);
@@ -651,11 +682,83 @@ public class ApiTestCaseService {
         String status = apiDefinitionExecResultMapper.selectExecResult(id);
         return status;
     }
-    public ApiDefinitionExecResult getInfo(String id){
+
+    public ApiDefinitionExecResult getInfo(String id) {
         return apiDefinitionExecResultMapper.selectByPrimaryKey(id);
     }
 
     public List<ApiTestCase> selectEffectiveTestCaseByProjectId(String projectId) {
         return extApiTestCaseMapper.selectEffectiveTestCaseByProjectId(projectId);
+    }
+
+    public List<ApiTestCaseInfo> findApiTestCaseBLOBs(ApiTestCaseRequest request) {
+        List<String> ids = request.getIds();
+        if (request.isSelectAll()) {
+            request.setIds(null);
+            ids = this.idSimple(request);
+            ids.removeAll(request.getUnSelectIds());
+            request.setIds(ids);
+        }
+        List<ApiTestCaseInfo> list = null;
+        if(StringUtils.isEmpty(request.getId()) && CollectionUtils.isEmpty(request.getIds())){
+            list = new ArrayList<>();
+        }else {
+            list = extApiTestCaseMapper.getCaseInfo(request);
+        }
+        for (ApiTestCaseInfo model : list) {
+            if (StringUtils.equalsIgnoreCase(model.getApiMethod(), "esb")) {
+                esbApiParamService.handleApiEsbParams(model);
+            }
+        }
+
+        return list;
+    }
+
+    public String getLogDetails(String id) {
+        ApiTestCaseWithBLOBs bloBs = apiTestCaseMapper.selectByPrimaryKey(id);
+        if (bloBs != null) {
+            OperatingLogDetails details = new OperatingLogDetails(JSON.toJSONString(id), bloBs.getProjectId(), bloBs.getName(), bloBs.getCreateUserId(), new LinkedList<>());
+            return JSON.toJSONString(details);
+        }
+        return null;
+    }
+
+    public String getLogDetails(List<String> ids) {
+        ApiTestCaseExample example = new ApiTestCaseExample();
+        ApiTestCaseExample.Criteria criteria = example.createCriteria();
+        criteria.andIdIn(ids);
+        List<ApiTestCase> nodes = apiTestCaseMapper.selectByExample(example);
+        if (CollectionUtils.isNotEmpty(nodes)) {
+            List<String> names = nodes.stream().map(ApiTestCase::getName).collect(Collectors.toList());
+            OperatingLogDetails details = new OperatingLogDetails(JSON.toJSONString(ids), nodes.get(0).getProjectId(), String.join(",", names), nodes.get(0).getCreateUserId(), new LinkedList<>());
+            return JSON.toJSONString(details);
+        }
+        return null;
+    }
+
+    public String getLogDetails(SaveApiTestCaseRequest request) {
+        ApiTestCaseWithBLOBs bloBs = null;
+        if (StringUtils.isNotEmpty(request.getId())) {
+            bloBs = apiTestCaseMapper.selectByPrimaryKey(request.getId());
+        }
+        if (bloBs == null && StringUtils.isNotEmpty(request.getName())) {
+            ApiTestCaseExample example = new ApiTestCaseExample();
+            ApiTestCaseExample.Criteria criteria = example.createCriteria();
+            criteria.andNameEqualTo(request.getName()).andProjectIdEqualTo(request.getProjectId()).andApiDefinitionIdEqualTo(request.getApiDefinitionId());
+            List<ApiTestCaseWithBLOBs> list = apiTestCaseMapper.selectByExampleWithBLOBs(example);
+            if (CollectionUtils.isNotEmpty(list)) {
+                bloBs = list.get(0);
+            }
+        }
+        if (bloBs != null) {
+            List<DetailColumn> columns = ReflexObjectUtil.getColumns(bloBs, DefinitionReference.caseColumns);
+            OperatingLogDetails details = new OperatingLogDetails(JSON.toJSONString(bloBs.getId()), bloBs.getProjectId(), bloBs.getCreateUserId(), columns);
+            return JSON.toJSONString(details);
+        }
+        return null;
+    }
+
+    public ApiDefinition findApiUrlAndMethodById(String id) {
+        return extApiTestCaseMapper.findApiUrlAndMethodById(id);
     }
 }

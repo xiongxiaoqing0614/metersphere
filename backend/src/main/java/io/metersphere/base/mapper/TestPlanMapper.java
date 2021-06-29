@@ -3,6 +3,8 @@ package io.metersphere.base.mapper;
 import io.metersphere.base.domain.TestPlan;
 import io.metersphere.base.domain.TestPlanExample;
 import java.util.List;
+
+import io.metersphere.tuhu.request.CodeCoverageBindRequest;
 import org.apache.ibatis.annotations.Param;
 
 public interface TestPlanMapper {
@@ -33,4 +35,6 @@ public interface TestPlanMapper {
     int updateByPrimaryKeyWithBLOBs(TestPlan record);
 
     int updateByPrimaryKey(TestPlan record);
+
+    TestPlan selectByConditions(CodeCoverageBindRequest condition);
 }

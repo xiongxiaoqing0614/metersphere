@@ -109,7 +109,9 @@ public interface ParamConstants {
     }
 
     enum BASE implements ParamConstants {
-        URL("base.url");
+        URL("base.url"),
+        CONCURRENCY("base.concurrency"),
+        PROMETHEUS_HOST("base.prometheus.host");
 
         private String value;
 

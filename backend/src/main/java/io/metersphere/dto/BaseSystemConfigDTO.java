@@ -7,4 +7,6 @@ import lombok.Setter;
 @Setter
 public class BaseSystemConfigDTO {
     private String url;
+    private String concurrency;
+    private String prometheusHost;
 }

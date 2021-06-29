@@ -1,13 +1,21 @@
 package io.metersphere.notice.service;
 
+import com.alibaba.fastjson.JSON;
 import io.metersphere.base.domain.MessageTask;
 import io.metersphere.base.domain.MessageTaskExample;
+import io.metersphere.base.mapper.LoadTestReportMapper;
 import io.metersphere.base.mapper.MessageTaskMapper;
+import io.metersphere.base.mapper.UserMapper;
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.user.SessionUser;
 import io.metersphere.commons.utils.LogUtil;
 import io.metersphere.commons.utils.SessionUtils;
 import io.metersphere.i18n.Translator;
+import io.metersphere.log.utils.ReflexObjectUtil;
+import io.metersphere.log.vo.DetailColumn;
+import io.metersphere.log.vo.OperatingLogDetails;
+import io.metersphere.log.vo.StatusReference;
+import io.metersphere.log.vo.system.SystemReference;
 import io.metersphere.notice.domain.MessageDetail;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +31,10 @@ import java.util.stream.Collectors;
 public class NoticeService {
     @Resource
     private MessageTaskMapper messageTaskMapper;
+    @Resource
+    private LoadTestReportMapper loadTestReportMapper;
+    @Resource
+    private UserMapper userMapper;
 
     public void saveMessageTask(MessageDetail messageDetail) {
         MessageTaskExample example = new MessageTaskExample();
@@ -53,6 +65,7 @@ public class NoticeService {
             messageTask.setTestId(messageDetail.getTestId());
             messageTask.setCreateTime(time);
             setTemplate(messageDetail, messageTask);
+            messageDetail.setId(messageTask.getId());
             messageTaskMapper.insert(messageTask);
         }
     }
@@ -133,6 +146,42 @@ public class NoticeService {
         }
     }
 
+    public List<MessageDetail> searchMessageByTypeBySend(String type, String id) {
+        try {
+            String orgId = "";
+            if (null == SessionUtils.getUser()) {
+                String userId = loadTestReportMapper.selectByPrimaryKey(id).getUserId();
+                orgId = userMapper.selectByPrimaryKey(userId).getLastOrganizationId();
+            } else {
+                SessionUser user = SessionUtils.getUser();
+                orgId = user.getLastOrganizationId();
+            }
+            List<MessageDetail> messageDetails = new ArrayList<>();
+            MessageTaskExample example = new MessageTaskExample();
+            example.createCriteria()
+                    .andTaskTypeEqualTo(type)
+                    .andOrganizationIdEqualTo(orgId);
+            List<MessageTask> messageTaskLists = messageTaskMapper.selectByExampleWithBLOBs(example);
+
+            Map<String, List<MessageTask>> messageTaskMap = messageTaskLists.stream()
+                    .collect(Collectors.groupingBy(NoticeService::fetchGroupKey));
+            messageTaskMap.forEach((k, v) -> {
+                MessageDetail messageDetail = getMessageDetail(v);
+                messageDetails.add(messageDetail);
+            });
+
+            return messageDetails.stream()
+                    .sorted(Comparator.comparing(MessageDetail::getCreateTime, Comparator.nullsLast(Long::compareTo)).reversed())
+                    .collect(Collectors.toList())
+                    .stream()
+                    .distinct()
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            LogUtil.error(e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
     private MessageDetail getMessageDetail(List<MessageTask> messageTasks) {
         Set<String> userIds = new HashSet<>();
 
@@ -162,5 +211,24 @@ public class NoticeService {
         MessageTaskExample example = new MessageTaskExample();
         example.createCriteria().andIdentificationEqualTo(identification);
         return messageTaskMapper.deleteByExample(example);
+    }
+
+    public String getLogDetails(String id) {
+        MessageTask task = messageTaskMapper.selectByPrimaryKey(id);
+        if (task == null) {
+            MessageTaskExample example = new MessageTaskExample();
+            example.createCriteria().andIdentificationEqualTo(id);
+            List<MessageTask> tasks = messageTaskMapper.selectByExample(example);
+            List<String> names = tasks.stream().map(MessageTask::getType).collect(Collectors.toList());
+            OperatingLogDetails details = new OperatingLogDetails(JSON.toJSONString(id), null, String.join(",", names), null, new LinkedList<>());
+            return JSON.toJSONString(details);
+        }
+        if (task != null) {
+            List<DetailColumn> columns = ReflexObjectUtil.getColumns(task, SystemReference.messageColumns);
+            OperatingLogDetails details = new OperatingLogDetails(JSON.toJSONString(task.getId()), null,
+                    StatusReference.statusMap.containsKey(task.getTaskType()) ? StatusReference.statusMap.get(task.getTaskType()) : task.getTaskType(), task.getUserId(), columns);
+            return JSON.toJSONString(details);
+        }
+        return null;
     }
 }

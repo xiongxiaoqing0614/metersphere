@@ -65,7 +65,7 @@
 
     <!-- 执行组件 -->
     <ms-run :debug="false" :environment="api.environment" :reportId="reportId" :run-data="runData" :env-map="envMap"
-            @runRefresh="runRefresh" ref="runTest"/>
+            @runRefresh="runRefresh" @errorRefresh="errorRefresh" ref="runTest"/>
 
   </div>
 </template>
@@ -144,8 +144,14 @@
           }
         })
       },
+      errorRefresh(){
+        this.loading = false;
+      },
       runRefresh(data) {
-        this.responseData = data;
+        this.responseData = {type: 'HTTP', responseResult: {responseCode: ""}, subRequestResults: []};
+        if (data) {
+          this.responseData = data;
+        }
         this.loading = false;
       },
       saveAs() {
@@ -168,10 +174,7 @@
             if (param.files) {
               param.files.forEach(item => {
                 if (item.file) {
-                  let fileId = getUUID().substring(0, 8);
                   item.name = item.file.name;
-                  item.id = fileId;
-                  this.api.bodyUploadIds.push(fileId);
                   bodyUploadFiles.push(item.file);
                 }
               });
@@ -224,13 +227,15 @@
         this.$emit('refresh');
       },
       getResult() {
-        let url = "/api/definition/report/getReport/" + this.api.id;
-        this.$get(url, response => {
-          if (response.data) {
-            let data = JSON.parse(response.data.content);
-            this.responseData = data;
-          }
-        });
+        if (this.api.id) {
+          let url = "/api/definition/report/getReport/" + this.api.id;
+          this.$get(url, response => {
+            if (response.data) {
+              let data = JSON.parse(response.data.content);
+              this.responseData = data;
+            }
+          });
+        }
       }
     },
     created() {
@@ -238,7 +243,7 @@
       this.api = JSON.parse(JSON.stringify(this.apiData));
       this.api.protocol = this.currentProtocol;
       this.currentRequest = this.api.request;
-      this.getResult();
+      //this.getResult();
     }
   }
 </script>

@@ -86,6 +86,12 @@
       open() {
         this.init();
         this.$refs.baseRelevance.open();
+        if (this.$refs.apiList) {
+          this.$refs.apiList.clear();
+        }
+        if (this.$refs.apiCaseList) {
+          this.$refs.apiCaseList.clear();
+        }
       },
       init() {
         if (this.$refs.apiList) {
@@ -125,26 +131,39 @@
 
       saveCaseRelevance() {
 
-        let param = {};
+
         let url = '';
         let environmentId = undefined;
         let selectIds = [];
         if (this.isApiListEnable) {
-          url = '/api/definition/relevance';
-          environmentId = this.$refs.apiList.environmentId;
-          selectIds = Array.from(this.$refs.apiList.selectRows).map(row => row.id);
-
+          //查找所有数据
+          let params = this.$refs.apiList.getConditions();
+          this.result = this.$post("/api/definition/list/batch", params, (response) => {
+            let apis = response.data;
+            url = '/api/definition/relevance';
+            environmentId = this.$refs.apiList.environmentId;
+            selectIds = Array.from(apis).map(row => row.id);
+            this.postRelevance(url, environmentId, selectIds);
+          });
         } else {
-          url = '/api/testcase/relevance';
-          environmentId = this.$refs.apiCaseList.environmentId;
-          selectIds = Array.from(this.$refs.apiCaseList.selectRows).map(row => row.id);
+          let params = this.$refs.apiCaseList.getConditions();
+          this.result = this.$post("/api/testcase/get/caseBLOBs/request", params, (response) => {
+            let apiCases = response.data;
+            url = '/api/testcase/relevance';
+            environmentId = this.$refs.apiCaseList.environmentId;
+            selectIds = Array.from(apiCases).map(row => row.id);
+            this.postRelevance(url, environmentId, selectIds);
+          });
         }
 
+      },
+
+      postRelevance(url, environmentId, selectIds) {
+        let param = {};
         if (!environmentId) {
           this.$warning(this.$t('api_test.environment.select_environment'));
           return;
         }
-
         param.planId = this.planId;
         param.selectIds = selectIds;
         param.environmentId = environmentId;

@@ -58,8 +58,9 @@
 
 <script>
   import {WORKSPACE_ID} from '@/common/js/constants';
-  import {getCurrentUser, getUUID} from "@/common/js/utils";
+  import {getCurrentProjectID, getCurrentUser, getUUID} from "@/common/js/utils";
   import MsDialogFooter from "@/business/components/common/components/MsDialogFooter";
+  import {saveScenario} from "@/business/components/api/automation/api-automation";
 
   export default {
     name: "MsAddBasisScenario",
@@ -86,7 +87,7 @@
     },
     computed: {
       projectId() {
-        return this.$store.state.projectId
+        return getCurrentProjectID();
       },
     },
     methods: {
@@ -95,15 +96,16 @@
           if (valid) {
             let path = "/api/automation/create";
             this.setParameter();
-            this.$fileUpload(path, null, [], this.scenarioForm, () => {
+            if (saveAs) {
+              this.scenarioForm.request = JSON.stringify(this.scenarioForm.request);
+              this.$emit('saveAsEdit', this.scenarioForm);
               this.visible = false;
-              if (saveAs) {
-                this.scenarioForm.request = JSON.stringify(this.scenarioForm.request);
-                this.$emit('saveAsEdit', this.scenarioForm);
-              } else {
+            } else {
+              saveScenario(path, this.scenarioForm, [], () => {
+                this.visible = false;
                 this.$emit('refresh');
-              }
-            });
+              });
+            }
           } else {
             return false;
           }
@@ -117,14 +119,13 @@
         if (this.currentModule && this.currentModule.id != "root") {
           this.scenarioForm.modulePath = this.currentModule.method !== undefined ? this.currentModule.method : null;
           this.scenarioForm.apiScenarioModuleId = this.currentModule.id;
-        }else{
+        } else {
           this.scenarioForm.modulePath = this.$t("commons.module_title");
           this.scenarioForm.apiScenarioModuleId = "default-module";
         }
       },
       getMaintainerOptions() {
-        let workspaceId = localStorage.getItem(WORKSPACE_ID);
-        this.$post('/user/ws/member/tester/list', {workspaceId: workspaceId}, response => {
+        this.$post('/user/project/member/tester/list', {projectId: getCurrentProjectID()}, response => {
           this.userOptions = response.data;
         });
       },

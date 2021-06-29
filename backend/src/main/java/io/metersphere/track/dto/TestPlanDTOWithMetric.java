@@ -8,7 +8,9 @@ import lombok.Setter;
 public class TestPlanDTOWithMetric extends TestPlanDTO {
     private Double passRate;
     private Double testRate;
+    private Double dailyAvgPassRate;
     private Integer passed;
     private Integer tested;
     private Integer total;
+    private String createUser;
 }

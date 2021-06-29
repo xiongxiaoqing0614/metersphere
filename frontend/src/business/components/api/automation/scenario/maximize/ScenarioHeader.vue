@@ -4,7 +4,9 @@
       <!-- 调试部分 -->
       <el-row class="ms-header-margin">
         <el-col :span="8">
-          {{currentScenario.name}}
+          <el-tooltip placement="top" :content="currentScenario.name">
+            <span class="ms-scenario-name">{{currentScenario.name}}</span>
+          </el-tooltip>
         </el-col>
         <el-col :span="8">
           {{$t('api_test.automation.step_total')}}：{{scenarioDefinition.length}}
@@ -16,12 +18,16 @@
       </el-row>
     </div>
     <div class="ms-header-right">
-      <el-checkbox v-model="cookieShare" @change="setCookieShare" style="margin-right: 20px">共享cookie</el-checkbox>
+      <el-checkbox v-model="cookieShare" @change="setCookieShare">共享cookie</el-checkbox>
+      <el-checkbox v-model="sampleError" @change="setOnSampleError" style="margin-right: 10px">失败继续</el-checkbox>
+      <env-popover :disabled="scenarioDefinition.length < 1" :isReadOnly="scenarioDefinition.length < 1"
+                   :env-map="envMap" :project-ids="projectIds" @setProjectEnvMap="setProjectEnvMap"
+                   @showPopover="showPopover" :project-list="projectList" ref="envPopover" class="ms-right"
+                   :result="envResult"/>
 
-      <env-popover :disabled="scenarioDefinition.length < 1" :isReadOnly="scenarioDefinition.length < 1" :env-map="envMap" :project-ids="projectIds" @setProjectEnvMap="setProjectEnvMap"
-                   @showPopover="showPopover" :project-list="projectList" ref="envPopover" class="ms-right"/>
-
-      <el-button :disabled="scenarioDefinition.length < 1" size="mini" type="primary" v-prevent-re-click @click="runDebug">{{$t('api_test.request.debug')}}</el-button>
+      <el-button :disabled="scenarioDefinition.length < 1" size="mini" type="primary" v-prevent-re-click
+                 @click="runDebug">{{ $t('api_test.request.debug') }}
+      </el-button>
 
       <font-awesome-icon class="ms-alt-ico" :icon="['fa', 'compress-alt']" size="lg" @click="unFullScreen"/>
       <!-- <i class="el-icon-close alt-ico-close" @click="close"/>-->
@@ -30,14 +36,15 @@
 </template>
 
 <script>
-  import {checkoutTestManagerOrTestUser, exportPdf} from "@/common/js/utils";
-  import html2canvas from 'html2canvas';
+import {exportPdf, getCurrentProjectID} from "@/common/js/utils";
+import html2canvas from 'html2canvas';
   import EnvPopover from "../../scenario/EnvPopover";
 
   export default {
     name: "ScenarioHeader",
     components: {EnvPopover},
-    props: {currentScenario: {}, scenarioDefinition: Array, enableCookieShare: Boolean,
+    props: {
+      currentScenario: {}, scenarioDefinition: Array, enableCookieShare: Boolean, onSampleError: Boolean,
       projectEnvMap: Map,
       projectIds: Set,
       projectList: Array,
@@ -49,12 +56,22 @@
         loading: false,
         varSize: 0,
         cookieShare: false,
+        sampleError: true,
+        envResult: {
+          loading: false
+        }
+      }
+    },
+    computed: {
+      projectId() {
+        return getCurrentProjectID();
       }
     },
     mounted() {
       this.envMap = this.projectEnvMap;
       this.getVariableSize();
       this.cookieShare = this.enableCookieShare;
+      this.sampleError = this.onSampleError;
     },
     methods: {
       handleExport() {
@@ -84,6 +101,9 @@
       setCookieShare() {
         this.$emit('setCookieShare', this.cookieShare);
       },
+      setOnSampleError() {
+        this.$emit('setSampleError', this.sampleError);
+      },
       showScenarioParameters() {
         this.$emit('showScenarioParameters');
       },
@@ -111,14 +131,17 @@
       showPopover() {
         let definition = JSON.parse(JSON.stringify(this.currentScenario));
         definition.hashTree = this.scenarioDefinition;
+        this.envResult.loading = true;
         this.getEnv(JSON.stringify(definition)).then(() => {
           this.$refs.envPopover.openEnvSelect();
+          this.envResult.loading = false;
         })
       },
       getEnv(definition) {
         return new Promise((resolve) => {
           this.$post("/api/automation/getApiScenarioEnv", {definition: definition}, res => {
             if (res.data) {
+              res.data.projectIds.push(this.projectId);
               this.$emit("update:projectIds", new Set(res.data.projectIds));
               this.$emit("update:isFullUrl", res.data.fullUrl);
             }
@@ -146,7 +169,7 @@
 
   .ms-header-right {
     float: right;
-    width: 380px;
+    width: 500px;
     margin-top: 4px;
     z-index: 1;
   }
@@ -185,5 +208,15 @@
     color: #303133;
     font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
     font-size: 13px;
+  }
+  .ms-scenario-name {
+    display: inline-block;
+    margin: 0 5px;
+    overflow-x: hidden;
+    padding-bottom: 0;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    white-space: nowrap;
+    width: 200px;
   }
 </style>
