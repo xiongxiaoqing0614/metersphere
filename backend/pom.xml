@@ -3,6 +3,12 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
+<!--    <parent>-->
+<!--        <groupId>com.tuhu</groupId>-->
+<!--        <artifactId>tuhu-spring-cloud-parent</artifactId>-->
+<!--        <version>2.0.8-RELEASE</version>-->
+<!--    </parent>-->
+
 
     <parent>
         <artifactId>metersphere-server</artifactId>
@@ -12,6 +18,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>backend</artifactId>
+
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -23,7 +30,11 @@
         <groovy.version>3.0.8</groovy.version>
     </properties>
 
+
+
+
     <dependencies>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -34,6 +45,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.boot</groupId>-->
+<!--            <artifactId>spring-boot-starter-parent</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

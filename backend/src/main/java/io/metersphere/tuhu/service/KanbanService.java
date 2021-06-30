@@ -42,6 +42,7 @@ import java.util.Map;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.metersphere.tuhu.service.TuhuService.restApiPost;
 
@@ -113,6 +114,123 @@ public class KanbanService {
 
             long dateScenarioCountByCreateInThisWeek = apiAutomationService.countScenarioByProjectIDAndCreatInThisWeek(projectId);
             allInfo.setScenarioCountThisWeek(dateScenarioCountByCreateInThisWeek);
+
+            allInfoList.add(allInfo);
+        }
+        return allInfoList;
+    }
+
+
+    public List<TestCaseAllInfoDTO> getSummaryV2() {
+
+        Map<String, Date> startAndEndDateInWeek = DateUtils.getWeedFirstTimeAndLastTime(new Date());
+
+        Date firstTime = startAndEndDateInWeek.get("firstTime");
+        Date lastTime = startAndEndDateInWeek.get("lastTime");
+
+
+        List<TestCaseSummaryDTO> summaryList = kanbanMapper.getSummary();
+
+        if (summaryList == null || summaryList.isEmpty())
+            return new ArrayList<>();
+
+        List<TestCaseAllInfoDTO> allInfoList = new ArrayList<>();
+
+        //统计本周创建的数据总量
+        boolean isDateCountByCreateInThisWeeksEmpty = true;
+        List<ProjectIdAndCount> dateCountByCreateInThisWeeks = new ArrayList<>();
+        if (firstTime != null && lastTime != null) {
+            dateCountByCreateInThisWeeks = kanbanMapper.countByProjectIDAndCreateInThisWeek(firstTime.getTime(), lastTime.getTime());
+            if (dateCountByCreateInThisWeeks != null && !dateCountByCreateInThisWeeks.isEmpty()) {
+                isDateCountByCreateInThisWeeksEmpty = false;
+            }
+        }
+
+
+        boolean isdateP0CountByCreateInThisWeeksEmpty = true;
+        List<ProjectIdAndCount> dateP0CountByCreateInThisWeeks = new ArrayList<>();
+        if (firstTime != null && lastTime != null) {
+            dateP0CountByCreateInThisWeeks = kanbanMapper.countByProjectIDAndTagAndCreateInThisWeek("P0", firstTime.getTime(), lastTime.getTime());
+            if (dateP0CountByCreateInThisWeeks != null && !dateP0CountByCreateInThisWeeks.isEmpty()) {
+                isdateP0CountByCreateInThisWeeksEmpty = false;
+            }
+        }
+
+
+        List<ProjectIdAndCountGroup> p4List;
+        p4List = kanbanMapper.countByProjectIDAndTagAndCreateInThisWeekP4();
+
+
+        List<ProjectIdAndCountGroup> p0List;
+        p0List = kanbanMapper.countByProjectIDAndTagAndCreateInThisWeekP0();
+
+
+        boolean iscountByProjectIDAndCreateInThisWeeksEmpty = true;
+        List<ProjectIdAndCount> countByProjectIDAndCreateInThisWeeks = new ArrayList<>();
+        if (firstTime != null && lastTime != null) {
+            countByProjectIDAndCreateInThisWeeks = kanbanMapper.testCaseCountByProjectIDAndCreateInThisWeek(firstTime.getTime(), lastTime.getTime());
+            if (countByProjectIDAndCreateInThisWeeks != null && !countByProjectIDAndCreateInThisWeeks.isEmpty()) {
+                iscountByProjectIDAndCreateInThisWeeksEmpty = false;
+            }
+        }
+
+
+        boolean iscountByProjectIDAndCreatInThisWeekEmpty = true;
+        List<ProjectIdAndCount> countByProjectIDAndCreatInThisWeeks = new ArrayList<>();
+        if (firstTime != null && lastTime != null) {
+            countByProjectIDAndCreatInThisWeeks = kanbanMapper.countByProjectIDAndCreatInThisWeek(firstTime.getTime(), lastTime.getTime());
+            if (countByProjectIDAndCreatInThisWeeks != null && !countByProjectIDAndCreatInThisWeeks.isEmpty()) {
+                iscountByProjectIDAndCreatInThisWeekEmpty = false;
+            }
+        }
+
+
+        for (TestCaseSummaryDTO summaryData : summaryList) {
+            TestCaseAllInfoDTO allInfo = new TestCaseAllInfoDTO();
+            BeanUtils.copyProperties(summaryData, allInfo);
+            String projectId = summaryData.getProjectId();
+
+            //统计本周创建的数据总量
+            if (!isDateCountByCreateInThisWeeksEmpty) {
+                dateCountByCreateInThisWeeks.stream().filter(p -> p.getProjectId().equals(projectId)).findFirst().ifPresent(projectIdAndCount -> allInfo.setApiCountThisWeek(projectIdAndCount.getCountNumber()));
+            }
+
+            //统计本周创建的数据总量P0
+            if (!isdateP0CountByCreateInThisWeeksEmpty) {
+                dateP0CountByCreateInThisWeeks.stream().filter(d -> d.getProjectId().equals(projectId)).findFirst().ifPresent(projectIdAndCount -> allInfo.setP0APICountThisWeek(projectIdAndCount.getCountNumber()));
+            }
+
+
+            ApiDataCountDTO apiCountResult = new ApiDataCountDTO();
+            if (p4List != null && !p4List.isEmpty()) {
+                List<ProjectIdAndCountGroup> p4s = p4List.stream().filter(p->p.getProjectId().equals(projectId)).collect(Collectors.toList());
+                if(!p4s.isEmpty()) {
+                    apiCountResult.countStatusV2(p4s);
+                }
+            }
+            allInfo.setCompletedAPICount(apiCountResult.getFinishedCount());
+            allInfo.setNonP0APICount(allInfo.getApiCount() - allInfo.getP0APICount());
+
+
+            ApiDataCountDTO p0ApiCountResult = new ApiDataCountDTO();
+            if (p0List != null && !p0List.isEmpty()) {
+                List<ProjectIdAndCountGroup> p0s = p0List.stream().filter(p -> p.getProjectId().equals(projectId)).collect(Collectors.toList());
+                if (!p0s.isEmpty()) {
+                    p0ApiCountResult.countStatusV2(p0s);
+                }
+            }
+            allInfo.setCompletedP0APICount(p0ApiCountResult.getFinishedCount());
+
+
+            if (!iscountByProjectIDAndCreateInThisWeeksEmpty) {
+                countByProjectIDAndCreateInThisWeeks.stream().filter(c -> c.getProjectId().equals(projectId)).findFirst().ifPresent(projectIdAndCount -> allInfo.setSingleCountThisWeek(projectIdAndCount.getCountNumber()));
+            }
+
+
+            if (!iscountByProjectIDAndCreatInThisWeekEmpty) {
+                countByProjectIDAndCreatInThisWeeks.stream().filter(c -> c.getProjectId().equals(projectId)).findFirst().ifPresent(projectIdAndCount -> allInfo.setScenarioCountThisWeek(projectIdAndCount.getCountNumber()));
+            }
+
 
             allInfoList.add(allInfo);
         }
@@ -357,7 +475,7 @@ public class KanbanService {
 
     public JSONObject getGraphData() {
         JSONObject jo = new JSONObject();
-        final Object serviceInData = jo.put("serviceInData", graphService.getServiceInData());
+        jo.put("serviceInData", graphService.getServiceInData());
         jo.put("teamInData", graphService.getTeamInData());
         jo.put("apiDoneData", graphService.getApiDoneData());
         jo.put("apiPassRateData", graphService.getApiPassRateData());

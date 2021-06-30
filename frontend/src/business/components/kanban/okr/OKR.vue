@@ -90,6 +90,11 @@
               <span>{{ calscenarioCompleteRate(row) }} %</span>
             </template>        
       </vxe-table-column>
+      <vxe-table-column field="appIdCoverage" title="AppId服务接入率">
+            <template #default="{ row }">
+              <span>{{ row.appIdCoverage * 100 }} %</span>
+            </template>
+      </vxe-table-column>
     </vxe-table>
   </div>
 </template>
@@ -320,7 +325,7 @@ export default {
       } else if (column.property === 'okrApiP0N' || column.property === 'okrApiTestP0' ||
        column.property === 'okrApiTestP0N' || column.property === 'okrApiTestTotal' ||
        column.property === 'apiCompleteRate' || column.property === 'p0apiCompleteRate' ||
-       column.property === 'caseCompleteRate' || column.property === 'scenarioCompleteRate' ) {
+       column.property === 'caseCompleteRate' || column.property === 'scenarioCompleteRate' || column.property === 'appIdCoverage') {
         return {
           backgroundColor: '#E1C4C4',
           color: '#272727'
