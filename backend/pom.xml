@@ -10,11 +10,11 @@
 <!--    </parent>-->
 
 
-    <!--    <parent>-->
-<!--        <artifactId>metersphere-server</artifactId>-->
-<!--        <groupId>io.metersphere</groupId>-->
-<!--        <version>1.9</version>-->
-<!--    </parent>-->
+    <parent>
+        <artifactId>metersphere-server</artifactId>
+        <groupId>io.metersphere</groupId>
+        <version>1.9</version>
+    </parent>
     <groupId>io.metersphere.backend</groupId>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>backend</artifactId>
