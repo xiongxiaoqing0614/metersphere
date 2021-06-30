@@ -18,6 +18,7 @@ public class KanbanController {
     @Resource
     private CheckPermissionService checkPermissionService;
 
+    @Deprecated
     @GetMapping("/summary")
     public List<TestCaseAllInfoDTO> dashboardSummary() {
       //  return kanbanService.getSummary();
