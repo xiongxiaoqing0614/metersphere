@@ -36,7 +36,7 @@ public class KanbanController {
 
     @GetMapping("/exeSummary")
     public List<ExecutionAllInfoDTO> exeSummary() {
-        return kanbanService.getExeSummary();
+        return kanbanService.getExeSummaryV2();
     }
 
     @GetMapping("/exeSummary2")
