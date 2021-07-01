@@ -37,9 +37,22 @@ public class KanbanController {
         return kanbanService.getGraphData();
     }
 
-    @GetMapping("/sync/basedata")
+    @GetMapping("/sync/data")
     public String syncData() {
-        graphService.syncBaseData();
+        graphService.syncAllAppIdFromHalley();
+        graphService.syncAppIdMappingFromForseti();
+        return "done";
+    }
+
+    @GetMapping("/sync/halley")
+    public String syncHalleyData() {
+        graphService.syncAllAppIdFromHalley();
+        return "done";
+    }
+
+    @GetMapping("/sync/forseti")
+    public String syncForsetiData() {
+        graphService.syncAppIdMappingFromForseti();
         return "done";
     }
 }
