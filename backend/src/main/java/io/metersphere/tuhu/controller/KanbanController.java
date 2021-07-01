@@ -39,6 +39,11 @@ public class KanbanController {
         return kanbanService.getExeSummary();
     }
 
+    @GetMapping("/exeSummary2")
+    public List<ExecutionAllInfoDTO> exeSummaryV2() {
+        return kanbanService.getExeSummaryV2();
+    }
+
     @GetMapping("/graph")
     public Object graph() {
         return kanbanService.getGraphData();
