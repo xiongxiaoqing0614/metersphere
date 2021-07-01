@@ -3,6 +3,7 @@ package io.metersphere.tuhu.service;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import io.metersphere.api.dto.automation.ScenarioStatus;
 import io.metersphere.api.jmeter.RequestResult;
 import io.metersphere.api.jmeter.ScenarioResult;
 import io.metersphere.api.jmeter.TestResult;
@@ -15,8 +16,10 @@ import io.metersphere.api.service.ApiDefinitionService;
 import io.metersphere.api.service.ApiTestCaseService;
 import io.metersphere.base.domain.TestPlanReportExample;
 import io.metersphere.base.mapper.TestPlanReportMapper;
+import io.metersphere.commons.constants.TestPlanTestCaseStatus;
 import io.metersphere.commons.utils.LogUtil;
 import io.metersphere.commons.utils.DateUtils;
+import io.metersphere.commons.utils.MathUtils;
 import io.metersphere.track.dto.TestCaseReportAdvanceStatusResultDTO;
 import io.metersphere.track.dto.TestCaseReportMetricDTO;
 import io.metersphere.track.dto.TestCaseReportStatusResultDTO;
@@ -26,6 +29,7 @@ import io.metersphere.tuhu.mapper.KanbanMapper;
 import io.metersphere.track.dto.TestPlanDTOWithMetric;
 import io.metersphere.track.request.testcase.QueryTestPlanRequest;
 import io.metersphere.track.service.TestPlanService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -237,6 +241,146 @@ public class KanbanService {
         return allInfoList;
     }
 
+    public List<ExecutionAllInfoDTO> getExeSummaryV2() {
+        List<TestCaseSummaryDTO> summaryList = kanbanMapper.getSummary();
+        List<ExecutionAllInfoDTO> plans = new ArrayList<>();
+
+        List<TestPlanDTOWithMetric> testPlans = extTestPlanMapper.list(new QueryTestPlanRequest());
+
+        List<TestPlanIdAndCount> testPlanIdAndCounts = kanbanMapper.getTestPlanIdAndCount();
+
+        List<PlanIdAndStatus> allTestPlanTestCases = kanbanMapper.getAllTestPlanTestCase();
+        List<PlanIdAndStatus> allTestPlanApiCases = kanbanMapper.getAllTestPlanApiCase();
+        List<PlanIdAndStatus> allTestPlanApiScenarios = kanbanMapper.getAllTestPlanApiScenario();
+        List<PlanIdAndStatus> allTestPlanLoadCases = kanbanMapper.getAllTestPlanLoadCase();
+
+        List<String> testPlanIds = new ArrayList<>();
+        Map<String, List<TestPlanDTOWithMetric>> projectTestPlan = new HashMap<>();
+        for (TestCaseSummaryDTO summaryData : summaryList) {
+            List<TestPlanDTOWithMetric> prjTestPlans = testPlans.stream().filter(p -> p.getProjectId().equals(summaryData.getProjectId())).collect(Collectors.toList());
+            if (prjTestPlans.isEmpty())
+                continue;
+            projectTestPlan.put(summaryData.getProjectId(), prjTestPlans);
+
+            prjTestPlans.forEach(p->{
+                testPlanIds.add(p.getId());
+            });
+         }
+
+
+        Map<String, Double> dailyAvgPassRateMap = this.getDailyAvgPassRateV2(testPlanIds);
+
+        for (Map.Entry<String, List<TestPlanDTOWithMetric>> entry : projectTestPlan.entrySet()) {
+
+            List<TestPlanDTOWithMetric> prjTestPlans = entry.getValue();
+
+            TestCaseSummaryDTO summaryData = summaryList.stream().filter(s -> s.getProjectId().equals(entry.getKey())).findFirst().orElse(null);
+
+
+            for (TestPlanDTOWithMetric oriTestPlan : prjTestPlans) {
+
+                List<PlanIdAndStatus> functionalExecResults = allTestPlanTestCases.stream().filter(f->f.getPlanId().equals(oriTestPlan.getId())).collect(Collectors.toList());
+                List<PlanIdAndStatus> apiExecResults = allTestPlanApiCases.stream().filter(f->f.getPlanId().equals(oriTestPlan.getId())).collect(Collectors.toList());
+                List<PlanIdAndStatus> scenarioExecResults = allTestPlanApiScenarios.stream().filter(f->f.getPlanId().equals(oriTestPlan.getId())).collect(Collectors.toList());
+                List<PlanIdAndStatus> loadResults = allTestPlanLoadCases.stream().filter(f->f.getPlanId().equals(oriTestPlan.getId())).collect(Collectors.toList());
+                calcTestPlanRateV2(oriTestPlan,functionalExecResults,apiExecResults,scenarioExecResults,loadResults);
+
+                TestPlanIdAndCount testPlanIdAndCount = testPlanIdAndCounts.stream().filter(t -> t.getTestPlanId().equals(oriTestPlan.getId())).findFirst().orElse(null);
+
+                oriTestPlan.setExecutionTimes(testPlanIdAndCount == null ? 0 : (int) testPlanIdAndCount.getCountNumber());
+
+                ExecutionAllInfoDTO thTestPlan = new ExecutionAllInfoDTO();
+                BeanUtils.copyProperties(oriTestPlan, thTestPlan);
+                thTestPlan.setDepartment(summaryData == null ? "" : summaryData.getDepartment());
+                thTestPlan.setTeam(summaryData == null ? "" : summaryData.getTeam());
+                if (dailyAvgPassRateMap != null) {
+                    thTestPlan.setDailyAvgPassRate(dailyAvgPassRateMap.get(thTestPlan.getId()));
+                }
+                plans.add(thTestPlan);
+            }
+        }
+        return plans;
+    }
+
+
+
+    public void calcTestPlanRateV2( TestPlanDTOWithMetric  testPlan,
+                                    List<PlanIdAndStatus> functionalExecResults,
+                                    List<PlanIdAndStatus> apiExecResults,
+                                    List<PlanIdAndStatus> scenarioExecResults,
+                                    List<PlanIdAndStatus> loadResults
+    ) {
+        testPlan.setTested(0);
+        testPlan.setPassed(0);
+        testPlan.setTotal(0);
+
+        functionalExecResults.forEach(item -> {
+            if (!StringUtils.equals(item.getStatus(), TestPlanTestCaseStatus.Prepare.name()) &&
+                    !StringUtils.equals(item.getStatus(), TestPlanTestCaseStatus.Underway.name())) {
+                testPlan.setTested(testPlan.getTested() + 1);
+                if (StringUtils.equals(item.getStatus(), TestPlanTestCaseStatus.Pass.name())) {
+                    testPlan.setPassed(testPlan.getPassed() + 1);
+                }
+            }
+        });
+
+
+        apiExecResults.forEach(item -> {
+            if (StringUtils.isNotBlank(item.getStatus())) {
+                testPlan.setTested(testPlan.getTested() + 1);
+                if (StringUtils.equals(item.getStatus(), "success")) {
+                    testPlan.setPassed(testPlan.getPassed() + 1);
+                }
+            }
+        });
+
+
+        scenarioExecResults.forEach(item -> {
+            if (StringUtils.isNotBlank(item.getStatus())) {
+                testPlan.setTested(testPlan.getTested() + 1);
+                if (StringUtils.equals(item.getStatus(), ScenarioStatus.Success.name())) {
+                    testPlan.setPassed(testPlan.getPassed() + 1);
+                }
+            }
+        });
+
+
+        loadResults.forEach(item -> {
+            if (StringUtils.isNotBlank(item.getStatus())) {
+                testPlan.setTested(testPlan.getTested() + 1);
+                if (StringUtils.equals(item.getStatus(), "success")) {
+                    testPlan.setPassed(testPlan.getPassed() + 1);
+                }
+            }
+        });
+
+        testPlan.setTotal(apiExecResults.size() + scenarioExecResults.size() + functionalExecResults.size() + loadResults.size());
+        testPlan.setPassRate(MathUtils.getPercentWithDecimal(testPlan.getTested() == 0 ? 0 : testPlan.getPassed() * 1.0 / testPlan.getTotal()));
+        testPlan.setTestRate(MathUtils.getPercentWithDecimal(testPlan.getTotal() == 0 ? 0 : testPlan.getTested() * 1.0 / testPlan.getTotal()));
+
+    }
+
+
+    private Map<String, Double> getDailyAvgPassRateV2(List<String> testPlanIds) {
+        JSONArray ja = new JSONArray();
+        ja.addAll(testPlanIds);
+
+        JSONObject jo = new JSONObject();
+        jo.put("times", 0);
+        jo.put("days", 7);  // 拉取前7天的数据
+        jo.put("testplanIds", ja);
+
+        JSONArray result = this.fetchDailyAvgPassData(JSONArray.toJSONString(jo));
+        if (result == null) { return null; }
+
+        Map<String, Double> map = new HashMap<>();
+        for (Object j : result) {
+            JSONObject t = (JSONObject)j;
+            map.put(t.getString("testplanId"), t.getDouble("passRateAvg"));
+        }
+        return map;
+    }
+
     /**
      * 统计本周创建的数据总量
      *
@@ -258,7 +402,7 @@ public class KanbanService {
 
     public List<ExecutionAllInfoDTO> getExeSummary() {
         List<TestCaseSummaryDTO> summaryList = kanbanMapper.getSummary();
-        List<ExecutionAllInfoDTO> testPlans = new ArrayList<ExecutionAllInfoDTO>();
+        List<ExecutionAllInfoDTO> testPlans = new ArrayList<>();
         for(TestCaseSummaryDTO summaryData : summaryList) {
             QueryTestPlanRequest request = new QueryTestPlanRequest();
             request.setProjectId(summaryData.getProjectId());

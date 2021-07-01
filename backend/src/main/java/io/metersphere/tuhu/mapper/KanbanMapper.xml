@@ -76,4 +76,23 @@
         AND create_time BETWEEN #{firstDayTimestamp} AND #{lastDayTimestamp} group by project_id
     </select>
 
+    <select id="getTestPlanIdAndCount" resultType="io.metersphere.tuhu.dto.TestPlanIdAndCount">
+        select count(test_plan_id) as countNumber, test_plan_id as testPlanId from test_plan_report group by test_plan_id
+    </select>
+
+    <select id="getAllTestPlanTestCase" resultType="io.metersphere.tuhu.dto.PlanIdAndStatus">
+     select status,plan_id as planId from test_plan_test_case
+    </select>
+
+    <select id="getAllTestPlanApiCase" resultType="io.metersphere.tuhu.dto.PlanIdAndStatus">
+        select test_plan_id as planId,status  from  test_plan_api_case
+    </select>
+
+    <select id="getAllTestPlanApiScenario" resultType="io.metersphere.tuhu.dto.PlanIdAndStatus">
+        select test_plan_id as planId, last_result as status from  test_plan_api_scenario
+    </select>
+
+    <select id="getAllTestPlanLoadCase" resultType="io.metersphere.tuhu.dto.PlanIdAndStatus">
+        select status ,test_plan_id as planId from test_plan_load_case
+    </select>
 </mapper>
