@@ -201,6 +201,10 @@ public class OKRService {
         if(existedOKRNames.isEmpty()){
             existedOKRNames.add(getNameByCurrentTime());
         }else{
+            String currentOKRName = getNameByCurrentTime();
+            if(!existedOKRNames.contains(currentOKRName))
+                existedOKRNames.add(currentOKRName);
+
             String nextOKRName = getNextQName();
             if(!existedOKRNames.contains(nextOKRName))
                 existedOKRNames.add(nextOKRName);
