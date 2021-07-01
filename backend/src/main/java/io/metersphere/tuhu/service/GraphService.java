@@ -309,11 +309,6 @@ public class GraphService {
         }
     }
 
-    public void syncBaseData() {
-        syncAllAppIdFromHalley();
-        syncAppIdMappingFromForseti();
-    }
-
     public void syncAllAppIdFromHalley() {
         Map<String, String> headers = new HashMap<>();
 

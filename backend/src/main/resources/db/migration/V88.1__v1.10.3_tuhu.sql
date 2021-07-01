@@ -16,3 +16,6 @@ CREATE TABLE `tuhu_appid_api_mapping` (
   PRIMARY KEY (`id`),
   KEY `url` (`url`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+-- 修改 api_definition.path 字段长度，并添加索引
+ALTER TABLE api_definition MODIFY `path` varchar(500) DEFAULT NULL COMMENT 'request path';
+ALTER TABLE api_definition ADD INDEX `path_idx` (`path`) USING BTREE;

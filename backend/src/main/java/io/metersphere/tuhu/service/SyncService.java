@@ -15,7 +15,7 @@ import java.util.*;
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class SyncService {
-    private static Map<String, OrganizationDTO> org = new HashMap<>();
+    private Map<String, OrganizationDTO> org = new HashMap<>();
 
     @Resource
     private TuhuAllAppIdMapper tuhuAllAppIdMapper;
@@ -74,10 +74,15 @@ public class SyncService {
     }
 
     public void updateAppId(TuhuAllAppIdMapper tuhuAllAppIdMapper) {
-        org.forEach((orgName, orgDTO) -> {
+        int i = 0;
+        int j = 0;
+        for (String orgName : org.keySet()) {
+            OrganizationDTO orgDTO = org.get(orgName);
             Map<String, WorkSpaceDTO> ws = orgDTO.getWorkSpace();
-            ws.forEach((wsName, wsDTO) -> {
+            for (String wsName : ws.keySet()) {
+                WorkSpaceDTO wsDTO = ws.get(wsName);
                 List<String> appIds = wsDTO.getAppIdList();
+                System.out.println(String.format("%s, %s , %d", orgName, wsName, appIds.size()));
                 OrgAndWsInfoDTO orgAndWsInfoDTO = tuhuAllAppIdMapper.queryOrgAndWsInfoByName(orgName, wsName);
                 if (orgAndWsInfoDTO != null) {
                     List<OrgAndWsInfoDTO> list = new ArrayList<>();
@@ -92,9 +97,13 @@ public class SyncService {
 
                     tuhuAllAppIdMapper.deleteByOrgIdAndWsId(orgAndWsInfoDTO);
                     tuhuAllAppIdMapper.addByOrgIdAndWsId(list);
+                    System.out.println(String.format("%d", appIds.size()));
+                    i += appIds.size();
                 }
-            });
-        });
+                j += appIds.size();
+            };
+        };
+        System.out.println(String.format("total size: %d, hit: %s", j, i));
     }
 
 }
