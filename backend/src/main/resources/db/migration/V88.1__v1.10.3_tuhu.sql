@@ -19,3 +19,9 @@ CREATE TABLE `tuhu_appid_api_mapping` (
 -- 修改 api_definition.path 字段长度，并添加索引
 ALTER TABLE api_definition MODIFY `path` varchar(500) DEFAULT NULL COMMENT 'request path';
 ALTER TABLE api_definition ADD INDEX `path_idx` (`path`) USING BTREE;
+-- 添加索引 api_definition.create_time 添加索引
+CREATE INDEX idx_create_time ON api_definition (create_time);
+-- 添加索引 api_test_case.create_time 添加索引
+CREATE INDEX idx_create_time ON api_test_case (create_time);
+-- 添加索引 api_scenario.create_time 添加索引
+CREATE INDEX idx_create_time ON api_scenario (create_time);
