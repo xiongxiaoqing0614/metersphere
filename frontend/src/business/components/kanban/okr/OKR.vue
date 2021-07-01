@@ -134,7 +134,7 @@ export default {
     })
   },
   updated () {
-    this.height = document.body.clientHeight - 180;
+    this.height = document.body.clientHeight - 190;
     this.$nextTick(() => {
       // this.$refs['table'].doLayout();
     }) 
