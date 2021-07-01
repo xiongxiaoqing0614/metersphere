@@ -136,7 +136,7 @@ public class OKRService {
 
     public List<TestCaseAllInfoDTO> getSummaryByTeam() {
         List<TestCaseAllInfoDTO> returnData = new ArrayList<TestCaseAllInfoDTO>();
-        List<TestCaseAllInfoDTO> summary = kanbanService.getSummary();
+        List<TestCaseAllInfoDTO> summary = kanbanService.getSummaryV2();
         for(TestCaseAllInfoDTO record : summary){
             String wsId = record.getWsId();
             TestCaseAllInfoDTO existTeam = getTeam(returnData, wsId);
