@@ -22,9 +22,16 @@ public class KanbanController {
     @Resource
     private CheckPermissionService checkPermissionService;
 
+    @Deprecated
     @GetMapping("/summary")
     public List<TestCaseAllInfoDTO> dashboardSummary() {
-        return kanbanService.getSummary();
+      //  return kanbanService.getSummary();
+        return kanbanService.getSummaryV2();
+    }
+
+    @GetMapping("/summary2")
+    public List<TestCaseAllInfoDTO> dashboardSummaryV2() {
+        return kanbanService.getSummaryV2();
     }
 
     @GetMapping("/exeSummary")
