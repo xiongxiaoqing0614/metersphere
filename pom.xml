@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.metersphere</groupId>
     <artifactId>metersphere-server</artifactId>
@@ -8,10 +9,10 @@
     <packaging>pom</packaging>
 
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.5.0</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <groupId>com.tuhu</groupId>
+        <artifactId>tuhu-spring-cloud-parent</artifactId>
+        <version>2.0.7-RELEASE</version>
+        <relativePath/>
     </parent>
 
     <name>metersphere</name>
@@ -19,5 +20,34 @@
         <module>frontend</module>
         <module>backend</module>
     </modules>
+
+    <repositories>
+        <repository>
+            <id>nexus_public</id>
+            <url>https://nexus.tuhu.cn/nexus/content/groups/public/</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>nexus_public</id>
+            <url>https://nexus.tuhu.cn/nexus/content/groups/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <distributionManagement>
+        <repository>
+            <id>release</id>
+            <name>release仓库</name>
+            <url>https://nexus.tuhu.cn/nexus/content/repositories/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>snapshots</name>
+            <url>https://nexus.tuhu.cn/nexus/content/repositories/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+
+
 
 </project>
