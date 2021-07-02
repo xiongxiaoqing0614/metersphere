@@ -3,6 +3,10 @@ package io.metersphere.tuhu.service;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.tuhu.polaris.Polaris;
+import com.tuhu.polaris.annotation.PolarisTrace;
+import com.tuhu.polaris.api.Point;
+import com.tuhu.polaris.config.PolarisConstants;
 import io.metersphere.api.dto.automation.ScenarioStatus;
 import io.metersphere.api.jmeter.RequestResult;
 import io.metersphere.api.jmeter.ScenarioResult;
@@ -124,7 +128,7 @@ public class KanbanService {
         return allInfoList;
     }
 
-
+    @PolarisTrace(name = "getSummaryV2",type = "category1")
     public List<TestCaseAllInfoDTO> getSummaryV2() {
 
         Map<String, Date> startAndEndDateInWeek = DateUtils.getWeedFirstTimeAndLastTime(new Date());
@@ -132,6 +136,10 @@ public class KanbanService {
         Date firstTime = startAndEndDateInWeek.get("firstTime");
         Date lastTime = startAndEndDateInWeek.get("lastTime");
 
+        Point event = Point.event()
+                .type("startAndEndDateInWeek").name("name1234")
+                .status(PolarisConstants.MESSAGE_SUCCESS).build();
+        Polaris.logPoint(event);
 
         List<TestCaseSummaryDTO> summaryList = kanbanMapper.getSummary();
 
