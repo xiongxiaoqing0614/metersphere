@@ -136,7 +136,7 @@ public class OKRService {
 
     public List<TestCaseAllInfoDTO> getSummaryByTeam() {
         List<TestCaseAllInfoDTO> returnData = new ArrayList<TestCaseAllInfoDTO>();
-        List<TestCaseAllInfoDTO> summary = kanbanService.getSummary();
+        List<TestCaseAllInfoDTO> summary = kanbanService.getSummaryV2();
         for(TestCaseAllInfoDTO record : summary){
             String wsId = record.getWsId();
             TestCaseAllInfoDTO existTeam = getTeam(returnData, wsId);
@@ -171,7 +171,10 @@ public class OKRService {
         }
 
         returnData.forEach(item -> {
-            item.setAppIdCoverage(appIdsCoverageMap.get(item.getWsId()));
+            Float percent = appIdsCoverageMap.get(item.getWsId());
+            if (percent != null) {
+                item.setAppIdCoverage(percent);
+            }
         });
 
         return returnData;
@@ -198,6 +201,10 @@ public class OKRService {
         if(existedOKRNames.isEmpty()){
             existedOKRNames.add(getNameByCurrentTime());
         }else{
+            String currentOKRName = getNameByCurrentTime();
+            if(!existedOKRNames.contains(currentOKRName))
+                existedOKRNames.add(currentOKRName);
+
             String nextOKRName = getNextQName();
             if(!existedOKRNames.contains(nextOKRName))
                 existedOKRNames.add(nextOKRName);

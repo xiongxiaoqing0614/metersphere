@@ -17,7 +17,7 @@
       highlight-hover-row
       ref="xTable"
       class="editable-footer"
-      max-height="600"
+      :max-height="height"
       :header-cell-style="headerCellStyle"
       :cell-style="cellStyle"
       :export-config="{}"
@@ -120,7 +120,8 @@ export default {
       okrName: null,
       okrNames: null,
       okrList: null,
-      tableColumns: null
+      tableColumns: null,
+      height: 100
     };
   },
   created() {
@@ -133,6 +134,7 @@ export default {
     })
   },
   updated () {
+    this.height = document.body.clientHeight - 190;
     this.$nextTick(() => {
       // this.$refs['table'].doLayout();
     }) 

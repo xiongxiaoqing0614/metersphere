@@ -1,8 +1,8 @@
 package io.metersphere.tuhu.mapper;
 
-import io.metersphere.tuhu.dto.TestCaseExtDTO;
-import io.metersphere.tuhu.dto.TestPlanReportExtDTO;
-import io.metersphere.tuhu.dto.TestCaseSummaryDTO;
+import io.metersphere.tuhu.dto.*;
+import org.apache.ibatis.annotations.Param;
+
 import java.util.List;
 
 public interface KanbanMapper {
@@ -13,4 +13,26 @@ public interface KanbanMapper {
     String queryTestPlanReportIdByScenarioReportId(String scenarioReportId);
 
     TestCaseExtDTO queryTestCaseInfoBySourceId(String sourceId);
+
+    List<ProjectIdAndCount> countByProjectIDAndCreateInThisWeek(long firstDayTimestamp, long lastDayTimestamp);
+
+    List<ProjectIdAndCount> countByProjectIDAndTagAndCreateInThisWeek(String tag,long firstDayTimestamp, long lastDayTimestamp);
+
+    List<ProjectIdAndCountGroup> countByProjectIDAndTagAndCreateInThisWeekP4();
+
+    List<ProjectIdAndCountGroup> countByProjectIDAndTagAndCreateInThisWeekP0();
+
+    List<ProjectIdAndCount> testCaseCountByProjectIDAndCreateInThisWeek(long firstDayTimestamp, long lastDayTimestamp);
+
+    List<ProjectIdAndCount> countByProjectIDAndCreatInThisWeek(long firstDayTimestamp, long lastDayTimestamp);
+
+    List<TestPlanIdAndCount> getTestPlanIdAndCount();
+
+    List<PlanIdAndStatus> getAllTestPlanTestCase();
+
+    List<PlanIdAndStatus> getAllTestPlanApiCase();
+
+    List<PlanIdAndStatus> getAllTestPlanApiScenario();
+
+    List<PlanIdAndStatus> getAllTestPlanLoadCase();
 }

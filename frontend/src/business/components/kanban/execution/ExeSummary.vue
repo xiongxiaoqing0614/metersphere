@@ -3,10 +3,11 @@
     <el-table
       v-loading="result.loading"
       :data="tableData"
+      :height="height"
       border
       stripe
       ref=“table”
-      style="width: 100%; max-height: 700px;">
+      style="width: 100%;">
       <el-table-column
         align="center"
         prop="department"
@@ -93,7 +94,8 @@ export default {
       tableData: null,
       orgList: null,
       wsList: null,
-      tableColumns:null
+      tableColumns: null,
+      height: 100
     };
   },
   created() {
@@ -103,6 +105,7 @@ export default {
     }) 
   },
   updated () {
+    this.height = document.body.clientHeight - 100;
     this.$nextTick(() => {
       this.$refs['table'].doLayout();
     }) 
@@ -121,14 +124,15 @@ export default {
       const _this = this;
       this.result = this.$get("/tuhu/kanban/exeSummary", response => {
         _this.tableData = response.data;
-        console.info(_this.tableData);
-        console.table(_this.tableData)
         _this.orgList = new Array();
         for(var i = 0, len = _this.tableData.length; i < len; i++){
           var departName = _this.tableData[i].department
           if(!this.hasFilter(_this.orgList, departName))
           {
             _this.orgList.push({text: departName, value: departName});
+          }
+          if (_this.tableData[i].dailyAvgPassRate) {
+            _this.tableData[i].dailyAvgPassRate = _this.tableData[i].dailyAvgPassRate.toFixed(2);
           }
         }
       });

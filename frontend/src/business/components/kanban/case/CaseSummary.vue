@@ -13,12 +13,12 @@
     <el-table
       v-loading="result.loading"
       :data="tableData"
-      min-height="100"
+      :height="height"
       border
       stripe
       show-summary
       ref=“table”
-      style="width: 100%; max-height: 700px;">
+      style="width: 100%;">
       <el-table-column
         align="center"
         prop="department"
@@ -140,7 +140,8 @@ export default {
       tableData: null,
       orgList: null,
       wsList: null,
-      tableColumns:null
+      tableColumns: null,
+      height: 100
     };
   },
   created() {
@@ -220,6 +221,7 @@ export default {
     }) 
   },
   updated () {
+    this.height = document.body.clientHeight - 200;
     this.$nextTick(() => {
       this.$refs['table'].doLayout();
     }) 

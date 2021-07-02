@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.metersphere.tuhu.mapper.TuhuAllAppIdMapper">
+    <select id="queryOrgAndWsInfoByName" resultType="io.metersphere.tuhu.dto.OrgAndWsInfoDTO">
+        SELECT org.id org_id, org.name org_name, ws.id ws_id, ws.name ws_name
+        FROM `organization` org, workspace ws
+        WHERE org.name = #{orgName} AND org.id = ws.organization_id AND ws.name = #{wsName}
+    </select>
+    <delete id="deleteByOrgIdAndWsId" parameterType="io.metersphere.tuhu.dto.OrgAndWsInfoDTO">
+        DELETE FROM tuhu_all_appid
+        WHERE organization_id = #{orgId} AND workspace_id = #{wsId}
+    </delete>
+    <insert id="addByOrgIdAndWsId" parameterType="io.metersphere.tuhu.dto.OrgAndWsInfoDTO">
+        INSERT INTO tuhu_all_appid (`id`, `organization_id`, `workspace_id`, `app_id`)
+        VALUES
+        <foreach collection ="list" item="item" separator =",">
+            (#{item.id,jdbcType=VARCHAR}, #{item.orgId,jdbcType=VARCHAR},
+            #{item.wsId,jdbcType=VARCHAR}, #{item.appId,jdbcType=VARCHAR})
+        </foreach>
+    </insert>
+</mapper>
