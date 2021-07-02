@@ -43,6 +43,8 @@ public class TestPlan implements Serializable {
 
     private Integer executionTimes;
 
+    private Integer weeklyExecutionTimes;
+
     private Boolean automaticStatusUpdate;
 
     private String tags;

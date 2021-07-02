@@ -26,7 +26,9 @@ public interface KanbanMapper {
 
     List<ProjectIdAndCount> countByProjectIDAndCreatInThisWeek(long firstDayTimestamp, long lastDayTimestamp);
 
-    List<TestPlanIdAndCount> getTestPlanIdAndCount();
+    List<TestPlanIdAndCount> getTestPlanIdAndCount(String name);
+
+    List<TestPlanIdAndCount> getTestPlanIdAndWeeklyCount(String name);
 
     List<PlanIdAndStatus> getAllTestPlanTestCase();
 

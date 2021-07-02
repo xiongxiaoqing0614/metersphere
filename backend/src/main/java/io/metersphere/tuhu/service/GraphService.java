@@ -347,7 +347,10 @@ public class GraphService {
                             TuhuAppIdApiMappingDTO temp = new TuhuAppIdApiMappingDTO();
                             temp.setId(UUID.randomUUID().toString());
                             temp.setAppId(appId);
-                            temp.setUrl(apis.getString(i));
+                            String[] items = apis.getString(i).split(":");
+                            if (items.length > 1) {
+                                temp.setUrl(items[1]);
+                            }
                             list.add(temp);
                         }
                         tuhuAppIdApiMappingMapper.deleteByAppId(appId);

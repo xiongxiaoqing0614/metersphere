@@ -242,12 +242,16 @@ public class KanbanService {
     }
 
     public List<ExecutionAllInfoDTO> getExeSummaryV2() {
+        String filterFlag = "【dailyBuild】";
         List<TestCaseSummaryDTO> summaryList = kanbanMapper.getSummary();
         List<ExecutionAllInfoDTO> plans = new ArrayList<>();
 
-        List<TestPlanDTOWithMetric> testPlans = extTestPlanMapper.list(new QueryTestPlanRequest());
+        QueryTestPlanRequest req = new QueryTestPlanRequest();
+        req.setName(filterFlag);
+        List<TestPlanDTOWithMetric> testPlans = extTestPlanMapper.list(req);
 
-        List<TestPlanIdAndCount> testPlanIdAndCounts = kanbanMapper.getTestPlanIdAndCount();
+        List<TestPlanIdAndCount> testPlanIdAndCounts = kanbanMapper.getTestPlanIdAndCount(filterFlag);
+        List<TestPlanIdAndCount> testPlanIdAndWeeklyCounts = kanbanMapper.getTestPlanIdAndWeeklyCount(filterFlag);
 
         List<PlanIdAndStatus> allTestPlanTestCases = kanbanMapper.getAllTestPlanTestCase();
         List<PlanIdAndStatus> allTestPlanApiCases = kanbanMapper.getAllTestPlanApiCase();
@@ -286,8 +290,10 @@ public class KanbanService {
                 calcTestPlanRateV2(oriTestPlan,functionalExecResults,apiExecResults,scenarioExecResults,loadResults);
 
                 TestPlanIdAndCount testPlanIdAndCount = testPlanIdAndCounts.stream().filter(t -> t.getTestPlanId().equals(oriTestPlan.getId())).findFirst().orElse(null);
+                TestPlanIdAndCount testPlanIdAndWeeklyCount = testPlanIdAndWeeklyCounts.stream().filter(t -> t.getTestPlanId().equals(oriTestPlan.getId())).findFirst().orElse(null);
 
                 oriTestPlan.setExecutionTimes(testPlanIdAndCount == null ? 0 : (int) testPlanIdAndCount.getCountNumber());
+                oriTestPlan.setWeeklyExecutionTimes(testPlanIdAndWeeklyCount == null ? 0 : (int) testPlanIdAndWeeklyCount.getCountNumber());
 
                 ExecutionAllInfoDTO thTestPlan = new ExecutionAllInfoDTO();
                 BeanUtils.copyProperties(oriTestPlan, thTestPlan);

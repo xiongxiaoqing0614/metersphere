@@ -77,7 +77,22 @@
     </select>
 
     <select id="getTestPlanIdAndCount" resultType="io.metersphere.tuhu.dto.TestPlanIdAndCount">
-        select count(test_plan_id) as countNumber, test_plan_id as testPlanId from test_plan_report group by test_plan_id
+        select count(test_plan_id) as countNumber, test_plan_id as testPlanId
+        from test_plan_report
+        <if test="name != null">
+        where name like concat(#{name}, '%')
+        </if>
+        group by test_plan_id
+    </select>
+
+    <select id="getTestPlanIdAndWeeklyCount" resultType="io.metersphere.tuhu.dto.TestPlanIdAndCount">
+        select count(test_plan_id) as countNumber, test_plan_id as testPlanId
+        from test_plan_report
+        where create_time >= (unix_timestamp(now())-604800) * 1000
+        <if test="name != null">
+            and name like concat(#{name}, '%')
+        </if>
+        group by test_plan_id
     </select>
 
     <select id="getAllTestPlanTestCase" resultType="io.metersphere.tuhu.dto.PlanIdAndStatus">

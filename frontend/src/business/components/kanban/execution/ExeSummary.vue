@@ -1,5 +1,9 @@
 <template>
   <div>
+     <el-alert
+      title="当前页面仅查询名称以【dailyBuild】字样开头的测试计划。如：【dailyBuild】XX主功能测试计划。"
+      type="warning">
+    </el-alert>
     <el-table
       v-loading="result.loading"
       :data="tableData"
@@ -37,12 +41,17 @@
       <el-table-column
         align="center"
         prop="executionTimes"
-        label="执行次数">
+        label="总执行次数">
+      </el-table-column>
+      <el-table-column
+        align="center"
+        prop="weeklyExecutionTimes"
+        label="周执行次数">
       </el-table-column>
       <el-table-column
         align="center"
         prop="passRateAvg"
-        label="前7日用例通过率">
+        label="周平均用例通过率">
         <template slot-scope="scope">
           <div v-if="scope.row.dailyAvgPassRate !== null">
             {{scope.row.dailyAvgPassRate * 100}}%
@@ -55,7 +64,7 @@
       <el-table-column
         align="center"
         prop="passRate"
-        label="用例最后通过率">
+        label="最后用例通过率">
         <template slot-scope="scope">
           {{scope.row.passRate}}%
         </template>
@@ -63,12 +72,12 @@
             <el-table-column
         align="center"
         prop="total"
-        label="测试计划用例总数">
+        label="最后测试计划用例总数">
       </el-table-column>
             <el-table-column
         align="center"
         prop="passed"
-        label="执行通过用例总数">
+        label="最后计划通过用例总数">
       </el-table-column>
     </el-table>
   </div>

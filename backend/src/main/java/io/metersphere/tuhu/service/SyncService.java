@@ -85,25 +85,33 @@ public class SyncService {
                 System.out.println(String.format("%s, %s , %d", orgName, wsName, appIds.size()));
                 OrgAndWsInfoDTO orgAndWsInfoDTO = tuhuAllAppIdMapper.queryOrgAndWsInfoByName(orgName, wsName);
                 if (orgAndWsInfoDTO != null) {
-                    List<OrgAndWsInfoDTO> list = new ArrayList<>();
-                    appIds.forEach(item -> {
-                        OrgAndWsInfoDTO temp = new OrgAndWsInfoDTO();
-                        temp.setId(UUID.randomUUID().toString());
-                        temp.setAppId(item);
+                    System.out.println(String.format("hit： %s, %s", orgName, wsName));
+                }
+
+                List<OrgAndWsInfoDTO> list = new ArrayList<>();
+                for (String appId : appIds) {
+                    OrgAndWsInfoDTO temp = new OrgAndWsInfoDTO();
+
+                    temp.setId(UUID.randomUUID().toString());
+                    temp.setAppId(appId);
+                    if (orgAndWsInfoDTO != null) {
                         temp.setOrgId(orgAndWsInfoDTO.getOrgId());
                         temp.setWsId(orgAndWsInfoDTO.getWsId());
-                        list.add(temp);
-                    });
+                        i += 1;
+                    } else {    // 未在 metersphere 平台匹配到的自动生成 伪的 组织、工作空间 id
+                        temp.setOrgId(UUID.randomUUID().toString());
+                        temp.setWsId(UUID.randomUUID().toString());
+                    }
+                    list.add(temp);
+                };
 
-                    tuhuAllAppIdMapper.deleteByOrgIdAndWsId(orgAndWsInfoDTO);
-                    tuhuAllAppIdMapper.addByOrgIdAndWsId(list);
-                    System.out.println(String.format("%d", appIds.size()));
-                    i += appIds.size();
-                }
+                tuhuAllAppIdMapper.deleteByOrgIdAndWsId(orgAndWsInfoDTO);
+                tuhuAllAppIdMapper.addByOrgIdAndWsId(list);
+
                 j += appIds.size();
-            };
-        };
-        System.out.println(String.format("total size: %d, hit: %s", j, i));
+            }
+        }
+        System.out.println(String.format("total size: %d, hit: %d", j, i));
     }
 
 }
