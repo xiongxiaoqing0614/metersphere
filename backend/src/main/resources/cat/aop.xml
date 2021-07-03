@@ -1,0 +1,205 @@
+<aspectj>
+	<aspects>
+		<aspect name="com.tuhu.polaris.plugin.aspect.HubbleAsyncContextHelper"/>
+		<aspect name="com.tuhu.polaris.plugin.aspect.MercuryAsyncContextHelper"/>
+		<!--Mybatis-->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.MybatisInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope" expression="(execution( * org.apache.ibatis.executor.BaseExecutor+.query(..))
+			||execution( * org.apache.ibatis.executor.BaseExecutor+.update(..)))"/>
+		</concrete-aspect>
+		<!-- cache - Renault -->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.RenaultInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="execution( * com.tuhu.renault.AbstractCache.executeCommandWithMonitor(..))"/>
+		</concrete-aspect>
+		<!-- cache - Renault - Exception -->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.RenaultAsyncInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope" expression="(execution(public * com.tuhu.renault.ResultData.onComplete(..)))
+			||(execution(public * com.tuhu.renault.ResultData.onError(..)))"/>
+		</concrete-aspect>
+
+		<!-- Http RPC -->
+		<!-- HttpClient  -->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.HttpClientInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.AsyncGenericInterceptor">
+			<pointcut name="scope" expression="execution(* org.apache.http.impl.client.CloseableHttpClient+.doExecute(..))"/>
+		</concrete-aspect>
+		<!-- SpringMVC server -->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.HttpServerInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="execution(* org.springframework.web.servlet.FrameworkServlet.processRequest(..))"/>
+		</concrete-aspect>
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.FeignHttpClientInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope" expression="execution(public * feign.Client+.execute(..))"/>
+		</concrete-aspect>
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.FeignClientInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope" expression="(execution(public * feign.ReflectiveFeign$FeignInvocationHandler.invoke(..)))
+												||(execution(public * feign.hystrix.HystrixInvocationHandler.invoke(..)))
+												||(execution(public * com.alibaba.cloud.sentinel.feign.SentinelInvocationHandler.invoke(..)))"/>
+		</concrete-aspect>
+		<!-- Spring -->
+		<!-- Controller -->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.SpringControllerInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="(execution(public * (@org.springframework.stereotype.Controller *).*(..)) &amp;&amp; !execution(* *..*lambda*(..)) )
+				|| (execution(public * (@org.springframework.web.bind.annotation.RestController *).*(..)) &amp;&amp; !execution(* *..*lambda*(..)) )"/>
+		</concrete-aspect>
+		<!-- Service -->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.SpringServiceInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="execution(public * (@org.springframework.stereotype.Service *).*(..)) &amp;&amp; !execution(* *..*lambda*(..))"/>
+		</concrete-aspect>
+
+		<!-- spring.startup -->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.SpringStartUpInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="execution(public * org.springframework.boot.SpringApplication.run(Class,String ...))"/>
+		</concrete-aspect>
+
+		<!-- Slf4j-->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.SentryInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="(execution(* ch.qos.logback.classic.Logger.buildLoggingEventAndAppend(..)))"/>
+		</concrete-aspect>
+
+        <!-- MQ Producer-->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.MqProducerInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="(execution(public * com.tuhu.mercury.producer.ProducerProxy.send*(..)))"/>
+		</concrete-aspect>
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.MqProducerAsyncInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.AsyncGenericInterceptor">
+			<pointcut name="scope" expression="(execution(* com.tuhu.mercury.producer.ISendCallback+.on*(..)))"/>
+		</concrete-aspect>
+		<!-- MQ Consumer-->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.MqConsumerInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="(execution(public * com.tuhu.mercury.consumer.ConsumerProxy$ConsumerCallbackProxy.consumeMessage(..)))"/>
+		</concrete-aspect>
+
+		<!-- Generic-->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.PolarisInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope" expression="execution(@com.tuhu.polaris.annotation.PolarisTrace * *(..))"/>
+		</concrete-aspect>
+
+		<!-- Hubble-->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.HubbleInterceptor"
+                         extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+            <pointcut name="scope" expression="(execution(* com.tuhu.hubble.remote.esclient.EsRestClient.doExecute(com.tuhu.hubble.api.ElasticSearchRequest)))
+					||(execution(* com.tuhu.hubble.remote.esclient.EsRestClient.doExecuteAsync(com.tuhu.hubble.api.ElasticSearchRequest)))"/>
+        </concrete-aspect>
+        <concrete-aspect name="com.tuhu.polaris.plugin.interceptor.HubbleAsyncInterceptor"
+                         extends="com.tuhu.polaris.plugin.interceptor.AsyncGenericInterceptor">
+            <pointcut name="scope" expression="(execution(* com.tuhu.hubble.remote.esclient.HubbleResponseListener.*(..)))
+			|| (execution( com.tuhu.hubble.remote.esclient.HubbleResponseListener.new(..)))"/>
+        </concrete-aspect>
+
+        <!-- Dubbo Consumer  -->
+        <concrete-aspect name="com.tuhu.polaris.plugin.interceptor.DubboConsumerInterceptor"
+                         extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+            <pointcut name="scope"
+                      expression="execution(* com.alibaba.dubbo.monitor.support.MonitorFilter.invoke(..))"/>
+        </concrete-aspect>
+
+        <!-- Dubbo Registry-->
+        <concrete-aspect name="com.tuhu.polaris.plugin.interceptor.DubboRegistryEnhanceInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope" expression="execution(* com.alibaba.dubbo.registry.RegistryService+.register(..))"/>
+		</concrete-aspect>
+
+		<!-- Dubbo provider -->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.DubboProviderInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="execution(* com.alibaba.dubbo.monitor.support.MonitorFilter.invoke(..))"/>
+		</concrete-aspect>
+
+		<!-- Orion Filter-->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.OrionFilterInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope" expression="execution(* com.tuhu.orion.spring.filter.OrionFilter.inject(..))"/>
+		</concrete-aspect>
+
+
+		<!-- Xxl IJobHandler -->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.XxlJobInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="execution(* com.xxl.job.core.handler.IJobHandler.execute(com.xxl.job.core.biz.model.TriggerParam))"/>
+		</concrete-aspect>
+
+		<!--zookeeper client -->
+		<concrete-aspect name="com.tuhu.polaris.plugin.interceptor.ZookeeperInterceptor"
+						 extends="com.tuhu.polaris.plugin.interceptor.GenericInterceptor">
+			<pointcut name="scope"
+					  expression="(execution(* org.apache.zookeeper.ClientCnxn.queuePacket(org.apache.zookeeper.proto.RequestHeader,..))) || (execution(* org.apache.zookeeper.ClientCnxn$EventThread.queueEvent(..)))"/>
+		</concrete-aspect>
+
+	</aspects>
+
+	<weaver options="-Xlint:ignore -nowarn">
+		<include within="com.tuhu..*"/>
+		<include within="com.tuhu.mercury.producer.ProducerProxy"/>
+		<include within="com.tuhu.mercury.consumer.ConsumerProxy$ConsumerCallbackProxy"/>
+		<include within="com.tuhu.orion.spring.filter.OrionFilter"/>
+		<include within="com.tuhu.hubble.remote.esclient.EsRestClient"/>
+		<include within="com.tuhu.hubble.remote.esclient.HubbleResponseListener"/>
+		<include within="com.tuhu.renault.AbstractCache"/>
+		<include within="com.tuhu.renault.ResultData"/>
+		<include within="org.apache.ibatis.executor.BatchExecutor"/>
+		<include within="org.apache.ibatis.executor.ReuseExecutor"/>
+		<include within="org.apache.ibatis.executor.SimpleExecutor"/>
+
+		<include within="org.apache.http.impl.client.AbstractHttpClient"/>
+		<include within="org.apache.http.impl.client.InternalHttpClient"/>
+		<include within="org.apache.http.impl.client.MinimalHttpClient"/>
+
+		<include within="ch.qos.logback.classic.Logger"/>
+		<include within="feign.Client$Default"/>
+		<include within="feign.okhttp.OkHttpClient"/>
+		<include within="org.springframework.cloud.openfeign.ribbon.LoadBalancerFeignClient"/>
+		<include within="feign.ReflectiveFeign$FeignInvocationHandler"/>
+		<include within="feign.hystrix.HystrixInvocationHandler"/>
+		<include within="com.alibaba.cloud.sentinel.feign.SentinelInvocationHandler"/>
+		<include within="com.alibaba.dubbo.registry.support.AbstractRegistry"/>
+		<include within="com.alibaba.dubbo.monitor.support.MonitorFilter"/>
+		<include within="org.springframework.web.servlet.FrameworkServlet"/>
+		<include within="org.springframework.boot.SpringApplication"/>
+		<include within="com.xxl.job.admin.core.thread.JobTriggerPoolHelper"/>
+		<include within="com.xxl.job.admin.core.trigger.XxlJobTrigger"/>
+		<include within="com.xxl.job.admin.core.thread.JobScheduleHelper"/>
+		<include within="com.xxl.job.core.handler.IJobHandler"/>
+		<include within="org.apache.zookeeper.ClientCnxn"/>
+		<include within="org.apache.zookeeper.ClientCnxn$EventThread"/>
+
+		<include within="com.netflix.eureka.resources.*"/>
+		<include within="com.netflix.eureka.util.batcher.AcceptorExecutor"/>
+		<include within="com.netflix.eureka.registry.AbstractInstanceRegistry"/>
+		<include within="com.netflix.eureka.util.batcher.TaskExecutors"/>
+		<include within="com.tuhu.eureka.config.EurekaStateChangeListener"/>
+		<include within="com.netflix.discovery.DiscoveryClient"/>
+		<include within="org.springframework.cloud.netflix.eureka.EurekaClientConfigBean"/>
+		<include within="com.netflix.discovery.shared.transport.decorator.RetryableEurekaHttpClient"/>
+		<include within="com.netflix.discovery.shared.transport.decorator.ServerStatusEvaluators"/>
+		<include within="com.netflix.discovery.shared.dns.DnsServiceImpl"/>
+
+		<exclude within="com.tuhu.polaris..*"/>
+		<exclude within="com.tuhu.springcloud..*"/>
+		<exclude within="com.dianping..*"/>
+		<exclude within="org.aspectj..*"/>
+		<exclude within="javax..*"/>
+	</weaver>
+</aspectj>
