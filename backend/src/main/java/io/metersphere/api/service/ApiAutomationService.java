@@ -71,6 +71,7 @@ import javax.annotation.Resource;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -547,7 +548,7 @@ public class ApiAutomationService {
                 return objectMapper.readValue(element.getString("hashTree"), new TypeReference<LinkedList<MsTestElement>>() {
                 });
             }
-        } catch (JsonProcessingException e) {
+        } catch (IOException e) {
             LogUtil.error(e.getMessage(), e);
         }
         return new LinkedList<>();
@@ -696,7 +697,7 @@ public class ApiAutomationService {
                     getHashTree(tr.getHashTree(), env);
                 }
             }
-        } catch (JsonProcessingException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
