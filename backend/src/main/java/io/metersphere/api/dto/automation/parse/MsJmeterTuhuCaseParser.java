@@ -274,8 +274,8 @@ public class MsJmeterTuhuCaseParser extends ApiImportAbstractParser<ScenarioImpo
             samplerProxy.setId(UUID.randomUUID().toString());
             samplerProxy.setType("HTTPSamplerProxy");
             // 处理HTTP协议的请求头
+            List<KeyValue> keyValues = new LinkedList<>();
             if (headerMap.containsKey(key.hashCode())) {
-                List<KeyValue> keyValues = new LinkedList<>();
                 headerMap.get(key.hashCode()).forEach(item -> {
                     HeaderManager headerManager = (HeaderManager) item;
                     if (headerManager.getHeaders() != null) {
@@ -284,22 +284,22 @@ public class MsJmeterTuhuCaseParser extends ApiImportAbstractParser<ScenarioImpo
                         }
                     }
                 });
-                if (headerList.size()>0){
-                    for (String headerManagerKey: headerList.get(0).keySet()){
-                        boolean hasHeader = false;
-                        for (int k = 0; k<keyValues.size(); k++){
-                            if (keyValues.get(k).getName().equals(headerManagerKey)){
-                                hasHeader = true;
-                            }
-                        }
-                        if (!hasHeader){
-                            keyValues.add(new KeyValue(headerManagerKey, headerList.get(0).get(headerManagerKey)));
+            }
+            if (headerList.size()>0){
+                for (String headerManagerKey: headerList.get(0).keySet()){
+                    boolean hasHeader = false;
+                    for (int k = 0; k<keyValues.size(); k++){
+                        if (keyValues.get(k).getName().equals(headerManagerKey)){
+                            hasHeader = true;
                         }
                     }
+                    if (!hasHeader){
+                        keyValues.add(new KeyValue(headerManagerKey, headerList.get(0).get(headerManagerKey)));
+                    }
                 }
-
-                samplerProxy.setHeaders(keyValues);
             }
+
+            samplerProxy.setHeaders(keyValues);
         } catch (Exception e) {
             e.printStackTrace();
         }
