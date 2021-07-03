@@ -25,6 +25,6 @@ ENV JAVA_CLASSPATH=/app:/app/lib/*
 ENV JAVA_MAIN_CLASS=io.metersphere.Application
 ENV AB_OFF=true
 ENV MS_VERSION=${MS_VERSION}
-ENV JAVA_OPTIONS="-Dfile.encoding=utf-8 -Djava.awt.headless=true"
+ENV JAVA_OPTIONS="-Dfile.encoding=utf-8 -Djava.awt.headless=true -javaagent:/app/file/polaris-agent.jar -Djava._appid_=int-website-arch-autotest-metersphere -Djava._environment_=work"
 
 CMD ["/deployments/run-java.sh"]
