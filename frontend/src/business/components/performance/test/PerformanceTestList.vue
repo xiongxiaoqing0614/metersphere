@@ -4,7 +4,6 @@
       <el-card class="table-card" v-loading="result.loading">
         <template v-slot:header>
           <ms-table-header :condition.sync="condition" @search="search"
-                           :title="$t('commons.test')"
                            :create-permission="['PROJECT_PERFORMANCE_TEST:READ+CREATE']"
                            @create="create" :createTip="$t('load_test.create')"/>
         </template>
@@ -101,7 +100,7 @@ import MsTableOperators from "../../common/components/MsTableOperators";
 import {getCurrentProjectID, getCurrentWorkspaceId} from "@/common/js/utils";
 import MsTableHeader from "../../common/components/MsTableHeader";
 import {TEST_CONFIGS} from "../../common/components/search/search-components";
-import {_filter, _sort} from "@/common/js/tableUtils";
+import {_filter, _sort,saveLastTableSortField,getLastTableSortField} from "@/common/js/tableUtils";
 
 export default {
   components: {
@@ -115,6 +114,7 @@ export default {
   },
   data() {
     return {
+      tableHeaderKey:"PERFORMANCE_TEST_TABLE",
       result: {},
       deletePath: "/performance/delete",
       condition: {
@@ -152,7 +152,7 @@ export default {
         {text: 'Error', value: 'Error'}
       ],
       userFilters: [],
-      screenHeight: 'calc(100vh - 295px)',
+      screenHeight: 'calc(100vh - 200px)',
     };
   },
   watch: {
@@ -179,6 +179,10 @@ export default {
       });
     },
     initTableData() {
+      let orderArr = this.getSortField();
+      if(orderArr){
+        this.condition.orders = orderArr;
+      }
       this.condition.projectId = getCurrentProjectID();
       this.condition.workspaceId = getCurrentWorkspaceId();
       this.result = this.$post(this.buildPagePath('/performance/list'), this.condition, response => {
@@ -234,7 +238,12 @@ export default {
       });
     },
     sort(column) {
+      // 每次只对一个字段排序
+      if (this.condition.orders) {
+        this.condition.orders = [];
+      }
       _sort(column, this.condition);
+      this.saveSortField(this.tableHeaderKey,this.condition.orders);
       this.initTableData();
     },
     filter(filters) {
@@ -257,6 +266,21 @@ export default {
         return;
       }
       this.$router.push('/performance/test/create');
+    },
+    saveSortField(key,orders){
+      saveLastTableSortField(key,JSON.stringify(orders));
+    },
+    getSortField(){
+      let orderJsonStr = getLastTableSortField(this.tableHeaderKey);
+      let returnObj = null;
+      if(orderJsonStr){
+        try {
+          returnObj = JSON.parse(orderJsonStr);
+        }catch (e){
+          return null;
+        }
+      }
+      return returnObj;
     }
   }
 };

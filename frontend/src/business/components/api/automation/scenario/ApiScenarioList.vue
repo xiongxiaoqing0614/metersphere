@@ -14,11 +14,12 @@
         :batch-operators="buttons"
         :total="total"
         :fields.sync="fields"
-        field-key="API_SCENARIO"
+        :field-key=tableHeaderKey
         operator-width="200"
         @refresh="search(projectId)"
         @callBackSelectAll="callBackSelectAll"
         @callBackSelect="callBackSelect"
+        @saveSortField="saveSortField"
         ref="scenarioTable">
 
         <span v-for="(item) in fields" :key="item.key">
@@ -119,6 +120,17 @@
               <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
             </template>
           </ms-table-column >
+          <ms-table-column prop="createTime"
+                           :field="item"
+                           :fields-width="fieldsWidth"
+                           :label="$t('commons.create_time')"
+                           sortable
+                           min-width="180px">
+            <template v-slot:default="scope">
+              <span>{{ scope.row.createTime | timestampFormatDate }}</span>
+            </template>
+          </ms-table-column >
+
           <ms-table-column prop="stepTotal"
                            :field="item"
                            :fields-width="fieldsWidth"
@@ -200,12 +212,12 @@ import BatchMove from "../../../track/case/components/BatchMove";
 import MsRunMode from "./common/RunMode";
 
 import {
-  getCustomTableHeader, getCustomTableWidth,
+  getCustomTableHeader, getCustomTableWidth,getLastTableSortField,saveLastTableSortField
 } from "@/common/js/tableUtils";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 import {API_SCENARIO_FILTERS} from "@/common/js/table-constants";
-import MsTableColumn from "@/business/components/common/components/table/Ms-table-column";
+import MsTableColumn from "@/business/components/common/components/table/MsTableColumn";
 import MsTable from "@/business/components/common/components/table/MsTable";
 
 export default {
@@ -271,11 +283,13 @@ export default {
   },
   data() {
     return {
+      projectName:"",
       result: {},
+      tableHeaderKey:"API_SCENARIO",
       type: API_SCENARIO_LIST,
       fields: getCustomTableHeader('API_SCENARIO'),
       fieldsWidth: getCustomTableWidth('API_SCENARIO'),
-      screenHeight: 'calc(100vh - 275px)',//屏幕高度,
+      screenHeight: 'calc(100vh - 220px)',//屏幕高度,
       condition: {
         components: API_SCENARIO_CONFIGS
       },
@@ -319,6 +333,7 @@ export default {
           tip: this.$t('api_test.automation.execute'),
           icon: "el-icon-video-play",
           exec: this.execute,
+          class: "run-button",
           permissions: ['PROJECT_API_SCENARIO:READ+RUN']
         },
         {
@@ -369,6 +384,16 @@ export default {
           permissions: ['PROJECT_API_SCENARIO:READ+EDIT']
         },
         {
+          name: this.$t('api_test.create_performance_test_batch'),
+          handleClick: this.batchCreatePerformance,
+          permissions: ['PROJECT_API_SCENARIO:READ+CREATE_PERFORMANCE_BATCH']
+        },
+        {
+          name: this.$t('api_test.batch_copy'),
+          handleClick: this.batchCopy,
+          permissions: ['PROJECT_API_SCENARIO:READ+BATCH_COPY']
+        },
+        {
           name: this.$t('test_track.case.batch_move_case'),
           handleClick: this.handleBatchMove,
           permissions: ['PROJECT_API_SCENARIO:READ+MOVE_BATCH']
@@ -406,15 +431,25 @@ export default {
         principal: [],
         environmentId: [],
         projectEnv: [],
+        projectId: ''
       },
     };
   },
   created() {
+    this.projectId = getCurrentProjectID();
+    if(!this.projectName || this.projectName === ""){
+      this.getProjectName();
+    }
     this.operators = this.unTrashOperators;
     this.buttons = this.unTrashButtons;
     this.condition.filters = {status: ["Prepare", "Underway", "Completed"]};
+    let orderArr = this.getSortField();
+    if(orderArr){
+      this.condition.orders = orderArr;
+    }
     this.search();
     this.getPrincipalOptions([]);
+
   },
   watch: {
     selectNodeIds() {
@@ -445,11 +480,16 @@ export default {
     isNotRunning() {
       return "Running" !== this.report.status;
     },
-    projectId() {
-      return getCurrentProjectID();
-    },
   },
   methods: {
+    getProjectName (){
+      this.$get('project/get/' + this.projectId, response => {
+        let project = response.data;
+        if(project){
+          this.projectName = project.name;
+        }
+      });
+    },
     selectByParam() {
       this.changeSelectDataRangeAll();
       this.search();
@@ -457,6 +497,9 @@ export default {
     search(projectId) {
       if(this.needRefreshModule()){
         this.$emit('refreshTree');
+      }
+      if(this.selectProjectId){
+        projectId = this.selectProjectId;
       }
       this.selectRows = new Set();
       this.condition.moduleIds = this.selectNodeIds;
@@ -504,6 +547,7 @@ export default {
           if (this.$refs.scenarioTable) {
             this.$refs.scenarioTable.clear();
           }
+          this.$emit('getTrashCase');
         });
       }
     },
@@ -775,7 +819,7 @@ export default {
         this.result.loading = false;
         let obj = response.data;
         this.buildApiPath(obj.data);
-        downloadFile("Metersphere_Scenario_" + localStorage.getItem(PROJECT_NAME) + ".json", JSON.stringify(obj));
+        downloadFile("Metersphere_Scenario_" + this.projectName + ".json", JSON.stringify(obj));
       });
     },
     exportJmx() {
@@ -821,6 +865,69 @@ export default {
     },
     callBackSelect(selection){
       this.$emit('selection', selection);
+    },
+    batchCreatePerformance() {
+      this.$alert(this.$t('api_test.definition.request.batch_to_performance_confirm') + " ？", '', {
+        confirmButtonText: this.$t('commons.confirm'),
+        callback: (action) => {
+          if (action === 'confirm') {
+            this.infoDb = false;
+            let param = {};
+            this.buildBatchParam(param);
+            this.$post('/api/automation/batchGenPerformanceTestJmx/', param, response => {
+              let returnDataList = response.data;
+              let jmxObjList = [];
+              returnDataList.forEach(item => {
+                let jmxObj = {};
+                jmxObj.name = item.name;
+                jmxObj.xml = item.xml;
+                jmxObj.attachFiles = item.attachFiles;
+                jmxObj.attachByteFiles = item.attachByteFiles;
+                jmxObj.scenarioId = item.id;
+                jmxObjList.push(jmxObj);
+              });
+              this.$store.commit('setScenarioJmxs', {
+                name: 'Scenarios',
+                jmxs: jmxObjList
+              });
+              this.$router.push({
+                path: "/performance/test/create"
+              });
+            });
+          }
+        }
+      });
+    },
+    batchCopy(){
+      this.$alert(this.$t('api_test.definition.request.batch_copy_confirm') + " ？", '', {
+        confirmButtonText: this.$t('commons.confirm'),
+        callback: (action) => {
+          if (action === 'confirm') {
+            this.infoDb = false;
+            let param = {};
+            this.buildBatchParam(param);
+            this.$post('/api/automation/batchCopy', param, response => {
+              this.$success(this.$t('api_test.definition.request.batch_copy_end'));
+              this.search();
+            });
+          }
+        }
+      });
+    },
+    saveSortField(key,orders){
+      saveLastTableSortField(key,JSON.stringify(orders));
+    },
+    getSortField(){
+      let orderJsonStr = getLastTableSortField(this.tableHeaderKey);
+      let returnObj = null;
+      if(orderJsonStr){
+        try {
+          returnObj = JSON.parse(orderJsonStr);
+        }catch (e){
+          return null;
+        }
+      }
+      return returnObj;
     }
   }
 };
@@ -829,11 +936,6 @@ export default {
 <style scoped>
 /deep/ .el-drawer__header {
   margin-bottom: 0px;
-}
-
-/deep/ .run-button {
-  background-color: #409EFF;
-  border-color: #409EFF;
 }
 
 /deep/ .el-table__fixed-body-wrapper {
@@ -853,6 +955,6 @@ export default {
 }
 
 /deep/ .el-table__fixed-body-wrapper {
-  top: 60px !important;
+  top: 48px !important;
 }
 </style>

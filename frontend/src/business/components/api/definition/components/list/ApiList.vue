@@ -1,12 +1,11 @@
 <template>
   <div>
     <div>
-
       <el-link type="primary" @click="open" style="float: right;margin-top: 5px">{{ $t('commons.adv_search.title') }}
       </el-link>
-      <el-input :placeholder="$t('commons.search_by_id_name_tag')" @blur="search" class="search-input" size="small"
-                @keyup.enter.native="search"
-                v-model="condition.name"/>
+      <el-input :placeholder="$t('commons.search_by_id_name_tag_path')" @blur="search" class="search-input" size="small"
+                @keyup.enter.native="enterSearch"
+                v-model="condition.name" ref="inputVal"/>
 
       <ms-table :data="tableData" :select-node-ids="selectNodeIds" :condition="condition" :page-size="pageSize"
                 :total="total" enableSelection
@@ -15,7 +14,8 @@
                 @refresh="initTable"
                 :fields.sync="fields"
                 :table-is-loading="this.result.loading"
-                field-key="API_DEFINITION"
+                :field-key="tableHeaderKey"
+                @saveSortField="saveSortField"
                 ref="table">
 
         <span v-for="(item) in fields" :key="item.key">
@@ -114,6 +114,16 @@
             <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
           </template>
         </ms-table-column>
+        <ms-table-column prop="createTime"
+                         :field="item"
+                         :fields-width="fieldsWidth"
+                         :label="$t('commons.create_time')"
+                         sortable
+                         min-width="180px">
+          <template v-slot:default="scope">
+            <span>{{ scope.row.createTime | timestampFormatDate }}</span>
+          </template>
+        </ms-table-column >
 
         <ms-table-column
           prop="caseTotal"
@@ -163,7 +173,7 @@ import MsTable from "@/business/components/common/components/table/MsTable";
 import MsTag from "../../../../common/components/MsTag";
 import MsApiCaseList from "../case/ApiCaseList";
 import MsContainer from "../../../../common/components/MsContainer";
-import MsTableColumn from "@/business/components/common/components/table/Ms-table-column";
+import MsTableColumn from "@/business/components/common/components/table/MsTableColumn";
 import MsBottomContainer from "../BottomContainer";
 import MsBatchEdit from "../basis/BatchEdit";
 import {API_METHOD_COLOUR, API_STATUS, DUBBO_METHOD, REQ_METHOD, SQL_METHOD, TCP_METHOD} from "../../model/JsonData";
@@ -177,7 +187,8 @@ import MsTipButton from "@/business/components/common/components/MsTipButton";
 import CaseBatchMove from "@/business/components/api/definition/components/basis/BatchMove";
 import {
   initCondition,
-  getCustomTableHeader, getCustomTableWidth, buildBatchParam, checkTableRowIsSelected
+  getCustomTableHeader, getCustomTableWidth, buildBatchParam, checkTableRowIsSelected,
+  saveLastTableSortField,getLastTableSortField
 } from "@/common/js/tableUtils";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 import {Body} from "@/business/components/api/definition/model/ApiTestModel";
@@ -209,6 +220,7 @@ export default {
   data() {
     return {
       type: API_LIST,
+      tableHeaderKey:"API_DEFINITION",
       fields: getCustomTableHeader('API_DEFINITION'),
       fieldsWidth: getCustomTableWidth('API_DEFINITION'),
       condition: {
@@ -252,6 +264,7 @@ export default {
           tip: this.$t('api_test.automation.execute'),
           icon: "el-icon-video-play",
           exec: this.runApi,
+          class: "run-button",
           permissions: ['PROJECT_API_DEFINITION:READ+RUN']
         },
         {
@@ -287,6 +300,7 @@ export default {
           tip: this.$t('api_test.automation.execute'),
           icon: "el-icon-video-play",
           exec: this.runApi,
+          class: "run-button",
           permissions: ['PROJECT_API_DEFINITION:READ+RUN']
         },
         {tip: this.$t('commons.reduction'), icon: "el-icon-refresh-left", exec: this.reductionApi},
@@ -346,9 +360,10 @@ export default {
       currentPage: 1,
       pageSize: 10,
       total: 0,
-      screenHeight: 'calc(100vh - 320px)',//屏幕高度,
+      screenHeight: 'calc(100vh - 250px)',//屏幕高度,
       environmentId: undefined,
       selectDataCounts: 0,
+      projectName:"",
     };
   },
   props: {
@@ -399,12 +414,19 @@ export default {
     }
   },
   created: function () {
+    if(!this.projectName || this.projectName === ""){
+      this.getProjectName();
+    }
     if (this.trashEnable) {
       this.tableOperatorButtons = this.tableTrashOperatorButtons;
       this.condition.filters = {status: ["Trash"]};
     } else {
       this.tableOperatorButtons = this.tableUsualOperatorButtons;
       this.condition.filters = {status: ["Prepare", "Underway", "Completed"]};
+    }
+    let orderArr = this.getSortField();
+    if(orderArr){
+      this.condition.orders = orderArr;
     }
     this.initTable();
     this.getMaintainerOptions();
@@ -439,6 +461,14 @@ export default {
     }
   },
   methods: {
+    getProjectName (){
+      this.$get('project/get/' + this.projectId, response => {
+        let project = response.data;
+        if(project){
+          this.projectName = project.name;
+        }
+      });
+    },
     handleBatchMove() {
       this.$refs.testCaseBatchMove.open(this.moduleTree, [], this.moduleOptions);
     },
@@ -552,6 +582,10 @@ export default {
           return {text: u.name, value: u.id};
         });
       });
+    },
+    enterSearch(){
+      this.$refs.inputVal.blur();
+      this.search();
     },
     search() {
       this.changeSelectDataRangeAll();
@@ -753,9 +787,9 @@ export default {
         if (type == 'MS') {
           obj.protocol = this.currentProtocol;
           this.buildApiPath(obj.data);
-          downloadFile("Metersphere_Api_" + localStorage.getItem(PROJECT_NAME) + ".json", JSON.stringify(obj));
+          downloadFile("Metersphere_Api_" + this.projectName + ".json", JSON.stringify(obj));
         } else {
-          downloadFile("Swagger_Api_" + localStorage.getItem(PROJECT_NAME) + ".json", JSON.stringify(obj));
+          downloadFile("Swagger_Api_" + this.projectName+ ".json", JSON.stringify(obj));
         }
       });
     },
@@ -794,6 +828,21 @@ export default {
         this.$emit('updateInitApiTableOpretion','0');
         return false;
       }
+    },
+    saveSortField(key,orders){
+      saveLastTableSortField(key,JSON.stringify(orders));
+    },
+    getSortField(){
+      let orderJsonStr = getLastTableSortField(this.tableHeaderKey);
+      let returnObj = null;
+      if(orderJsonStr){
+        try {
+          returnObj = JSON.parse(orderJsonStr);
+        }catch (e){
+          return null;
+        }
+      }
+      return returnObj;
     }
   },
 };
@@ -832,8 +881,8 @@ export default {
   top: -2px;
 }
 
-/deep/ .el-table__fixed-body-wrapper {
+/* /deep/ .el-table__fixed-body-wrapper {
   top: 60px !important;
-}
+} */
 
 </style>

@@ -466,7 +466,6 @@ public class APITestService {
     /**
      * 更新jmx数据，处理jmx里的各种参数
      * <p>
-     * 注： 与1.7分支合并时，如果该方法产生冲突，请以master为准
      *
      * @param jmxString      原JMX文件
      * @param testNameParam  某些节点要替换的testName
@@ -475,7 +474,6 @@ public class APITestService {
      * @author song tianyang
      */
     public JmxInfoDTO updateJmxString(String jmxString, String testNameParam, boolean isFromScenario) {
-        //注： 与1.7分支合并时，如果该方法产生冲突，请以master为准
         String attribute_testName = "testname";
         String[] requestElementNameArr = new String[]{"HTTPSamplerProxy", "TCPSampler", "JDBCSampler", "DubboSample"};
 
@@ -532,11 +530,13 @@ public class APITestService {
         //处理附件
         Map<String, String> attachmentFiles = new HashMap<>();
 
+        List<FileMetadata> fileMetadataList = new ArrayList<>();
         for (String filePath: attachmentFilePathList) {
             File file  = new File(filePath);
             if(file.exists() && file.isFile()){
                 try{
                     FileMetadata fileMetadata = fileService.saveFile(file,FileUtil.readAsByteArray(file));
+                    fileMetadataList.add(fileMetadata);
                     attachmentFiles.put(fileMetadata.getId(),fileMetadata.getName());
                 }catch (Exception e){
                     e.printStackTrace();
@@ -545,7 +545,7 @@ public class APITestService {
         }
 
         JmxInfoDTO returnDTO = new JmxInfoDTO("Demo.jmx",jmxString,attachmentFiles);
-
+        returnDTO.setFileMetadataList(fileMetadataList);
         return returnDTO;
     }
 

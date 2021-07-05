@@ -264,7 +264,9 @@ export default {
   },
   watch: {
     test(n) {
-      this.resourcePool = n.testResourcePoolId;
+      if (n.testResourcePoolId) {
+        this.resourcePool = n.testResourcePoolId;
+      }
     },
     testId() {
       if (this.testId) {
@@ -737,7 +739,6 @@ export default {
 }
 
 .el-col {
-  margin-top: 5px;
   text-align: left;
 }
 

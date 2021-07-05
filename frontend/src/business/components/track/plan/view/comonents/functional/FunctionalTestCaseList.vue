@@ -73,6 +73,7 @@
           <template v-slot:default="scope">
             <ms-tag v-for="(tag, index) in scope.row.showTags" :key="tag + '_' + index" type="success" effect="plain"
                     :content="tag" style="margin-left: 0px; margin-right: 2px"/>
+            <span/>
           </template>
         </ms-table-column>
           <ms-table-column
@@ -269,7 +270,7 @@ import {
   initCondition,
 } from "@/common/js/tableUtils";
 import MsTable from "@/business/components/common/components/table/MsTable";
-import MsTableColumn from "@/business/components/common/components/table/Ms-table-column";
+import MsTableColumn from "@/business/components/common/components/table/MsTableColumn";
 import {getProjectMember} from "@/network/user";
 import {getTestTemplate} from "@/network/custom-field-template";
 
@@ -294,7 +295,7 @@ export default {
       type: TEST_PLAN_FUNCTION_TEST_CASE,
       fields: [],
       fieldsWidth: getCustomTableWidth('TRACK_TEST_CASE'),
-      screenHeight: 'calc(100vh - 330px)',
+      screenHeight: 'calc(100vh - 275px)',
       tableLabel: [],
       result: {},
       deletePath: "/test/case/delete",
@@ -464,20 +465,8 @@ export default {
                 this.tableData[i].customFields = JSON.parse(this.tableData[i].customFields);
               }
               this.$set(this.tableData[i], "showTags", JSON.parse(this.tableData[i].tags));
-              this.$set(this.tableData[i], "issuesSize", 0);
-              this.$get("/issues/get/" + this.tableData[i].caseId).then(response => {
-                let issues = response.data.data;
-                if (this.tableData[i]) {
-                  this.$set(this.tableData[i], "issuesSize", issues.length);
-                  this.$set(this.tableData[i], "issuesContent", issues);
-                }
-              }).catch(() => {
-                this.$set(this.tableData[i], "issuesContent", [{
-                  title: '获取缺陷失败',
-                  description: '获取缺陷失败',
-                  platform: '获取缺陷失败'
-                }]);
-              });
+              this.$set(this.tableData[i], "issuesSize", this.tableData[i].issuesCount);
+              this.$set(this.tableData[i], "issuesContent", JSON.parse(this.tableData[i].issues));
             }
           }
           this.$refs.table.clear();

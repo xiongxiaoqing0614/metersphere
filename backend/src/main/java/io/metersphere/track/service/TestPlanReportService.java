@@ -82,14 +82,14 @@ public class TestPlanReportService {
     }
 
     /**
-     * @param reportId               报告ID(外部传入）
-     * @param planId                 测试计划ID
-     * @param userId                 用户ID
-     * @param triggerMode            执行方式
-     * @param countResources         是否统计资源-false的话， 下面三个不同资源是否运行则由参数决定。 true的话则由统计后的结果决定
-     * @param apiCaseIsExecuting     接口案例是否执行中
-     * @param scenarioIsExecuting    场景案例是否执行中
-     * @param performanceIsExecuting 性能案例是否执行中
+     *  saveRequest.reportId               报告ID(外部传入）
+     *  saveRequest.planId                 测试计划ID
+     *  saveRequest.userId                 用户ID
+     *  saveRequest.triggerMode            执行方式
+     *  saveRequest.countResources         是否统计资源-false的话， 下面三个不同资源是否运行则由参数决定。 true的话则由统计后的结果决定
+     *  saveRequest.apiCaseIsExecuting     接口案例是否执行中
+     *  saveRequest.scenarioIsExecuting    场景案例是否执行中
+     *  saveRequest.performanceIsExecuting 性能案例是否执行中
      * @return
      */
     public TestPlanReport genTestPlanReport(TestPlanReportSaveRequest saveRequest) {
@@ -218,7 +218,13 @@ public class TestPlanReportService {
 
     public synchronized void updateReport(List<String> testPlanReportIdList, String runMode, String triggerMode) {
         for (String planReportId : testPlanReportIdList) {
-            this.countReportByTestPlanReportId(planReportId, runMode, triggerMode);
+            this.countReportByTestPlanReportId(planReportId, runMode, triggerMode,null);
+        }
+    }
+
+    public synchronized void updateReport(List<String> testPlanReportIdList, String runMode, String triggerMode,List<String> scenarioIdList) {
+        for (String planReportId : testPlanReportIdList) {
+            this.countReportByTestPlanReportId(planReportId, runMode, triggerMode,scenarioIdList);
         }
     }
 
@@ -236,7 +242,7 @@ public class TestPlanReportService {
      * @param resourceRunMode 资源的运行模式,triggerMode非Scedule可以为null
      * @param triggerMode     触发方式  ReportTriggerMode.enum
      */
-    public void countReportByTestPlanReportId(String planReportId, String resourceRunMode, String triggerMode) {
+    public void countReportByTestPlanReportId(String planReportId, String resourceRunMode, String triggerMode,List<String> scenarioIdList) {
         TestPlanReport testPlanReport = testPlanReportMapper.selectByPrimaryKey(planReportId);
 
         QueryTestPlanRequest queryTestPlanRequest = new QueryTestPlanRequest();
@@ -245,7 +251,8 @@ public class TestPlanReportService {
         String issuesInfo = null;
 
         //因为接口案例的定时任务是单个案例开线程运行， 所以要检查是否都执行完成。全部执行完成时才会进行统一整理
-        if (StringUtils.equalsAny(triggerMode, ReportTriggerMode.SCHEDULE.name(), ReportTriggerMode.API.name()) && StringUtils.equalsAny(resourceRunMode, ApiRunMode.SCHEDULE_API_PLAN.name(), ApiRunMode.JENKINS_API_PLAN.name())) {
+        if (StringUtils.equalsAny(triggerMode, ReportTriggerMode.SCHEDULE.name(), ReportTriggerMode.API.name())
+                && StringUtils.equalsAny(resourceRunMode, ApiRunMode.SCHEDULE_API_PLAN.name(), ApiRunMode.JENKINS_API_PLAN.name())) {
             List<String> statusList = extTestPlanApiCaseMapper.getStatusByTestPlanId(testPlan.getId());
             for (String status : statusList) {
                 if (status == null) {
@@ -253,6 +260,7 @@ public class TestPlanReportService {
                 }
             }
         } else if (StringUtils.equals(ReportTriggerMode.TEST_PLAN_SCHEDULE.name(), triggerMode)) {
+
         }
 
         testPlanReport.setEndTime(System.currentTimeMillis());
@@ -285,7 +293,7 @@ public class TestPlanReportService {
                 && StringUtils.equalsAny(resourceRunMode, ApiRunMode.SCHEDULE_API_PLAN.name(), ApiRunMode.JENKINS_API_PLAN.name())) {
             testPlanReport.setIsApiCaseExecuting(false);
         } else if (StringUtils.equalsAny(triggerMode, ReportTriggerMode.SCHEDULE.name(), ReportTriggerMode.API.name())
-                && StringUtils.equalsAny(resourceRunMode, ApiRunMode.SCHEDULE_SCENARIO_PLAN.name(), ApiRunMode.SCHEDULE_SCENARIO_PLAN.name())) {
+                && StringUtils.equalsAny(resourceRunMode, ApiRunMode.SCHEDULE_SCENARIO_PLAN.name(), ApiRunMode.JENKINS_SCENARIO_PLAN.name())) {
             testPlanReport.setIsScenarioExecuting(false);
         } else if (StringUtils.equalsAny(triggerMode, ReportTriggerMode.SCHEDULE.name(), ReportTriggerMode.API.name())
                 && StringUtils.equalsAny(resourceRunMode, ApiRunMode.SCHEDULE_PERFORMANCE_TEST.name(), ApiRunMode.JENKINS_PERFORMANCE_TEST.name())) {
@@ -319,6 +327,39 @@ public class TestPlanReportService {
         TestPlanReportDataWithBLOBs testPlanReportData = null;
         if (!testPlanReportDataList.isEmpty()) {
             testPlanReportData = testPlanReportDataList.get(0);
+
+            if (CollectionUtils.isNotEmpty(scenarioIdList)
+                &&StringUtils.equalsAny(triggerMode, ReportTriggerMode.SCHEDULE.name(), ReportTriggerMode.API.name())
+                && StringUtils.equalsAny(resourceRunMode, ApiRunMode.SCHEDULE_SCENARIO_PLAN.name(), ApiRunMode.JENKINS_SCENARIO_PLAN.name())) {
+                try{
+                    List<String> scenarioListArr = JSONArray.parseArray(testPlanReportData.getScenarioInfo(),String.class);
+                    TestCaseReportAdvanceStatusResultDTO savedDTO = JSONObject.parseObject(testPlanReportData.getExecuteResult(),TestCaseReportAdvanceStatusResultDTO.class);
+                    List<String> executeScenarioList = new ArrayList<>();
+                    if(savedDTO != null){
+                        if(savedDTO.getExecutedScenarioIds() != null){
+                            executeScenarioList = savedDTO.getExecutedScenarioIds();
+                        }
+                    }
+                    for (String scenarioId  : scenarioIdList) {
+                        if (!executeScenarioList.contains(scenarioId)) {
+                            executeScenarioList.add(scenarioId);
+                        }
+                    }
+                    if(testCaseReportMetricDTO.getExecuteResult() == null){
+                        TestCaseReportAdvanceStatusResultDTO executeResultDTO = new TestCaseReportAdvanceStatusResultDTO();
+                        testCaseReportMetricDTO.setExecuteResult(executeResultDTO);
+                    }
+                    testCaseReportMetricDTO.getExecuteResult().setExecutedScenarioIds(executeScenarioList);
+
+                    if(!CollectionUtils.isEqualCollection(scenarioListArr,executeScenarioList)){
+                        testPlanReport.setIsScenarioExecuting(true);
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+            //统计执行的场景ID
+
             testPlanReportData.setExecuteResult(JSONObject.toJSONString(testCaseReportMetricDTO.getExecuteResult()));
             testPlanReportData.setFailurTestCases(JSONObject.toJSONString(testCaseReportMetricDTO.getFailureTestCases()));
             testPlanReportData.setModuleExecuteResult(JSONArray.toJSONString(testCaseReportMetricDTO.getModuleExecuteResult()));
@@ -352,16 +393,25 @@ public class TestPlanReportService {
                     try {
                         JSONObject failurCaseObject = JSONObject.parseObject(failCaseString);
                         if (failurCaseObject.containsKey("apiTestCases") && failurCaseObject.getJSONArray("apiTestCases").size() >= 0) {
-                            status = TestPlanReportStatus.FAILED.name();
-                            return status;
+                            JSONArray array = failurCaseObject.getJSONArray("apiTestCases");
+                            if(array.size() > 0){
+                                status = TestPlanReportStatus.FAILED.name();
+                                return status;
+                            }
                         }
                         if (failurCaseObject.containsKey("loadTestCases") && failurCaseObject.getJSONArray("loadTestCases").size() >= 0) {
-                            status = TestPlanReportStatus.FAILED.name();
-                            return status;
+                            JSONArray array = failurCaseObject.getJSONArray("loadTestCases");
+                            if(array.size() > 0){
+                                status = TestPlanReportStatus.FAILED.name();
+                                return status;
+                            }
                         }
                         if (failurCaseObject.containsKey("scenarioTestCases") && failurCaseObject.getJSONArray("scenarioTestCases").size() >= 0) {
-                            status = TestPlanReportStatus.FAILED.name();
-                            return status;
+                            JSONArray array = failurCaseObject.getJSONArray("scenarioTestCases");
+                            if(array.size() > 0){
+                                status = TestPlanReportStatus.FAILED.name();
+                                return status;
+                            }
                         }
                     } catch (Exception e) {
                         status = TestPlanReportStatus.FAILED.name();
@@ -454,6 +504,12 @@ public class TestPlanReportService {
         noticeSendService.send(testPlanReport.getTriggerMode(), noticeModel);
     }
 
+    public List<TestPlanReport> getTestPlanReportApi(String planId) {
+        TestPlanReportExample example = new TestPlanReportExample();
+        example.createCriteria().andTestPlanIdEqualTo(planId);
+        return testPlanReportMapper.selectByExample(example);
+    }
+
     public TestPlanReport getTestPlanReport(String planId) {
         return testPlanReportMapper.selectByPrimaryKey(planId);
     }
@@ -523,10 +579,10 @@ public class TestPlanReportService {
 
     public void updatePerformanceTestStatus(TestPlanLoadCaseEventDTO eventDTO) {
         List<String> testPlanReportId = extTestPlanMapper.findIdByPerformanceReportId(eventDTO.getReportId());
-        if (StringUtils.equals(eventDTO.getTriggerMode(), ReportTriggerMode.SCHEDULE.name())) {
-            this.updateReport(testPlanReportId, ApiRunMode.SCHEDULE_PERFORMANCE_TEST.name(), eventDTO.getTriggerMode());
-        } else {
+        if (StringUtils.equals(eventDTO.getTriggerMode(), ReportTriggerMode.API.name())) {
             this.updateReport(testPlanReportId, ApiRunMode.JENKINS_PERFORMANCE_TEST.name(), eventDTO.getTriggerMode());
+        } else {
+            this.updateReport(testPlanReportId, ApiRunMode.SCHEDULE_PERFORMANCE_TEST.name(), eventDTO.getTriggerMode());
         }
     }
 

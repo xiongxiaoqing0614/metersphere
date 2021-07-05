@@ -14,7 +14,8 @@
                 :batch-operators="buttons"
                 :screenHeight="screenHeight"
                 :fields.sync="fields"
-                field-key="API_CASE"
+                :field-key="tableHeaderKey"
+                @saveSortField="saveSortField"
                 operator-width="170px"
                 @refresh="initTable"
                 ref="caseTable"
@@ -96,6 +97,16 @@
               <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
             </template>
           </ms-table-column>
+          <ms-table-column prop="createTime"
+                           :field="item"
+                           :fields-width="fieldsWidth"
+                           :label="$t('commons.create_time')"
+                           sortable
+                           min-width="180px">
+            <template v-slot:default="scope">
+              <span>{{ scope.row.createTime | timestampFormatDate }}</span>
+            </template>
+          </ms-table-column >
         </span>
 
         <template v-slot:opt-behind="scope">
@@ -127,7 +138,7 @@
 <script>
 
 import MsTable from "@/business/components/common/components/table/MsTable";
-import MsTableColumn from "@/business/components/common/components/table/Ms-table-column";
+import MsTableColumn from "@/business/components/common/components/table/MsTableColumn";
 import MsTableOperator from "../../../../common/components/MsTableOperator";
 import MsTableOperatorButton from "../../../../common/components/MsTableOperatorButton";
 import MsTablePagination from "../../../../common/pagination/TablePagination";
@@ -155,7 +166,7 @@ import {
   _filter,
   _sort,
   getCustomTableHeader,
-  getCustomTableWidth,
+  getCustomTableWidth,saveLastTableSortField,getLastTableSortField
 } from "@/common/js/tableUtils";
 import {API_CASE_LIST} from "@/common/js/constants";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
@@ -186,6 +197,7 @@ export default {
   data() {
     return {
       type: API_CASE_LIST,
+      tableHeaderKey:"API_CASE",
       fields: getCustomTableHeader('API_CASE'),
       fieldsWidth: getCustomTableWidth('API_CASE'),
       condition: {
@@ -206,6 +218,7 @@ export default {
           tip: this.$t('api_test.automation.execute'),
           icon: "el-icon-video-play",
           exec: this.runTestCase,
+          class: "run-button",
           permissions: ['PROJECT_API_DEFINITION:READ+RUN']
         },
         {
@@ -242,7 +255,7 @@ export default {
       currentPage: 1,
       pageSize: 10,
       total: 0,
-      screenHeight: 'calc(100vh - 320px)',//屏幕高度
+      screenHeight: 'calc(100vh - 250px)',//屏幕高度
       environmentId: undefined,
       selectAll: false,
       unSelection: [],
@@ -280,6 +293,10 @@ export default {
     planId: String
   },
   created: function () {
+    let orderArr = this.getSortField();
+    if(orderArr){
+      this.condition.orders = orderArr;
+    }
     this.initTable();
     // this.$nextTick(() => {
     //   this.$refs.caseTable.bodyWrapper.scrollTop = 5
@@ -576,6 +593,21 @@ export default {
       }
       column.width = finalWidth;
       column.realWidth = finalWidth;
+    },
+    saveSortField(key,orders){
+      saveLastTableSortField(key,JSON.stringify(orders));
+    },
+    getSortField(){
+      let orderJsonStr = getLastTableSortField(this.tableHeaderKey);
+      let returnObj = null;
+      if(orderJsonStr){
+        try {
+          returnObj = JSON.parse(orderJsonStr);
+        }catch (e){
+          return null;
+        }
+      }
+      return returnObj;
     },
     createPerformance(row, environment) {
       /**

@@ -15,6 +15,7 @@
       <el-table v-loading="result.loading" ref="table"
                 border
                 :data="tableData" row-key="id" class="test-content adjust-table ms-select-all-fixed"
+                @header-dragend="tableHeaderDragend"
                 @select-all="handleSelectAll"
                 @filter-change="filter"
                 @sort-change="sort"
@@ -28,7 +29,8 @@
                                         @selectAll="isSelectDataAll(true)"/>
         <el-table-column width="40" :resizable="false" align="center">
           <template v-slot:default="scope">
-            <show-more-btn :is-show="scope.row.showMore && !isReadOnly" :buttons="buttons" :size="selectDataCounts"/>
+            <show-more-btn :is-show-tool="scope.row.showTool" :is-show="scope.row.showMore && !isReadOnly"
+                           :buttons="buttons" :size="selectDataCounts"/>
           </template>
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
@@ -36,7 +38,7 @@
                            show-overflow-tooltip
                            :key="index"/>
           <el-table-column v-if="item.id == 'name'" prop="name" sortable="custom" min-width="120"
-                           :label="$t('api_test.definition.api_name')" show-overflow-tooltip :key="index"/>
+                           :label="$t('test_track.case.name')" show-overflow-tooltip :key="index"/>
 
           <el-table-column
             v-if="item.id == 'priority'"
@@ -46,7 +48,7 @@
             column-key="priority"
             :label="$t('test_track.case.priority')"
             show-overflow-tooltip
-            min-width="120"
+            min-width="120px"
             :key="index">
             <template v-slot:default="scope">
               <priority-table-item :value="scope.row.priority"/>
@@ -278,7 +280,7 @@ export default {
       pageSize: 10,
       total: 0,
       selectDataCounts: 0,
-      screenHeight: 'calc(100vh - 330px)',//屏幕高度
+      screenHeight: 'calc(100vh - 250px)',//屏幕高度
       // environmentId: undefined,
       currentCaseProjectId: "",
       runData: [],
@@ -712,6 +714,16 @@ export default {
       //更新统计信息
       this.selectDataCounts = getSelectDataCounts(this.condition, this.total, this.selectRows);
     },
+    tableHeaderDragend(newWidth, oldWidth, column, event){
+      if(column){
+        if(column.minWidth){
+          let minWidth = column.minWidth;
+          if(minWidth > newWidth){
+            column.width = minWidth;
+          }
+        }
+      }
+    },
   },
 };
 </script>
@@ -739,6 +751,6 @@ export default {
 }
 
 /deep/ .el-table__fixed-body-wrapper {
-  top: 59px !important;
+  top: 48px !important;
 }
 </style>

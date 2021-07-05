@@ -7,13 +7,19 @@ export function _handleSelectAll(component, selection, tableData, selectRows, co
   if (selection.length > 0) {
     if (selection.length === 1) {
       selection.hashTree = [];
-      tableData.forEach(item => {
+      tableData.forEach((item, index) => {
+        if (index === 0) {
+          component.$set(item, "showTool", true);
+        }
         component.$set(item, "showMore", true);
         selectRows.add(item);
       });
     } else {
-      tableData.forEach(item => {
+      tableData.forEach((item, index) => {
         item.hashTree = [];
+        if (index === 0) {
+          component.$set(item, "showTool", true);
+        }
         component.$set(item, "showMore", true);
         selectRows.add(item);
       });
@@ -21,6 +27,7 @@ export function _handleSelectAll(component, selection, tableData, selectRows, co
   } else {
     selectRows.clear();
     tableData.forEach(item => {
+      component.$set(item, "showTool", false);
       component.$set(item, "showMore", false);
     });
     if (condition) {
@@ -32,14 +39,17 @@ export function _handleSelectAll(component, selection, tableData, selectRows, co
 export function _handleSelect(component, selection, row, selectRows) {
   row.hashTree = [];
   if (selectRows.has(row)) {
+    component.$set(row, "showTool", false);
     component.$set(row, "showMore", false);
     selectRows.delete(row);
   } else {
+    component.$set(row, "showTool", true);
     component.$set(row, "showMore", true);
     selectRows.add(row);
   }
   let arr = Array.from(selectRows);
   arr.forEach(row => {
+    component.$set(row, "showTool", true);
     component.$set(row, "showMore", true);
   });
 }
@@ -353,6 +363,21 @@ export function saveCustomTableHeader(key, fields) {
   }
   localStorage.setItem(key, result);
 }
+/**
+ * 将上一次的表格排序字段存在 localStorage
+ * @param key
+ * @param fields
+ */
+export function saveLastTableSortField(key, field) {
+  let result = field;
+  localStorage.setItem(key+"_SORT", result);
+}
+
+export function getLastTableSortField(key) {
+  let fieldStr = localStorage.getItem(key+"_SORT");
+  return fieldStr;
+}
+
 
 /**
  * 获取对应表格的列宽

@@ -2,25 +2,33 @@
   <div v-loading="result.loading">
     <el-card>
       <template v-slot:header>
-        <ms-table-header :create-permission="['SYSTEM_GROUP:READ+CREATE','ORGANIZATION_GROUP:READ+CREATE']" :condition.sync="condition" @search="initData" @create="create"
-                         :create-tip="$t('group.create')" :title="$t('group.group_permission')" :have-search="false"/>
+        <ms-table-header :create-permission="['SYSTEM_GROUP:READ+CREATE','ORGANIZATION_GROUP:READ+CREATE']"
+                         :condition.sync="condition" @search="initData" @create="create"
+                         :create-tip="$t('group.create')" :title="$t('group.group_permission')"/>
       </template>
 
       <el-table :data="groups" border class="adjust-table" style="width: 100%"
                 :height="screenHeight" @sort-change="sort">
-        <el-table-column prop="name" :label="$t('commons.name')"/>
+        <el-table-column prop="name" :label="$t('commons.name')" show-overflow-tooltip/>
         <el-table-column prop="type" :label="$t('group.type')">
           <template v-slot="scope">
             <span>{{ userGroupType[scope.row.type] ? userGroupType[scope.row.type] : scope.row.type }}</span>
           </template>
         </el-table-column>
+        <el-table-column :label="$t('commons.member')" width="100">
+          <template v-slot:default="scope">
+            <el-link type="primary" class="member-size" @click="memberClick(scope.row)">
+              {{ scope.row.memberSize || 0 }}
+            </el-link>
+          </template>
+        </el-table-column>
         <el-table-column prop="scopeName" :label="$t('group.scope')"/>
-        <el-table-column prop="createTime" :label="$t('commons.create_time')" sortable>
+        <el-table-column prop="createTime" :label="$t('commons.create_time')" sortable show-overflow-tooltip>
           <template v-slot:default="scope">
             <span>{{ scope.row.createTime | timestampFormatDate }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="updateTime" :label="$t('commons.update_time')" sortable>
+        <el-table-column prop="updateTime" :label="$t('commons.update_time')" sortable show-overflow-tooltip>
           <template v-slot:default="scope">
             <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
           </template>
@@ -48,7 +56,7 @@
       <ms-table-pagination :change="initData" :current-page.sync="currentPage" :page-size.sync="pageSize"
                            :total="total"/>
     </el-card>
-
+    <group-member ref="groupMember" @refresh="initData"/>
     <edit-user-group ref="editUserGroup" @refresh="initData"/>
     <edit-permission ref="editPermission"/>
     <ms-delete-confirm :title="$t('group.delete')" @delete="_handleDel" ref="deleteConfirm"/>
@@ -65,10 +73,12 @@ import MsTableOperatorButton from "@/business/components/common/components/MsTab
 import EditPermission from "@/business/components/settings/system/group/EditPermission";
 import MsDeleteConfirm from "@/business/components/common/components/MsDeleteConfirm";
 import {_sort} from "@/common/js/tableUtils";
+import GroupMember from "@/business/components/settings/system/group/GroupMember";
 
 export default {
   name: "UserGroup",
   components: {
+    GroupMember,
     EditUserGroup,
     MsTableHeader,
     MsTableOperator,
@@ -84,8 +94,9 @@ export default {
       currentPage: 1,
       pageSize: 10,
       total: 0,
-      screenHeight: 'calc(100vh - 275px)',
-      groups: []
+      screenHeight: 'calc(100vh - 200px)',
+      groups: [],
+      currentGroup: {}
     };
   },
   activated() {
@@ -101,8 +112,9 @@ export default {
       this.result = this.$post("/user/group/get/" + this.currentPage + "/" + this.pageSize, this.condition, res => {
         let data = res.data;
         if (data) {
-          this.total = data.itemCount;
-          this.groups = data.listObject;
+          let {itemCount, listObject} = data;
+          this.total = itemCount;
+          this.groups = listObject;
         }
       });
     },
@@ -112,7 +124,7 @@ export default {
     edit(row) {
       if (row.id === "admin") {
         this.$warning(this.$t('group.admin_not_allow_edit'));
-        return ;
+        return;
       }
       this.$refs.editUserGroup.open(row, 'edit', this.$t('group.edit'));
     },
@@ -125,7 +137,7 @@ export default {
     del(row) {
       if (row.system) {
         this.$warning(this.$t('group.admin_not_allow_delete'));
-        return ;
+        return;
       }
       this.$refs.deleteConfirm.open(row);
     },
@@ -143,6 +155,9 @@ export default {
       _sort(column, this.condition);
       this.initData();
     },
+    memberClick(row) {
+      this.$refs.groupMember.open(row);
+    }
   }
 };
 </script>

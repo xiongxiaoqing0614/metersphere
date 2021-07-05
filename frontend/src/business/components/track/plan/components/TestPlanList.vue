@@ -3,9 +3,7 @@
     <template v-slot:header>
       <ms-table-header :create-permission="['PROJECT_TRACK_PLAN:READ+CREATE']" :condition.sync="condition"
                        @search="initTableData" @create="testPlanCreate"
-                       :create-tip="$t('test_track.plan.create_plan')"
-                       :title="$t('test_track.plan.test_plan')"
-      />
+                       :create-tip="$t('test_track.plan.create_plan')"/>
 
     </template>
 
@@ -201,7 +199,6 @@
                                @deleteClick="handleDelete(scope.row)">
               <template v-slot:middle>
                 <ms-table-operator-button v-permission="['PROJECT_TRACK_PLAN:READ+EDIT']"
-                                          style="background-color: #85888E;border-color: #85888E"
                                           v-if="!scope.row.reportId"
                                           :tip="$t('test_track.plan_view.create_report')" icon="el-icon-s-data"
                                           @exec="openTestReportTemplate(scope.row)"/>
@@ -211,13 +208,13 @@
                                           @exec="openReport(scope.row.id, scope.row.reportId)"/>
               </template>
             </ms-table-operator>
-            <ms-table-operator-button style="margin-left: 10px;color:#85888E;border-color: #85888E; border-width: thin;"
+            <ms-table-operator-button class="schedule-btn"
                                       v-permission="['PROJECT_TRACK_PLAN:READ+SCHEDULE']"
                                       v-if="!scope.row.scheduleOpen" type="text"
                                       :tip="$t('commons.trigger_mode.schedule')" icon="el-icon-time"
                                       @exec="scheduleTask(scope.row)"/>
             <ms-table-operator-button
-              style="margin-left: 10px;color:#6C317C; border-color: #6C317C; border-width: thin;"
+              class="schedule-btn"
               v-permission="['PROJECT_TRACK_PLAN:READ+SCHEDULE']"
               v-if="scope.row.scheduleOpen" type="text"
               :tip="$t('commons.trigger_mode.schedule')" icon="el-icon-time"
@@ -257,7 +254,14 @@ import TestCaseReportView from "../view/comonents/report/TestCaseReportView";
 import TestPlanCodeCoverageRateReportView from "@/business/components/track/report/components/TestPlanCodeCoverageRateReportView";
 import MsDeleteConfirm from "../../../common/components/MsDeleteConfirm";
 import {TEST_PLAN_CONFIGS} from "../../../common/components/search/search-components";
-import {_filter, _sort, deepClone, getLabel} from "@/common/js/tableUtils";
+import {
+  _filter,
+  _sort,
+  deepClone,
+  getLabel,
+  getLastTableSortField,
+  saveLastTableSortField
+} from "@/common/js/tableUtils";
 import {TEST_PLAN_LIST} from "@/common/js/constants";
 import {Test_Plan_List} from "@/business/components/common/model/JsonData";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
@@ -288,6 +292,7 @@ export default {
       createUser: "",
       type: TEST_PLAN_LIST,
       headerItems: Test_Plan_List,
+      tableHeaderKey:"TEST_PLAN_LIST",
       tableLabel: [],
       result: {},
       cardResult: {},
@@ -302,7 +307,7 @@ export default {
       hasEditPermission: false,
       total: 0,
       tableData: [],
-      screenHeight: 'calc(100vh - 295px)',
+      screenHeight: 'calc(100vh - 200px)',
       statusFilters: [
         {text: this.$t('test_track.plan.plan_status_prepare'), value: 'Prepare'},
         {text: this.$t('test_track.plan.plan_status_running'), value: 'Underway'},
@@ -329,11 +334,15 @@ export default {
       this.projectId = getCurrentProjectID();
     }
     this.hasEditPermission = hasPermission('PROJECT_TRACK_PLAN:READ+EDIT');
+    let orderArr = this.getSortField();
+    if(orderArr){
+      this.condition.orders = orderArr;
+    }
     this.initTableData();
   },
   methods: {
     inite() {
-      this.initTableData()
+      this.initTableData();
     },
     calPassRate(scope) {
       let passRate = scope.row.passRate.substring(0, scope.row.passRate.length - 1);
@@ -436,7 +445,12 @@ export default {
       this.initTableData();
     },
     sort(column) {
+      // 每次只对一个字段排序
+      if (this.condition.orders) {
+        this.condition.orders = [];
+      }
       _sort(column, this.condition);
+      this.saveSortField(this.tableHeaderKey,this.condition.orders);
       this.initTableData();
     },
     openTestReportTemplate(data) {
@@ -451,13 +465,28 @@ export default {
       row.redirectFrom = "testPlan";
       this.$refs.scheduleMaintain.open(row);
     },
-    showCoverageRateReport(row, event){
-      event.preventDefault();
-      event.stopPropagation();
-      let url = `/tuhu/testplan/report?appId=${row._appId}&branchName=${row._branchName}&commitId=${row._commitId}&stage=${row._stage}`;
-      this.$refs.testPlanCodeCoverageRateReportView.open(row.name, url);
-      // window.open(url);
-    }
+    saveSortField(key,orders){
+      saveLastTableSortField(key,JSON.stringify(orders));
+    },
+    getSortField(){
+      let orderJsonStr = getLastTableSortField(this.tableHeaderKey);
+      let returnObj = null;
+      if(orderJsonStr){
+        try {
+          returnObj = JSON.parse(orderJsonStr);
+        }catch (e){
+          return null;
+        }
+      }
+      return returnObj;
+    },
+     showCoverageRateReport(row, event){
+       event.preventDefault();
+       event.stopPropagation();
+       let url = `/tuhu/testplan/report?appId=${row._appId}&branchName=${row._branchName}&commitId=${row._commitId}&stage=${row._stage}`;
+       this.$refs.testPlanCodeCoverageRateReportView.open(row.name, url);
+       // window.open(url);
+     }
   }
 };
 </script>
@@ -472,5 +501,12 @@ export default {
 
 .el-table {
   cursor: pointer;
+}
+
+.schedule-btn >>> .el-button {
+  margin-left: 10px;
+  color:#85888E;
+  border-color: #85888E;
+  border-width: thin;
 }
 </style>

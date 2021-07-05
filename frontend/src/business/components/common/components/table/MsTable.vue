@@ -29,7 +29,8 @@
                        :resizable="false" align="center">
         <template v-slot:default="scope">
           <!-- 选中记录后浮现的按钮，提供对记录的批量操作 -->
-          <show-more-btn :is-show="scope.row.showMore" :buttons="batchOperators" :size="selectDataCounts"/>
+          <show-more-btn :is-show-tool="scope.row.showTool" :is-show="scope.row.showMore" :buttons="batchOperators"
+                         :size="selectDataCounts"/>
         </template>
       </el-table-column>
 
@@ -78,7 +79,7 @@ import MsTableHeaderSelectPopover from "@/business/components/common/components/
 import {TEST_CASE_LIST} from "@/common/js/constants";
 import MsTablePagination from "@/business/components/common/pagination/TablePagination";
 import ShowMoreBtn from "@/business/components/track/case/components/ShowMoreBtn";
-import MsTableColumn from "@/business/components/common/components/table/Ms-table-column";
+import MsTableColumn from "@/business/components/common/components/table/MsTableColumn";
 import MsTableOperators from "@/business/components/common/components/MsTableOperators";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 import HeaderCustom from "@/business/components/common/head/HeaderCustom";
@@ -249,6 +250,7 @@ export default {
         this.condition.orders = [];
       }
       _sort(column, this.condition);
+      this.$emit("saveSortField", this.fieldKey,this.condition.orders);
       this.handleRefresh();
     },
     handleBatchEdit() {

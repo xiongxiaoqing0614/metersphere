@@ -205,6 +205,51 @@ export default {
         }
       });
     },
+    increase(id) {
+      this.traverse(id, node => {
+        if (node.caseNum) {
+          node.caseNum++;
+        }
+      }, true);
+      if (this.extendTreeNodes[0].id === 'root') {
+        this.extendTreeNodes[0].caseNum++;
+      }
+    },
+    decrease(id) {
+      this.traverse(id, node => {
+        if (node.caseNum) {
+          node.caseNum--;
+        }
+      }, true);
+      if (this.extendTreeNodes[0].id === 'root') {
+        this.extendTreeNodes[0].caseNum--;
+      }
+    },
+    traverse(id, callback, isParentCallback) {
+      for (let i = 0; i < this.treeNodes.length; i++) {
+        let rootNode = this.treeNodes[i];
+        this._traverse(rootNode, id, callback, isParentCallback);
+      }
+    },
+    _traverse(rootNode, id, callback, isParentCallback) {
+      if (rootNode.id === id) {
+        if (callback) {
+          callback(rootNode);
+        }
+        return true;
+      }
+      if (!rootNode.children) {return false;}
+      for (let i = 0; i < rootNode.children.length; i++) {
+        let children = rootNode.children[i];
+        let result = this._traverse(children, id, callback, isParentCallback);
+        if (result === true) {
+          if (isParentCallback) {
+            callback(rootNode);
+          }
+          return result;
+        }
+      }
+    },
     append(node, data) {
       const newChild = {
         id: undefined,

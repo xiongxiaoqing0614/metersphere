@@ -8,9 +8,11 @@
           @relevanceCase="$emit('relevanceCase', 'scenario')"/>
       </template>
 
-      <el-table ref="scenarioTable" border :data="tableData" class="test-content adjust-table ms-select-all-fixed"
+      <el-table ref="scenarioTable"
+                border :data="tableData" class="test-content adjust-table ms-select-all-fixed"
                 @select-all="handleSelectAll"
                 @sort-change="sort"
+                @header-dragend="tableHeaderDragend"
                 @filter-change="filter"
                 :height="screenHeight"
                 @select="handleSelect">
@@ -23,7 +25,8 @@
                                         @selectAll="isSelectDataAll(true)"/>
         <el-table-column width="40" :resizable="false" align="center">
           <template v-slot:default="{row}">
-            <show-more-btn :is-show="isSelect(row)" :buttons="buttons" :size="selectDataCounts"/>
+            <show-more-btn :is-show-tool="row.showTool" :is-show="isSelect(row)" :buttons="buttons"
+                           :size="selectDataCounts"/>
           </template>
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
@@ -35,8 +38,9 @@
             label="ID"
             :key="index"/>
           <el-table-column v-if="item.id == 'name'" prop="name" :label="$t('api_test.automation.scenario_name')" min-width="120px"
+                           sortable
                            show-overflow-tooltip :key="index"/>
-          <el-table-column v-if="item.id == 'level'" prop="level" :label="$t('api_test.automation.case_level')" min-width="100px"
+          <el-table-column v-if="item.id == 'level'" prop="level" :label="$t('api_test.automation.case_level')" min-width="120px"
                            column-key="level"
                            sortable="custom"
                            :filters="LEVEL_FILTERS"
@@ -67,7 +71,7 @@
           </el-table-column>
           <el-table-column v-if="item.id == 'updateTime'"
                            prop="updateTime"
-                           min-width="120px"
+                           min-width="160px"
                            sortable="custom"
                            :label="$t('api_test.automation.update_time')" width="180" :key="index">
             <template v-slot:default="scope">
@@ -208,7 +212,7 @@ export default {
     return {
       type: TEST_PLAN_SCENARIO_CASE,
       headerItems: Test_Plan_Scenario_Case,
-      screenHeight: 'calc(100vh - 330px)',//屏幕高度
+      screenHeight: 'calc(100vh - 250px)',//屏幕高度
       tableLabel: [],
       loading: false,
       condition: {},
@@ -513,6 +517,16 @@ export default {
       //更新统计信息
       this.selectDataCounts = getSelectDataCounts(this.condition, this.total, this.selectRows);
     },
+    tableHeaderDragend(newWidth, oldWidth, column, event){
+      if(column){
+        if(column.minWidth){
+          let minWidth = column.minWidth;
+          if(minWidth > newWidth){
+            column.width = minWidth;
+          }
+        }
+      }
+    },
   }
 }
 </script>
@@ -523,9 +537,10 @@ export default {
 }
 
 .ms-select-all-fixed >>> th:nth-child(2) .el-icon-arrow-down {
-  top: -3px;
+  top: -4px;
 }
-/*/deep/ .el-table__fixed-body-wrapper {*/
-/*  top: 59px !important;*/
-/*}*/
+
+/deep/ .el-table__fixed-body-wrapper {
+ top: 48px !important;
+}
 </style>

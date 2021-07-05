@@ -17,8 +17,9 @@
       @handlePageChange="initTableData"
       @handleRowClick="handleEdit"
       :fields.sync="fields"
-      field-key="TRACK_TEST_CASE"
+      :field-key="tableHeaderKey"
       @refresh="initTableData"
+      @saveSortField="saveSortField"
       :custom-fields="testCaseTemplate.customFields"
       ref="table">
 
@@ -55,13 +56,6 @@
           :field="item"
           :fields-width="fieldsWidth"
           :label="$t('commons.create_user')"
-          min-width="120"/>
-
-        <ms-table-column
-          prop="maintainer"
-          :field="item"
-          :fields-width="fieldsWidth"
-          :label="$t('custom_field.case_maintainer')"
           min-width="120"/>
 
         <ms-table-column
@@ -109,6 +103,16 @@
             <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
           </template>
         </ms-table-column>
+        <ms-table-column prop="createTime"
+                         :field="item"
+                         :fields-width="fieldsWidth"
+                         :label="$t('commons.create_time')"
+                         sortable
+                         min-width="150px">
+          <template v-slot:default="scope">
+            <span>{{ scope.row.createTime | timestampFormatDate }}</span>
+          </template>
+        </ms-table-column >
 
         <ms-table-column v-for="field in testCaseTemplate.customFields" :key="field.id"
                          :filters="field.name === '用例等级' ? priorityFilters : null"
@@ -170,10 +174,10 @@ import {
   deepClone,
   getCustomFieldBatchEditOption,
   getCustomFieldValue,
-  getCustomTableWidth,
+  getCustomTableWidth, getLastTableSortField,
   getPageInfo,
   getTableHeaderWithCustomFields,
-  initCondition,
+  initCondition, saveLastTableSortField,
 } from "@/common/js/tableUtils";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 import PlanStatusTableItem from "@/business/components/track/common/tableItems/plan/PlanStatusTableItem";
@@ -181,7 +185,7 @@ import {getCurrentProjectID} from "@/common/js/utils";
 import {getTestTemplate} from "@/network/custom-field-template";
 import {getProjectMember} from "@/network/user";
 import MsTable from "@/business/components/common/components/table/MsTable";
-import MsTableColumn from "@/business/components/common/components/table/Ms-table-column";
+import MsTableColumn from "@/business/components/common/components/table/MsTableColumn";
 import BatchMove from "@/business/components/track/case/components/BatchMove";
 
 export default {
@@ -213,8 +217,10 @@ export default {
   },
   data() {
     return {
+      projectName:"",
       type: TEST_CASE_LIST,
-      screenHeight: 'calc(100vh - 310px)',
+      tableHeaderKey:"TRACK_TEST_CASE",
+      screenHeight: 'calc(100vh - 250px)',
       tableLabel: [],
       deletePath: "/test/case/delete",
       condition: {
@@ -314,9 +320,16 @@ export default {
   created: function () {
     this.$emit('setCondition', this.condition);
     this.condition.filters = {reviewStatus: ["Prepare", "Pass", "UnPass"]};
+    let orderArr = this.getSortField();
+    if(orderArr){
+      this.condition.orders = orderArr;
+    }
     this.initTableData();
     let redirectParam = this.$route.query.dataSelectRange;
     this.checkRedirectEditPage(redirectParam);
+    if(!this.projectName || this.projectName === ""){
+      this.getProjectName();
+    }
   },
   activated() {
     this.getTemplateField();
@@ -353,7 +366,19 @@ export default {
       });
     },
     getCustomFieldValue(row, field) {
-      return getCustomFieldValue(row, field, this.members);
+      let value = getCustomFieldValue(row, field, this.members);
+      if (!value) {
+        if (field.name === '用例等级') {
+          return row.priority;
+        }
+        if (field.name === '责任人') {
+          return row.maintainer;
+        }
+        if (field.name === '用例状态') {
+          return row.status;
+        }
+      }
+      return value;
     },
     checkRedirectEditPage(redirectParam) {
       if (redirectParam != null) {
@@ -363,6 +388,14 @@ export default {
           this.$emit('testCaseEdit', testCase);
         });
       }
+    },
+    getProjectName (){
+      this.$get('project/get/' + this.projectId, response => {
+        let project = response.data;
+        if(project){
+          this.projectName = project.name;
+        }
+      });
     },
     customHeader() {
       const list = deepClone(this.tableLabel);
@@ -489,9 +522,9 @@ export default {
     _handleDelete(testCase) {
       let testCaseId = testCase.id;
       this.$post('/test/case/delete/' + testCaseId, {}, () => {
-        this.$emit('refreshTable');
         this.initTableData();
         this.$success(this.$t('commons.delete_success'));
+        this.$emit('decrease', testCase.nodeId);
       });
     },
     refresh() {
@@ -531,7 +564,7 @@ export default {
       }
 
       this.page.result = this.$request(config).then(response => {
-        const filename = "Metersphere_case_" + localStorage.getItem(PROJECT_NAME) + ".xlsx";
+        const filename = "Metersphere_case_" + this.projectName+ ".xlsx";
         const blob = new Blob([response.data]);
         if ("download" in document.createElement("a")) {
           let aTag = document.createElement('a');
@@ -594,6 +627,21 @@ export default {
         this.$refs.testBatchMove.close();
         this.refresh();
       });
+    },
+    saveSortField(key,orders){
+      saveLastTableSortField(key,JSON.stringify(orders));
+    },
+    getSortField(){
+      let orderJsonStr = getLastTableSortField(this.tableHeaderKey);
+      let returnObj = null;
+      if(orderJsonStr){
+        try {
+          returnObj = JSON.parse(orderJsonStr);
+        }catch (e){
+          return null;
+        }
+      }
+      return returnObj;
     }
   }
 };
@@ -602,7 +650,7 @@ export default {
 <style scoped>
 
 .table-page {
-  padding-top: 20px;
+  padding-top: 10px;
   margin-right: -9px;
   float: right;
 }

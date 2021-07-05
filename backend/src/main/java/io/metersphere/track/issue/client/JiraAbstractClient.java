@@ -2,10 +2,10 @@ package io.metersphere.track.issue.client;
 
 import io.metersphere.commons.exception.MSException;
 import io.metersphere.commons.utils.LogUtil;
-import io.metersphere.track.issue.domain.JiraAddIssueResponse;
-import io.metersphere.track.issue.domain.JiraConfig;
-import io.metersphere.track.issue.domain.JiraField;
-import io.metersphere.track.issue.domain.JiraIssue;
+import io.metersphere.track.issue.domain.Jira.JiraAddIssueResponse;
+import io.metersphere.track.issue.domain.Jira.JiraConfig;
+import io.metersphere.track.issue.domain.Jira.JiraField;
+import io.metersphere.track.issue.domain.Jira.JiraIssue;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.*;
 import org.springframework.util.MultiValueMap;
@@ -23,7 +23,7 @@ public abstract class JiraAbstractClient extends BaseClient {
     protected  String PASSWD;
 
     public JiraIssue getIssues(String issuesId) {
-        LogUtil.debug("getIssues: " + issuesId);
+        LogUtil.info("getIssues: " + issuesId);
         ResponseEntity<String> responseEntity;
         responseEntity = restTemplate.exchange(getBaseUrl() + "/issue/" + issuesId, HttpMethod.GET, getAuthHttpEntity(), String.class);
         return  (JiraIssue) getResultForObject(JiraIssue.class, responseEntity);
@@ -35,17 +35,27 @@ public abstract class JiraAbstractClient extends BaseClient {
     }
 
     public JiraAddIssueResponse addIssue(String body) {
-        LogUtil.debug("addIssue: " + body);
+        LogUtil.info("addIssue: " + body);
         HttpHeaders headers = getAuthHeader();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);
-        ResponseEntity<String> response = restTemplate.exchange(getBaseUrl() + "/issue", HttpMethod.POST, requestEntity, String.class);
+        ResponseEntity<String> response = null;
+        try {
+            response = restTemplate.exchange(getBaseUrl() + "/issue", HttpMethod.POST, requestEntity, String.class);
+        } catch (Exception e) {
+            LogUtil.error(e.getMessage(), e);
+            MSException.throwException(e.getMessage());
+        }
         return (JiraAddIssueResponse) getResultForObject(JiraAddIssueResponse.class, response);
     }
 
-    public String getIssueCreateMetadata() {
-        ResponseEntity<String> response = restTemplate.exchange(getBaseUrl() + "/issue/createmeta", HttpMethod.GET, getAuthHttpEntity(), String.class);
-        return (String) getResultForObject(String.class, response);
+    public void auth() {
+        try {
+            restTemplate.exchange(getBaseUrl() + "/permissions", HttpMethod.GET, getAuthHttpEntity(), String.class);
+        } catch (Exception e) {
+            LogUtil.error(e.getMessage(), e);
+            MSException.throwException(e.getMessage());
+        }
     }
 
     protected HttpEntity<MultiValueMap> getAuthHttpEntity() {

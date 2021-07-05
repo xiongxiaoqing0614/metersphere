@@ -144,7 +144,7 @@
     </select>
     <select id="list" resultMap="BaseResultMap">
         select api_scenario.id, api_scenario.project_id, api_scenario.tags, api_scenario.user_id, api_scenario.num,
-        api_scenario.custom_num,
+        api_scenario.custom_num, api_scenario.version,
         api_scenario.api_scenario_module_id,api_scenario.module_path, api_scenario.name, api_scenario.level,
         api_scenario.status, api_scenario.principal, api_scenario.step_total, api_scenario.follow_people,
         api_scenario.last_result,api_scenario.pass_rate,api_scenario.report_id,
@@ -374,7 +374,6 @@
         from api_scenario
         left join project on api_scenario.project_id = project.id
         <include refid="queryWhereCondition"/>
-        <include refid="io.metersphere.base.mapper.ext.ExtBaseMapper.orders"/>
     </select>
     <select id="listReview" resultMap="BaseResultMap">
         select api_scenario.id, api_scenario.project_id, api_scenario.tags, api_scenario.user_id, api_scenario.num,
@@ -394,6 +393,12 @@
         select id
         from api_scenario
         WHERE use_url IS NULL
+    </select>
+    <select id="selectTrash" resultType="java.lang.Integer">
+        select count(1)
+        from api_scenario
+        where project_id = #{projectId}
+          and status = 'Trash'
     </select>
     <sql id="queryWhereConditionReview">
         <where>

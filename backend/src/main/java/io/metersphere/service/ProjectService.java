@@ -91,7 +91,7 @@ public class ProjectService {
         }
         ProjectExample example = new ProjectExample();
         example.createCriteria()
-                .andWorkspaceIdEqualTo(SessionUtils.getCurrentWorkspaceId())
+                .andWorkspaceIdEqualTo(project.getWorkspaceId())
                 .andNameEqualTo(project.getName());
         if (projectMapper.countByExample(example) > 0) {
             MSException.throwException(Translator.get("project_name_already_exists"));
@@ -105,16 +105,13 @@ public class ProjectService {
         long createTime = System.currentTimeMillis();
         project.setCreateTime(createTime);
         project.setUpdateTime(createTime);
-        // set workspace id
-        project.setWorkspaceId(SessionUtils.getCurrentWorkspaceId());
-        project.setCreateUser(SessionUtils.getUserId());
         project.setSystemId(systemId);
         projectMapper.insertSelective(project);
 
         // 创建项目为当前用户添加用户组
         UserGroup userGroup = new UserGroup();
         userGroup.setId(UUID.randomUUID().toString());
-        userGroup.setUserId(SessionUtils.getUserId());
+        userGroup.setUserId(project.getCreateUser());
         userGroup.setCreateTime(System.currentTimeMillis());
         userGroup.setUpdateTime(System.currentTimeMillis());
         userGroup.setGroupId(UserGroupConstants.PROJECT_ADMIN);
@@ -122,7 +119,7 @@ public class ProjectService {
         userGroupMapper.insert(userGroup);
 
         // 创建新项目检查当前用户 last_project_id
-        extUserMapper.updateLastProjectIdIfNull(project.getId(), SessionUtils.getUserId());
+        extUserMapper.updateLastProjectIdIfNull(project.getId(), project.getCreateUser());
 
         return project;
     }
@@ -453,5 +450,9 @@ public class ProjectService {
         } else {
             return returnList.get(0);
         }
+    }
+
+    public List<String> getProjectIds() {
+        return extProjectMapper.getProjectIds();
     }
 }

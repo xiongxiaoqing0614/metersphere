@@ -26,7 +26,8 @@
                                         @selectAll="isSelectDataAll(true)"/>
         <el-table-column min-width="40" :resizable="false" align="center">
           <template v-slot:default="scope">
-            <show-more-btn :is-show="scope.row.showMore && !isReadOnly" :buttons="buttons" :size="selectDataCounts"/>
+            <show-more-btn :is-show-tool="scope.row.showTool" :is-show="scope.row.showMore && !isReadOnly"
+                           :buttons="buttons" :size="selectDataCounts"/>
           </template>
         </el-table-column>
         <template v-for="(item, index) in tableLabel">
@@ -201,7 +202,7 @@ export default {
       total: 0,
       selectDataCounts: 0,
       status: 'default',
-      screenHeight: 'calc(100vh - 330px)',//屏幕高度
+      screenHeight: 'calc(100vh - 250px)',//屏幕高度
       buttons: [
         {
           name: this.$t('test_track.plan.load_case.unlink_in_bulk'), handleClick: this.handleDeleteBatch, permissions: ['PROJECT_TRACK_PLAN:READ+CASE_BATCH_DELETE']
@@ -495,11 +496,7 @@ export default {
 </script>
 
 <style scoped>
-/deep/ .run-button {
-  background-color: #409EFF;
-  border-color: #409EFF;
-}
 /deep/ .el-table__fixed-body-wrapper {
-  top: 59px !important;
+  top: 47px !important;
 }
 </style>

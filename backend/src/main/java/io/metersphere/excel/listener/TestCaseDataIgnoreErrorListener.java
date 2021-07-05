@@ -168,8 +168,41 @@ public class TestCaseDataIgnoreErrorListener extends EasyExcelListener<TestCaseE
                 }
             }
         }
+        /*
+        校验用例
+         */
+        if (testCaseNames.contains(data.getName())) {
+            TestCaseWithBLOBs testCase = new TestCaseWithBLOBs();
+            BeanUtils.copyBean(testCase, data);
+            testCase.setProjectId(projectId);
+            String steps = getSteps(data);
+            testCase.setSteps(steps);
+            testCase.setType("functional");
+
+            boolean dbExist = testCaseService.exist(testCase);
+            boolean excelExist = false;
+
+            if (dbExist) {
+                // db exist
+                stringBuilder.append(Translator.get("test_case_already_exists") + "：" + data.getName() + "; ");
+            } else {
+                // @Data 重写了 equals 和 hashCode 方法
+                excelExist = excelDataList.contains(data);
+            }
+
+            if (excelExist) {
+                // excel exist
+                stringBuilder.append(Translator.get("test_case_already_exists_excel") + "：" + data.getName() + "; ");
+            } else {
+                if(!dbExist){
+                    excelDataList.add(data);
+                }
+            }
+
+        } else {
             testCaseNames.add(data.getName());
             excelDataList.add(data);
+        }
         return stringBuilder.toString();
     }
 
@@ -224,6 +257,37 @@ public class TestCaseDataIgnoreErrorListener extends EasyExcelListener<TestCaseE
         }
         testCase.setNodePath(nodePath);
 
+        JSONArray customArr = new JSONArray();
+        String caseStatusValue = "";
+        if(StringUtils.equalsAny(data.getStatus(),"Underway","进行中","進行中")){
+            caseStatusValue = "Underway";
+        }else if(StringUtils.equalsAny(data.getStatus(),"Prepare","未开始","未開始")){
+            caseStatusValue = "Prepare";
+        }else if(StringUtils.equalsAny(data.getStatus(),"Completed","已完成","已完成")){
+            caseStatusValue = "Completed";
+        }
+        if(StringUtils.isNotEmpty(caseStatusValue)){
+            JSONObject  statusObj = new JSONObject();
+            statusObj.put("id",UUID.randomUUID().toString());
+            statusObj.put("name","用例状态");
+            statusObj.put("value",caseStatusValue);
+            statusObj.put("customData",null);
+            customArr.add(statusObj);
+        }
+
+        if(StringUtils.isNotEmpty(data.getMaintainer())){
+            JSONObject  obj = new JSONObject();
+            obj.put("id",UUID.randomUUID().toString());
+            obj.put("name","责任人");
+            obj.put("value",data.getMaintainer());
+            obj.put("customData",null);
+            customArr.add(obj);
+        }
+
+        if(customArr.size()>0){
+            testCase.setCustomFields(customArr.toString());
+        }
+
         //将标签设置为前端可解析的格式
         String modifiedTags = modifyTagPattern(data);
         testCase.setTags(modifiedTags);
@@ -263,6 +327,37 @@ public class TestCaseDataIgnoreErrorListener extends EasyExcelListener<TestCaseE
 
         String steps = getSteps(data);
         testCase.setSteps(steps);
+
+        JSONArray customArr = new JSONArray();
+        String caseStatusValue = "";
+        if(StringUtils.equalsAny(data.getStatus(),"Underway","进行中","進行中")){
+            caseStatusValue = "Underway";
+        }else if(StringUtils.equalsAny(data.getStatus(),"Prepare","未开始","未開始")){
+            caseStatusValue = "Prepare";
+        }else if(StringUtils.equalsAny(data.getStatus(),"Completed","已完成","已完成")){
+            caseStatusValue = "Completed";
+        }
+        if(StringUtils.isNotEmpty(caseStatusValue)){
+            JSONObject  statusObj = new JSONObject();
+            statusObj.put("id",UUID.randomUUID().toString());
+            statusObj.put("name","用例状态");
+            statusObj.put("value",caseStatusValue);
+            statusObj.put("customData",null);
+            customArr.add(statusObj);
+        }
+
+        if(StringUtils.isNotEmpty(data.getMaintainer())){
+            JSONObject  obj = new JSONObject();
+            obj.put("id",UUID.randomUUID().toString());
+            obj.put("name","责任人");
+            obj.put("value",data.getMaintainer());
+            obj.put("customData",null);
+            customArr.add(obj);
+        }
+
+        if(customArr.size()>0){
+            testCase.setCustomFields(customArr.toString());
+        }
 
         //将标签设置为前端可解析的格式
         String modifiedTags = modifyTagPattern(data);
@@ -313,12 +408,14 @@ public class TestCaseDataIgnoreErrorListener extends EasyExcelListener<TestCaseE
             StringBuffer stepBuffer = new StringBuffer();
             int lastStepIndex = 1;
             for (String row : stepDesc) {
-                int rowIndex = this.parseIndexInRow(row);
+                RowInfo rowInfo = this.parseIndexInRow(row);
+                int rowIndex = rowInfo.index;
+                String rowMessage = rowInfo.rowInfo;
                 if(rowIndex > -1){
                     listUtils.set(stepDescList,lastStepIndex-1,stepBuffer.toString(),"");
                     stepBuffer = new StringBuffer();
                     lastStepIndex = rowIndex;
-                    stepBuffer.append(row);
+                    stepBuffer.append(rowMessage);
                 }else {
                     stepBuffer.append(row);
                 }
@@ -335,12 +432,14 @@ public class TestCaseDataIgnoreErrorListener extends EasyExcelListener<TestCaseE
             StringBuffer stepBuffer = new StringBuffer();
             int lastStepIndex = 1;
             for (String row : stepRes) {
-                int rowIndex = this.parseIndexInRow(row);
+                RowInfo rowInfo = this.parseIndexInRow(row);
+                int rowIndex = rowInfo.index;
+                String rowMessage = rowInfo.rowInfo;
                 if(rowIndex > -1){
                     listUtils.set(stepResList,lastStepIndex-1,stepBuffer.toString(),"");
                     stepBuffer = new StringBuffer();
                     lastStepIndex = rowIndex;
-                    stepBuffer.append(row);
+                    stepBuffer.append(rowMessage);
                 }else {
                     stepBuffer.append(row);
                 }
@@ -372,12 +471,14 @@ public class TestCaseDataIgnoreErrorListener extends EasyExcelListener<TestCaseE
         return jsonArray.toJSONString();
     }
 
-    private int parseIndexInRow(String row) {
+    private RowInfo parseIndexInRow(String row) {
+        RowInfo rowInfo = new RowInfo();
         String parseString = row;
         int index = -1;
+        String rowMessage = row;
         String [] indexSplitCharArr = new String[]{")","）","]","】",".",",","，","。"};
         if(StringUtils.startsWithAny(row,"(","（","[","【")){
-            parseString = parseString.substring(1);    
+            parseString = parseString.substring(1);
         }
         for (String splitChar : indexSplitCharArr) {
             if(StringUtils.contains(parseString,splitChar)){
@@ -387,15 +488,24 @@ public class TestCaseDataIgnoreErrorListener extends EasyExcelListener<TestCaseE
                     if(StringUtils.isNumeric(indexString)){
                         try {
                             index = Integer.parseInt(indexString);
+                            rowMessage = StringUtils.substring(parseString,indexString.length()+splitChar.length());
                         }catch (Exception e){}
+
                         if(index > -1){
                             break;
+                        }else {
+                            rowMessage = row;
                         }
                     }
                 }
             }
         }
-        return index;
+        rowInfo.index = index;
+        if(rowMessage == null){
+            rowMessage = "";
+        }
+        rowInfo.rowInfo = rowMessage;
+        return rowInfo;
     }
 
     @Override
@@ -432,4 +542,10 @@ public class TestCaseDataIgnoreErrorListener extends EasyExcelListener<TestCaseE
             list.clear();
         }
     }
+
+    class RowInfo{
+        public int index;
+        public String rowInfo;
+    }
 }
+

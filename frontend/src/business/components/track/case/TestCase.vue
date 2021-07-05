@@ -38,6 +38,7 @@
               @refresh="refresh"
               @refreshAll="refreshAll"
               @setCondition="setCondition"
+              @decrease="decrease"
               :custom-num="custom_num"
               ref="testCaseList">
             </test-case-list>
@@ -310,6 +311,12 @@ export default {
       this.$refs.nodeTree.list();
       this.setTable(data);
     },
+    increase(id) {
+      this.$refs.nodeTree.increase(id);
+    },
+    decrease(id) {
+      this.$refs.nodeTree.decrease(id);
+    },
     editTestCase(testCase) {
       this.type = "edit";
       this.testCaseReadOnly = false;
@@ -407,7 +414,7 @@ export default {
 <style scoped>
 
 .el-main {
-  padding: 15px;
+  padding: 5px 10px;
 }
 
 /deep/ .el-button-group > .el-button:first-child {

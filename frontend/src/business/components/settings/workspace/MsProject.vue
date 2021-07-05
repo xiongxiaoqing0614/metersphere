@@ -89,39 +89,44 @@
 
     <el-dialog :close-on-click-modal="false" :title="title" :visible.sync="createVisible" destroy-on-close
                @close="handleClose">
-      <el-form :model="form" :rules="rules" ref="form" label-position="right" label-width="140px" size="small">
-        <el-form-item :label="$t('commons.name')" prop="name">
+      <el-form :model="form" :rules="rules" ref="form" label-position="right" label-width="80px" size="small">
+        <el-form-item :label-width="labelWidth" :label="$t('commons.name')" prop="name">
           <el-input v-model="form.name" autocomplete="off"></el-input>
         </el-form-item>
 
 
-        <el-form-item :label="$t('用例模板')" prop="caseTemplateId">
+        <el-form-item :label-width="labelWidth" :label="$t('用例模板')" prop="caseTemplateId">
           <template-select :data="form" scene="API_CASE" prop="caseTemplateId" ref="caseTemplate"/>
         </el-form-item>
-        <el-form-item :label="$t('缺陷模板')" prop="issueTemplateId">
+        <el-form-item :label-width="labelWidth" :label="$t('缺陷模板')" prop="issueTemplateId">
           <template-select :data="form" scene="ISSUE" prop="issueTemplateId" ref="issueTemplate"/>
         </el-form-item>
 
 
-        <el-form-item :label="$t('commons.description')" prop="description">
+        <el-form-item :label-width="labelWidth" :label="$t('commons.description')" prop="description">
           <el-input :autosize="{ minRows: 2, maxRows: 4}" type="textarea" v-model="form.description"></el-input>
         </el-form-item>
-        <el-form-item :label="$t('project.tapd_id')" v-if="tapd">
+        <el-form-item :label-width="labelWidth" :label="$t('project.tapd_id')" v-if="tapd">
           <el-input v-model="form.tapdId" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item :label="$t('project.jira_key')" v-if="jira">
-          <el-input v-model="form.jiraKey" autocomplete="off"></el-input>
+        <el-form-item :label-width="labelWidth" :label="$t('project.jira_key')" v-if="jira">
+          <el-input v-model="form.jiraKey" autocomplete="off"/>
+          <ms-instructions-icon effect="light">
+            <template>
+              <img class="jira-image" src="../../../../assets/jira-key.png"/>
+            </template>
+          </ms-instructions-icon>
         </el-form-item>
-        <el-form-item :label="$t('project.zentao_id')" v-if="zentao">
+        <el-form-item :label-width="labelWidth" :label="$t('project.zentao_id')" v-if="zentao">
           <el-input v-model="form.zentaoId" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item :label="$t('project.repeatable')" prop="repeatable">
+        <el-form-item :label-width="labelWidth" :label="$t('project.repeatable')" prop="repeatable">
           <el-switch v-model="form.repeatable"></el-switch>
         </el-form-item>
-        <el-form-item label="测试用例自定义ID" prop="customNum">
+        <el-form-item :label-width="labelWidth" label="测试用例自定义ID" prop="customNum">
           <el-switch v-model="form.customNum"></el-switch>
         </el-form-item>
-        <el-form-item label="场景自定义ID" prop="scenarioCustomNum">
+        <el-form-item :label-width="labelWidth" label="场景自定义ID" prop="scenarioCustomNum">
           <el-switch v-model="form.scenarioCustomNum"></el-switch>
         </el-form-item>
       </el-form>
@@ -221,7 +226,7 @@ import MsDialogFooter from "../../common/components/MsDialogFooter";
 import {
   getCurrentOrganizationId,
   getCurrentProjectID,
-  getCurrentUser,
+  getCurrentUser, getCurrentUserId,
   getCurrentWorkspaceId,
   listenGoBack,
   removeGoBackListener
@@ -241,10 +246,12 @@ import TemplateSelect from "@/business/components/settings/workspace/template/Te
 import {PROJECT_CONFIGS} from "@/business/components/common/components/search/search-components";
 import MsRolesTag from "@/business/components/common/components/MsRolesTag";
 import AddMember from "@/business/components/settings/common/AddMember";
+import MsInstructionsIcon from "@/business/components/common/components/MsInstructionsIcon";
 
 export default {
   name: "MsProject",
   components: {
+    MsInstructionsIcon,
     TemplateSelect,
     MsResourceFiles,
     MsTableButton,
@@ -289,7 +296,7 @@ export default {
         // caseTemplateId: [{required: true}],
         // issueTemplateId: [{required: true}],
       },
-      screenHeight: 'calc(100vh - 255px)',
+      screenHeight: 'calc(100vh - 195px)',
       dialogCondition: {},
       memberVisible: false,
       memberLineData: [],
@@ -298,7 +305,8 @@ export default {
       dialogPageSize: 10,
       dialogTotal: 0,
       currentProjectId: "",
-      userList: []
+      userList: [],
+      labelWidth: '150px'
     };
   },
   props: {
@@ -368,7 +376,7 @@ export default {
       this.createVisible = true;
       listenGoBack(this.handleClose);
       this.form = Object.assign({}, row);
-      this.$get("/service/integration/all/" + getCurrentUser().lastOrganizationId, response => {
+      this.$get("/service/integration/all/" + getCurrentOrganizationId(), response => {
         let data = response.data;
         let platforms = data.map(d => d.platform);
         if (platforms.indexOf("Tapd") !== -1) {
@@ -392,6 +400,8 @@ export default {
           var protocol = document.location.protocol;
           protocol = protocol.substring(0, protocol.indexOf(":"));
           this.form.protocal = protocol;
+          this.form.workspaceId = getCurrentWorkspaceId();
+          this.form.createUser = getCurrentUserId();
           this.result = this.$post("/project/" + saveType, this.form, () => {
             this.createVisible = false;
             Message.success(this.$t('commons.save_success'));
@@ -635,5 +645,9 @@ pre {
   float: right;
   color: #8492a6;
   font-size: 13px;
+}
+
+.el-input,.el-textarea {
+  width: 95%;
 }
 </style>

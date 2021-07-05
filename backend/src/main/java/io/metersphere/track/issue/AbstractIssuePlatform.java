@@ -3,18 +3,22 @@ package io.metersphere.track.issue;
 import com.alibaba.fastjson.JSONArray;
 import io.metersphere.base.domain.*;
 import io.metersphere.base.mapper.IssuesMapper;
+import io.metersphere.base.mapper.ProjectMapper;
 import io.metersphere.base.mapper.TestCaseIssuesMapper;
+import io.metersphere.base.mapper.WorkspaceMapper;
 import io.metersphere.base.mapper.ext.ExtIssuesMapper;
 import io.metersphere.commons.exception.MSException;
-import io.metersphere.commons.user.SessionUser;
 import io.metersphere.commons.utils.CommonBeanFactory;
 import io.metersphere.commons.utils.EncryptUtils;
 import io.metersphere.commons.utils.LogUtil;
-import io.metersphere.commons.utils.SessionUtils;
+import io.metersphere.commons.utils.*;
 import io.metersphere.controller.request.IntegrationRequest;
 import io.metersphere.dto.CustomFieldItemDTO;
+import io.metersphere.dto.UserDTO;
 import io.metersphere.service.IntegrationService;
 import io.metersphere.service.ProjectService;
+import io.metersphere.service.ResourceService;
+import io.metersphere.service.UserService;
 import io.metersphere.track.request.testcase.IssuesRequest;
 import io.metersphere.track.request.testcase.IssuesUpdateRequest;
 import io.metersphere.track.service.TestCaseService;
@@ -23,6 +27,9 @@ import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.safety.Whitelist;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.CollectionUtils;
@@ -45,12 +52,17 @@ public abstract class AbstractIssuePlatform implements IssuesPlatform {
     protected TestCaseService testCaseService;
     protected IssuesMapper issuesMapper;
     protected ExtIssuesMapper extIssuesMapper;
-
+    protected ResourceService resourceService;
     protected RestTemplate restTemplateIgnoreSSL;
-
+    protected UserService userService;
+    protected WorkspaceMapper workspaceMapper;
+    protected ProjectMapper projectMapper;
     protected String testCaseId;
     protected String projectId;
     protected String key;
+    protected String orgId;
+    protected String userId;
+
 
     public String getKey() {
         return key;
@@ -80,20 +92,18 @@ public abstract class AbstractIssuePlatform implements IssuesPlatform {
         this.testCaseIssuesMapper = CommonBeanFactory.getBean(TestCaseIssuesMapper.class);
         this.projectService = CommonBeanFactory.getBean(ProjectService.class);
         this.testCaseService = CommonBeanFactory.getBean(TestCaseService.class);
+        this.userService = CommonBeanFactory.getBean(UserService.class);
         this.issuesMapper = CommonBeanFactory.getBean(IssuesMapper.class);
         this.extIssuesMapper = CommonBeanFactory.getBean(ExtIssuesMapper.class);
+        this.resourceService = CommonBeanFactory.getBean(ResourceService.class);
         this.testCaseId = issuesRequest.getTestCaseId();
         this.projectId = issuesRequest.getProjectId();
-        //
+        this.orgId = issuesRequest.getOrganizationId();
+        this.userId = issuesRequest.getUserId();
         this.restTemplateIgnoreSSL = restTemplate;
     }
 
     protected String getPlatformConfig(String platform) {
-        SessionUser user = SessionUtils.getUser();
-        String orgId = user.getLastOrganizationId();
-/*
-        String orgId = "88aceecf-5764-4094-96a9-f82bd52e77ad";
-*/
         IntegrationRequest request = new IntegrationRequest();
         if (StringUtils.isBlank(orgId)) {
             MSException.throwException("organization id is null");
@@ -174,6 +184,17 @@ public abstract class AbstractIssuePlatform implements IssuesPlatform {
         issuesMapper.insert(issues);
     }
 
+    protected void insertIssues(String id, IssuesUpdateRequest issuesRequest) {
+        IssuesWithBLOBs issues = new IssuesWithBLOBs();
+        BeanUtils.copyBean(issues, issuesRequest);
+        issues.setId(id);
+        issues.setCreateTime(System.currentTimeMillis());
+        issues.setUpdateTime(System.currentTimeMillis());
+        issues.setNum(getNextNum(issuesRequest.getProjectId()));
+        issues.setPlatformStatus(issuesRequest.getPlatformStatus());
+        issuesMapper.insert(issues);
+    }
+
     protected int getNextNum(String projectId) {
         Issues issue = extIssuesMapper.getNextNum(projectId);
         if (issue == null || issue.getNum() == null) {
@@ -188,5 +209,24 @@ public abstract class AbstractIssuePlatform implements IssuesPlatform {
             return JSONArray.parseArray(customFieldsStr, CustomFieldItemDTO.class);
         }
         return new ArrayList<>();
+    }
+
+    /**
+     * 将html格式的缺陷描述转成ms平台的格式
+     * @param htmlDesc
+     * @return
+     */
+    protected String htmlDesc2MsDesc(String htmlDesc) {
+        Document document = Jsoup.parse(htmlDesc);
+        document.outputSettings(new Document.OutputSettings().prettyPrint(false));
+        document.select("br").append("\\n");
+        document.select("p").prepend("\\n\\n");
+        String s = document.html().replaceAll("\\\\n", "\n");
+        String desc = Jsoup.clean(s, "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
+        return desc.replace("&nbsp;", "");
+    }
+
+    protected UserDTO.PlatformInfo getUserPlatInfo(String orgId) {
+        return userService.getCurrentPlatformInfo(orgId);
     }
 }

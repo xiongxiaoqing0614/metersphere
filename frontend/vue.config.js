@@ -1,7 +1,7 @@
-const path = require('path')
+const path = require('path');
 
 function resolve(dir) {
-  return path.join(__dirname, dir)
+  return path.join(__dirname, dir);
 }
 
 module.exports = {
@@ -43,6 +43,6 @@ module.exports = {
     }
   },
   chainWebpack(config) {
-    config.plugins.delete('prefetch')
+    config.plugins.delete('prefetch');
   }
 };

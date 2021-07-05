@@ -14,7 +14,7 @@
     <select id="getIssuesByProjectId" resultType="io.metersphere.base.domain.IssuesDao">
         select issues.id, issues.num, ifnull(issues.title, '') as title, issues.project_id, issues.create_time, issues.update_time,
                ifnull(issues.description, '') as description, issues.status, issues.platform, issues.custom_fields, issues.reporter,
-               issues.creator,issues.resource_id,
+               issues.creator,issues.resource_id,issues.platform_status,
                issues.lastmodify
         from issues
         <include refid="queryWhereCondition"/>
@@ -34,12 +34,20 @@
         and test_case_issues.issues_id is null
         <include refid="io.metersphere.base.mapper.ext.ExtBaseMapper.orders"/>
     </select>
+    <select id="getIssueForSync" resultType="io.metersphere.base.domain.IssuesDao">
+        select id,platform
+        from issues
+        where project_id = #{projectId} and platform != 'Local';
+    </select>
 
     <sql id="queryWhereCondition">
         <where>
 
             <if test="request.name != null">
-                and issues.title LIKE CONCAT('%', #{request.name}, '%')
+                and (
+                      issues.title LIKE CONCAT('%', #{request.name}, '%')
+                      or issues.id LIKE CONCAT('%', #{request.name}, '%')
+                    )
             </if>
 
             <if test="request.projectId != null and request.projectId != ''">

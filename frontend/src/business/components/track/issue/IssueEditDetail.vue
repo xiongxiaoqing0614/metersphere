@@ -1,7 +1,7 @@
 <template>
   <el-main v-loading="result.loading" class="container" :style="isPlan ? '' : 'height: calc(100vh - 62px)'">
     <el-scrollbar>
-      <el-form :model="form" :rules="rules" label-position="right" label-width="140px" ref="form">
+      <el-form :model="form" :rules="rules" label-position="right" label-width="80px" ref="form">
 
         <el-form-item :label="$t('commons.title')" prop="title">
           <el-input v-model="form.title" autocomplete="off"></el-input>
@@ -76,7 +76,7 @@ import {buildCustomFields, getTemplate, parseCustomField} from "@/common/js/cust
 import CustomFiledComponent from "@/business/components/settings/workspace/template/CustomFiledComponent";
 import TestCaseIssueList from "@/business/components/track/issue/TestCaseIssueList";
 import IssueEditDetail from "@/business/components/track/issue/IssueEditDetail";
-import {getCurrentProjectID, getCurrentUserId} from "@/common/js/utils";
+import {getCurrentOrganizationId, getCurrentProjectID, getCurrentUserId} from "@/common/js/utils";
 import {getIssueTemplate} from "@/network/custom-field-template";
 
 export default {
@@ -96,7 +96,7 @@ export default {
       result: {},
       relateFields: [],
       isFormAlive: true,
-      formLabelWidth: "120px",
+      formLabelWidth: "100px",
       issueTemplate: {},
       customFieldForm: {},
       customFieldRules: {},
@@ -158,18 +158,18 @@ export default {
       let platform = this.issueTemplate.platform;
       if (platform === 'Zentao') {
         this.hasZentaoId = true;
-        this.result = this.$post("/issues/zentao/builds", {projectId: this.projectId}, response => {
+        this.result = this.$post("/issues/zentao/builds", {projectId: this.projectId, organizationId: getCurrentOrganizationId()}, response => {
           if (response.data) {
             this.Builds = response.data;
           }
-          this.result = this.$post("/issues/zentao/user", {projectId: this.projectId}, response => {
+          this.result = this.$post("/issues/zentao/user", {projectId: this.projectId, organizationId: getCurrentOrganizationId()}, response => {
             this.zentaoUsers = response.data;
           });
         });
       }
       if (platform === 'Tapd') {
         this.hasTapdId = true;
-        this.result = this.$post("/issues/tapd/user", {projectId: this.projectId}, (response) => {
+        this.result = this.$post("/issues/tapd/user", {projectId: this.projectId, organizationId: getCurrentOrganizationId()}, (response) => {
           this.tapdUsers = response.data;
         });
       }
@@ -234,6 +234,7 @@ export default {
       let param = {};
       Object.assign(param, this.form);
       param.projectId = this.projectId;
+      param.organizationId = getCurrentOrganizationId();
       buildCustomFields(this.form, param, this.issueTemplate);
       if (this.isPlan) {
         param.testCaseIds = [this.caseId];

@@ -2,8 +2,7 @@
   <el-card class="table-card" v-loading="result.loading">
     <template v-slot:header>
       <ms-table-header :condition.sync="condition" :show-create="false"
-                       @search="initTableData"
-                       :title="$t('test_track.report.name')"/>
+                       @search="initTableData"/>
     </template>
     <el-table border :data="tableData"
               @select-all="handleSelectAll"
@@ -103,7 +102,7 @@ import {
   _sort, checkTableRowIsSelect,
   getSelectDataCounts,
   initCondition,
-  setUnSelectIds, toggleAllSelection,
+  setUnSelectIds, toggleAllSelection,saveLastTableSortField,getLastTableSortField
 } from "@/common/js/tableUtils";
 import MsTableHeaderSelectPopover from "@/business/components/common/components/table/MsTableHeaderSelectPopover";
 import {getCurrentProjectID} from "@/common/js/utils";
@@ -122,6 +121,7 @@ export default {
     return {
       result: {},
       enableDeleteTip: false,
+      tableHeaderKey:"TRACK_REPORT_TABLE",
       queryPath: "/test/plan/report/list",
       condition: {
         components: TEST_PLAN_REPORT_CONFIGS
@@ -130,7 +130,7 @@ export default {
       pageSize: 10,
       isTestManagerOrTestUser: false,
       selectRows: new Set(),
-      screenHeight: 'calc(100vh - 295px)', //屏幕高度
+      screenHeight: 'calc(100vh - 200px)', //屏幕高度
       total: 0,
       tableData: [],
       statusFilters: [
@@ -162,11 +162,16 @@ export default {
       this.projectId = getCurrentProjectID();
     }
     this.isTestManagerOrTestUser = true;
+
     this.initTableData();
   },
   methods: {
     initTableData() {
       initCondition(this.condition, this.condition.selectAll);
+      let orderArr = this.getSortField();
+      if(orderArr){
+        this.condition.orders = orderArr;
+      }
       this.selectRows = new Set();
       if (this.planId) {
         this.condition.planId = this.planId;
@@ -247,7 +252,12 @@ export default {
       this.initTableData();
     },
     sort(column) {
+      // 每次只对一个字段排序
+      if (this.condition.orders) {
+        this.condition.orders = [];
+      }
       _sort(column, this.condition);
+      this.saveSortField(this.tableHeaderKey,this.condition.orders);
       this.initTableData();
     },
     openReport(planId) {
@@ -266,13 +276,28 @@ export default {
       //更新统计信息
       this.selectDataCounts = getSelectDataCounts(this.condition, this.total, this.selectRows);
     },
+    saveSortField(key,orders){
+      saveLastTableSortField(key,JSON.stringify(orders));
+    },
+    getSortField(){
+      let orderJsonStr = getLastTableSortField(this.tableHeaderKey);
+      let returnObj = null;
+      if(orderJsonStr){
+        try {
+          returnObj = JSON.parse(orderJsonStr);
+        }catch (e){
+          return null;
+        }
+      }
+      return returnObj;
+    },
     showCoverageRateReport(row, event){
-      event.preventDefault();
-      event.stopPropagation();
-      let url = `/tuhu/testplan/report?appId=${row._appId}&branchName=${row._branchName}&commitId=${row._commitId}&stage=${row._stage}`;
-      this.$refs.testPlanCodeCoverageRateReportView.open(row.name, url);
-      // window.open(url);
-    }
+       event.preventDefault();
+       event.stopPropagation();
+       let url = `/tuhu/testplan/report?appId=${row._appId}&branchName=${row._branchName}&commitId=${row._commitId}&stage=${row._stage}`;
+       this.$refs.testPlanCodeCoverageRateReportView.open(row.name, url);
+       // window.open(url);
+     }
   }
 }
 </script>
