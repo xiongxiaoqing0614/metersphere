@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config mode="client">
+    <servers>
+        <server ip="cat.tuhutest.cn" port="2280" http-port="2281"/>
+    </servers>
+</config>
