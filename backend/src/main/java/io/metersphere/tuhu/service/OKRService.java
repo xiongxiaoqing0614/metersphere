@@ -147,15 +147,20 @@ public class OKRService {
                 existTeam.setProject("工作空间项目");
                 returnData.add(existTeam);
             }else{
-                existTeam.setApiCount(existTeam.getCompletedAPICount() + record.getCompletedAPICount());
+                // 季度 OKR 接口数量
+                existTeam.setApiCount(existTeam.getApiCount() + record.getApiCount());
                 existTeam.setP0APICount(existTeam.getP0APICount() + record.getP0APICount());
                 existTeam.setNonP0APICount(existTeam.getNonP0APICount() + record.getNonP0APICount());
 
+                // 本周 新增数量
                 existTeam.setApiCountThisWeek(existTeam.getApiCountThisWeek() + record.getApiCountThisWeek());
+                existTeam.setP0APICountThisWeek(existTeam.getP0APICountThisWeek() + record.getP0APICountThisWeek());
                 existTeam.setSingleCountThisWeek(existTeam.getSingleCountThisWeek() + record.getSingleCountThisWeek());
                 existTeam.setScenarioCountThisWeek(existTeam.getScenarioCountThisWeek() + record.getScenarioCountThisWeek());
 
+                // 全量 已完成数量
                 existTeam.setCompletedAPICount(existTeam.getCompletedAPICount() + record.getCompletedAPICount());
+                existTeam.setCompletedP0APICount(existTeam.getCompletedP0APICount() + record.getCompletedP0APICount());
                 existTeam.setCompletedSingleCount(existTeam.getCompletedSingleCount() + record.getCompletedSingleCount());
                 existTeam.setCompletedScenarioCount(existTeam.getCompletedScenarioCount() + record.getCompletedScenarioCount());
 

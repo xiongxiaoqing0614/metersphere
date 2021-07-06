@@ -284,7 +284,7 @@ export default {
       this.result = this.$post(path + "/" + this.dialogCurrentPage + "/" + this.dialogPageSize, param, res => {
         let data = res.data;
         this.memberLineData = data.listObject;
-        let url = "/userrole/list/ws/" + row.id;
+        let url = "/user/group/list/ws/" + row.id;
         // 填充角色信息
         for (let i = 0; i < this.memberLineData.length; i++) {
           this.$get(url + "/" + encodeURIComponent(this.memberLineData[i].id), response => {
