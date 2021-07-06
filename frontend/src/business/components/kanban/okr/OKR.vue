@@ -126,7 +126,7 @@ export default {
   },
   created() {
     this.getOKRNames();
-    this.getSummary();
+    // this.getSummary();
     this.$nextTick(() => {
       // 将表格和工具栏进行关联
       const $table = this.$refs.xTable
@@ -152,8 +152,8 @@ export default {
     getOKRNames(){
       this.result = this.$get("/tuhu/okr/getOKRNames", response => {
         this.okrNames = response.data;
-        if(this.okrName == null && this.okrNames.length > 0)
-          this.okrName = this.okrNames[0];
+        // if(this.okrName == null && this.okrNames.length > 0)
+        //   this.okrName = this.okrNames[0];
       });
     },
     getSummary(){
