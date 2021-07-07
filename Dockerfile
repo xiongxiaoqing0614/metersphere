@@ -26,10 +26,6 @@ ENV JAVA_MAIN_CLASS=io.metersphere.Application
 ENV AB_OFF=true
 ENV MS_VERSION=${MS_VERSION}
 ENV JAVA_OPTIONS="
- -Dfile.encoding=utf-8 -Djava.awt.headless=true -javaagent:/app/cat/polaris-agent.jar
- -Djava._appid_=int-website-arch-autotest-metersphere -Djava._environment_=work -server -Xms12g -Xmx12g
- -XX:+DisableExplicitGC -XX:+UseConcMarkSweepGC -XX:NewRatio=1 -XX:SurvivorRatio=4  -Xss256k
- -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintHeapAtGC -XX:+PrintGCTimeStamps -XX:+HeapDumpOnOutOfMemoryError
- -XX:HeapDumpPath=/tmp -XX:MaxMetaspaceSize=1g -XX:PermSize=512M -XX:MaxPermSize=1g "
+ -Dfile.encoding=utf-8 -Djava.awt.headless=true -javaagent:/app/cat/polaris-agent.jar -Djava._appid_=int-website-arch-autotest-metersphere -Djava._environment_=work -server -Xms12g -Xmx12g -XX:+DisableExplicitGC -XX:+UseConcMarkSweepGC -XX:NewRatio=1 -XX:SurvivorRatio=4  -Xss256k -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintHeapAtGC -XX:+PrintGCTimeStamps -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp -XX:MaxMetaspaceSize=1g -XX:PermSize=512M -XX:MaxPermSize=1g "
 
 CMD ["/deployments/run-java.sh"]
