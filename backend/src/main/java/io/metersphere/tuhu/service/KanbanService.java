@@ -137,7 +137,7 @@ public class KanbanService {
         Date lastTime = startAndEndDateInWeek.get("lastTime");
 
         Point event = Point.event()
-                .type("startAndEndDateInWeek").name("name1234")
+                .type("Summary").name("getSummaryV2")
                 .status(PolarisConstants.MESSAGE_SUCCESS).build();
         Polaris.logPoint(event);
 
